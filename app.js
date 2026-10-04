@@ -2,7 +2,7 @@
 const VAPID_PUBLIC_KEY = "BCw69mMtS2gckHI0voqwM4uR0eupiXHxpfijl5sU0IrPSgD6SYNlcgKPKvkgH24NCACK8-TbzvuH6D1QHfVzGuI";
 
 const $ = (id) => document.getElementById(id);
-const LABELS = { on_sale: "Tickets on sale", check: "Check manually", problem: "Watcher problem" };
+const LABELS = { on_sale: "Tickets on sale", check: "Check manually", problem: "Watcher problem", test: "Test notification" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
 function openDb() {
