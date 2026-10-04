@@ -1,4 +1,4 @@
-const CACHE = "timepiece-v20";
+const CACHE = "timepiece-v21";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 

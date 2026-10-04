@@ -220,6 +220,15 @@ $("test").onclick = async () => {
   reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
 };
 
+// ---- Short-page fix: a Home Screen app whose page is a little shorter than the screen (seen on an iOS beta) ----
+function checkStrip() {
+  const gap = screen.height - innerHeight;
+  document.documentElement.classList.toggle("strip", standalone() && innerWidth === screen.width && gap > 0 && gap <= 100);
+}
+checkStrip();
+addEventListener("resize", checkStrip);
+addEventListener("orientationchange", checkStrip);
+
 // ---- Screen Info: the real sizes this phone reports, for fixing layout problems ----
 $("screeninfo").onclick = () => {
   const probe = document.createElement("div");
@@ -237,6 +246,7 @@ $("screeninfo").onclick = () => {
     `header: ${r(document.querySelector("header"))}`,
     `tab bar: ${r($("tabs"))}`,
     `standalone: ${standalone()}`,
+    `short-page fix on: ${document.documentElement.classList.contains("strip")}`,
     `pixel ratio: ${devicePixelRatio}`,
   ].join("\n");
   probe.remove();
