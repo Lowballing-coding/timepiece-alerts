@@ -33,6 +33,16 @@ function esc(s) {
 function safeUrl(u) {
   return /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(u || "") ? u : "";
 }
+// The dial on the empty screen shows this phone's own local time (the seconds hand is synced when it is drawn).
+function setClock() {
+  const h = $("clk-h"), m = $("clk-m");
+  if (!h) return;
+  const d = new Date(), min = d.getMinutes() + d.getSeconds() / 60;
+  m.setAttribute("transform", `rotate(${min * 6} 60 60)`);
+  h.setAttribute("transform", `rotate(${((d.getHours() % 12) + min / 60) * 30} 60 60)`);
+}
+setInterval(setClock, 10000);
+
 // Alerts the server sent to this person that never reached this phone (it was off, the push expired, ...).
 async function fetchMissed(local) {
   if (!session || !profile || profile.status !== "approved") return [];
@@ -60,13 +70,15 @@ async function renderAlerts() {
       <svg viewBox="0 0 120 120" aria-hidden="true">
         <circle class="ring" cx="60" cy="60" r="54" stroke-width="3"/>
         ${Array.from({ length: 12 }, (_, i) => `<line class="tick" x1="60" y1="10" x2="60" y2="${i % 3 ? 16 : 20}" stroke-width="${i % 3 ? 2 : 3}" transform="rotate(${i * 30} 60 60)"/>`).join("")}
-        <path class="hand" d="M60 60V34M60 60l18 10" stroke-width="4"/>
-        <g class="sweep"><line class="sweepline" x1="60" y1="70" x2="60" y2="14" stroke-width="1.5"/></g>
+        <line id="clk-h" class="hand" x1="60" y1="60" x2="60" y2="36" stroke-width="4"/>
+        <line id="clk-m" class="hand" x1="60" y1="60" x2="60" y2="24" stroke-width="3"/>
+        <g class="sweep" style="animation-delay:-${new Date().getSeconds() + new Date().getMilliseconds() / 1000}s"><line class="sweepline" x1="60" y1="70" x2="60" y2="14" stroke-width="1.5"/></g>
         <circle class="hub" cx="60" cy="60" r="3.5"/>
       </svg>
       <h2>Nothing on Sale Yet</h2>
       <p class="muted">When your watcher finds tickets, they show up here and on your lock screen.</p>
     </div>`;
+    setClock();
     return;
   }
   const dayKey = (t) => new Date(t).toDateString();
