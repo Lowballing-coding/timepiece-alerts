@@ -176,6 +176,25 @@
   .person .state-pending { color: var(--check); } .person .state-approved { color: var(--on); } .person .state-blocked { color: var(--problem); }
   .row-actions { display: flex; gap: 8px; margin-top: 10px; }
   .row-actions button { width: auto; min-height: 40px; padding: 8px 16px; margin: 0; font-size: 15px; }
+  .person-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: 12px; flex: none; display: grid; place-items: center; }
+  .dots svg { width: 22px; height: 22px; fill: currentColor; }
+  .health { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+  .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
+  .logrow { padding: 10px 0; border-top: 1px solid var(--line); }
+  #sheet { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; }
+  #sheet .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+  #sheet .panel {
+    position: relative; width: 100%; max-width: 560px; margin: 0 auto; max-height: 85vh; overflow-y: auto;
+    background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 20px calc(16px + env(safe-area-inset-bottom));
+  }
+  .panel h3 { margin: 0 0 6px; font: 650 20px/1.25 var(--sans); word-break: break-word; }
+  button.item { background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 52px; margin: 0; padding: 14px 4px; font-weight: 500; }
+  button.item.danger { color: var(--problem); }
+  button.danger-btn { background: var(--problem); color: #fff; }
+  label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
+  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--brass); }
 </style>
 </head>
 <body>
@@ -190,6 +209,7 @@
 </header>
 <main>
   <section id="alerts" class="screen active" aria-label="Alerts">
+    <p id="watcher-line" class="health" hidden></p>
     <div id="list"></div>
     <button id="clear" class="secondary">Clear history</button>
   </section>
@@ -208,10 +228,13 @@
   </section>
 
   <section id="admin" class="screen" aria-label="Admin">
+    <p id="watcher-admin" class="health" hidden></p>
     <h2>People</h2>
-    <p class="muted">Approve friends so they get alerts. Only you can see this tab.</p>
-    <div id="people"></div>
+    <p class="muted">Approve friends so they get alerts. Tap the dots for more. Only you can see this tab.</p>
     <p id="admin-msg" class="msg muted" role="status"></p>
+    <div id="people"></div>
+    <h2>Recent alerts sent</h2>
+    <div id="alert-log"></div>
   </section>
 
   <section id="gate-auth" class="screen gate" aria-label="Sign in">
@@ -241,7 +264,9 @@
 
   <section id="gate-removed" class="screen gate" aria-label="Account removed">
     <h2>Account removed</h2>
-    <p class="muted">This account no longer has access. Ask the admin if that's a mistake.</p>
+    <p class="muted">This account no longer has access. You can ask to rejoin and the admin will review it.</p>
+    <button id="rejoin" type="button">Ask to rejoin</button>
+    <p id="rejoin-msg" class="msg" role="alert"></p>
     <button class="secondary signout" type="button">Sign out</button>
   </section>
 
@@ -270,6 +295,10 @@
     </ol>
   </section>
 </main>
+<div id="sheet" hidden>
+  <div class="backdrop"></div>
+  <div class="panel" id="sheet-panel" role="dialog" aria-modal="true"></div>
+</div>
 <nav id="tabs" hidden>
   <button data-tab="alerts" class="active">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>Alerts

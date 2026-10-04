@@ -244,6 +244,7 @@ function showApp() {
   $("acct-email").textContent = session ? session.user.email : "";
   $("manual-link").hidden = !(profile && profile.role === "admin");
   syncSubscription();
+  renderWatcher();
   let tab = document.querySelector("#tabs button.active");
   if (!tab || tab.hidden) tab = document.querySelector('#tabs [data-tab="alerts"]');
   tab.click();
@@ -300,40 +301,170 @@ $("auth-form").onsubmit = async (ev) => {
 document.querySelectorAll(".signout").forEach((b) => { b.onclick = signedOut; });
 $("pending-check").onclick = loadProfile;
 
-// ---- Admin: people list (the database refuses anyone who isn't the admin) ----
-async function renderAdmin() {
-  const box = $("people"), msg = $("admin-msg");
-  msg.className = "msg muted"; msg.textContent = "Loading...";
+// ---- Watcher health (everyone sees a one-line version; admin sees it on the Admin tab too) ----
+function ago(iso) {
+  if (!iso) return "never";
+  const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} minutes ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
+  return `${Math.round(s / 86400)} days ago`;
+}
+async function renderWatcher() {
   try {
-    const people = await api("rpc/admin_people", { method: "POST", body: "{}" });
-    msg.textContent = "";
-    box.innerHTML = people.map((p) => {
-      const me = p.id === session.user.id;
-      const devices = p.active_devices === 1 ? "1 device" : `${p.active_devices} devices`;
-      return `<div class="person">
-        <div class="who">${esc(p.nickname ? `${p.nickname} (${p.email})` : p.email)}${me ? " (you)" : ""}</div>
-        <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status)}</span>, ${esc(p.role)}, ${esc(devices)}</div>
-        ${me ? "" : `<div class="row-actions">
-          ${p.status !== "approved" ? `<button data-id="${esc(p.id)}" data-set="approved">Approve</button>` : ""}
-          ${p.status !== "blocked" ? `<button class="secondary" data-id="${esc(p.id)}" data-set="blocked">Block</button>` : ""}
-        </div>`}
-      </div>`;
-    }).join("") || '<p class="muted">No one has signed up yet.</p>';
+    const r = (await api("watcher_status?select=last_check_at,ok"))[0];
+    const stale = !r || !r.last_check_at || Date.now() - new Date(r.last_check_at) > 5 * 60e3;
+    const state = stale ? "problem" : r.ok ? "on" : "check";
+    const text = stale
+      ? (r && r.last_check_at ? `Watcher quiet since ${ago(r.last_check_at)}` : "Watcher hasn't checked in yet")
+      : r.ok ? `Watcher checked ${ago(r.last_check_at)}` : `Watcher had a problem ${ago(r.last_check_at)}`;
+    ["watcher-line", "watcher-admin"].forEach((id) => { const el = $(id); el.hidden = false; el.className = `health ${state}`; el.textContent = text; });
+  } catch { /* offline: keep whatever is showing */ }
+}
+
+// ---- Admin (the database refuses anyone who isn't the admin) ----
+const TYPE_NAMES = { on_sale: "Tickets on sale", check: "Check manually" };
+let people = [], sheetPerson = null, sheetMode = "menu";
+const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+
+function personRow(p) {
+  const me = p.id === session.user.id;
+  const name = p.nickname || p.email;
+  const devices = p.active_devices === 1 ? "1 device" : `${p.active_devices} devices`;
+  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No alerts";
+  return `<div class="person">
+    <div class="person-head">
+      <div>
+        <div class="who">${esc(name)}${me ? " (you)" : ""}</div>
+        ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
+        <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status)}</span>${p.paused ? ", paused" : ""}, ${esc(devices)}</div>
+        <div class="meta">${esc(types)}</div>
+      </div>
+      <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
+    </div>
+    ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve" data-id="${esc(p.id)}">Approve</button></div>` : ""}
+  </div>`;
+}
+async function renderLog() {
+  try {
+    const rows = await api("alert_log?select=created_at,type,event_name,recipients&order=created_at.desc&limit=8");
+    $("alert-log").innerHTML = rows.map((r) => `<div class="logrow"><div>${esc(LABELS[r.type] || r.type)}${r.event_name ? `: ${esc(r.event_name)}` : ""}</div>
+      <div class="meta">Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div>`).join("")
+      || '<p class="muted">No alerts sent yet.</p>';
+  } catch { $("alert-log").innerHTML = ""; }
+}
+async function renderAdmin() {
+  const msg = $("admin-msg");
+  if (!msg.textContent) { msg.className = "msg muted"; msg.textContent = "Loading..."; }
+  renderWatcher();
+  try {
+    people = await api("rpc/admin_people", { method: "POST", body: "{}" });
+    if (msg.textContent === "Loading...") msg.textContent = "";
+    $("people").innerHTML = people.map(personRow).join("") || '<p class="muted">No one has signed up yet.</p>';
   } catch (e) {
-    box.innerHTML = "";
+    $("people").innerHTML = "";
     msg.className = "msg error"; msg.textContent = e.message;
   }
+  renderLog();
 }
+function say(text, error) {
+  const m = $("admin-msg"); m.className = "msg" + (error ? " error" : " muted"); m.textContent = text;
+  setTimeout(() => { if (m.textContent === text) m.textContent = ""; }, 6000);
+}
+const patchProfile = (id, fields) => api(`profiles?id=eq.${encodeURIComponent(id)}`, {
+  method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fields),
+});
+
+// ---- Triple-dot menu (a bottom sheet) ----
+function drawSheet() {
+  const p = sheetPerson, me = p.id === session.user.id, name = esc(p.nickname || p.email);
+  let html;
+  if (sheetMode === "nickname") {
+    html = `<h3>Nickname</h3><p class="muted">Only you can see this.</p>
+      <input id="nick-input" maxlength="40" value="${esc(p.nickname)}" placeholder="For example: Sam from work">
+      <button data-act="save-nick">Save</button><button class="secondary" data-act="back">Cancel</button>`;
+  } else if (sheetMode === "types") {
+    html = `<h3>Alert types</h3><p class="muted">What ${name} gets alerts for.</p>
+      ${Object.entries(TYPE_NAMES).map(([k, v]) => `<label class="check"><input type="checkbox" data-type="${k}" ${p.alert_types.includes(k) ? "checked" : ""}>${v}</label>`).join("")}
+      <button data-act="save-types">Save</button><button class="secondary" data-act="back">Cancel</button>`;
+  } else if (sheetMode === "remove") {
+    html = `<h3>Remove ${name}?</h3><p class="muted">This deletes their devices and nickname. They can ask to rejoin, and you would approve them again.</p>
+      <button class="danger-btn" data-act="confirm-remove">Remove</button><button class="secondary" data-act="back">Cancel</button>`;
+  } else {
+    html = `<h3>${name}</h3>
+      <button class="item" data-act="nickname">${p.nickname ? "Edit nickname" : "Add nickname"}</button>
+      <button class="item" data-act="types">Alert types</button>
+      ${p.active_devices > 0 ? '<button class="item" data-act="test">Send test notification</button>' : ""}
+      <button class="item" data-act="pause">${p.paused ? "Resume alerts" : "Pause alerts"}</button>
+      ${me ? "" : (p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
+        : `<button class="item" data-act="approve">${p.status === "blocked" ? "Unblock" : "Approve"}</button>`)}
+      ${me ? "" : '<button class="item danger" data-act="remove">Remove</button>'}
+      <button class="item" data-close>Close</button>`;
+  }
+  $("sheet-panel").innerHTML = html;
+  if (sheetMode === "nickname") $("nick-input").focus();
+}
+function openSheet(id) {
+  sheetPerson = people.find((p) => p.id === id);
+  if (!sheetPerson) return;
+  sheetMode = "menu"; drawSheet(); $("sheet").hidden = false;
+}
+const closeSheet = () => { $("sheet").hidden = true; };
+
 $("people").onclick = async (ev) => {
-  const b = ev.target.closest("button[data-set]");
+  const menu = ev.target.closest("[data-menu]");
+  if (menu) return openSheet(menu.dataset.menu);
+  const b = ev.target.closest('button[data-act="approve"]');
   if (!b) return;
   b.disabled = true;
-  try {
-    await api(`profiles?id=eq.${encodeURIComponent(b.dataset.id)}`, {
-      method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: b.dataset.set }),
-    });
-  } catch (e) { $("admin-msg").className = "msg error"; $("admin-msg").textContent = e.message; }
+  try { await patchProfile(b.dataset.id, { status: "approved" }); say("Approved."); }
+  catch (e) { say(e.message, true); }
   renderAdmin();
+};
+$("sheet").onclick = async (ev) => {
+  if (ev.target.matches(".backdrop") || ev.target.closest("[data-close]")) return closeSheet();
+  const b = ev.target.closest("[data-act]");
+  if (!b) return;
+  const act = b.dataset.act, p = sheetPerson;
+  if (["nickname", "types", "remove"].includes(act)) { sheetMode = act; return drawSheet(); }
+  if (act === "back") { sheetMode = "menu"; return drawSheet(); }
+  b.disabled = true;
+  try {
+    if (act === "save-nick") {
+      await api("admin_notes?on_conflict=user_id", {
+        method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ user_id: p.id, nickname: $("nick-input").value.trim() }),
+      });
+      say("Nickname saved.");
+    } else if (act === "save-types") {
+      const types = [...document.querySelectorAll("#sheet-panel input[data-type]")].filter((i) => i.checked).map((i) => i.dataset.type);
+      await patchProfile(p.id, { alert_types: types });
+      say("Alert types saved.");
+    } else if (act === "test") {
+      await api("test_requests", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ user_id: p.id }) });
+      say("Test requested. It arrives within a minute while the watcher is running.");
+    } else if (act === "pause") {
+      await patchProfile(p.id, { paused: !p.paused });
+      say(p.paused ? "Alerts resumed." : "Alerts paused.");
+    } else if (act === "block") {
+      await patchProfile(p.id, { status: "blocked" }); say("Blocked.");
+    } else if (act === "approve") {
+      await patchProfile(p.id, { status: "approved" }); say("Approved.");
+    } else if (act === "confirm-remove") {
+      await api(`profiles?id=eq.${encodeURIComponent(p.id)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+      say("Removed.");
+    }
+  } catch (e) { say(e.message, true); }
+  closeSheet();
+  renderAdmin();
+};
+
+// A removed person can ask to rejoin; it creates a new pending request for the admin.
+$("rejoin").onclick = async () => {
+  try {
+    await api("profiles", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ id: session.user.id, email: session.user.email }) });
+    await loadProfile();
+  } catch (e) { $("rejoin-msg").className = "msg error"; $("rejoin-msg").textContent = e.message; }
 };
 
 // ---- Boot ----
@@ -344,6 +475,7 @@ if ("serviceWorker" in navigator) {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
   renderAlerts();
+  if (session && profile && profile.status === "approved") renderWatcher();
   if (session && profile && profile.status !== "approved") loadProfile();   // pick up an approval
 });
 renderAlerts();
