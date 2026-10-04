@@ -67,13 +67,25 @@ async function renderAlerts() {
     return `${heading}<article class="alert ${type}">
       <time class="at">${esc(time)}</time>
       <div>
-        <p class="status">${LABELS[type]}</p>
+        <p class="status">${LABELS[type]}${a.seen === false ? ' <span class="new">New</span>' : ""}</p>
         <h3>${esc(a.name)}</h3>
         <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
         ${type === "on_sale" && url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
       </div>
     </article>`;
   }).join("");
+  // Once the person is looking at the list, those alerts count as seen and the icon badge clears.
+  if (!$("tabs").hidden && $("alerts").classList.contains("active") && !document.hidden) markSeen(items);
+}
+async function markSeen(items) {
+  try {
+    const unseen = items.filter((a) => a.seen === false);
+    if (unseen.length) {
+      const store = (await openDb()).transaction("alerts", "readwrite").objectStore("alerts");
+      unseen.forEach((a) => store.put({ ...a, seen: true }));
+    }
+    if (navigator.clearAppBadge) await navigator.clearAppBadge();
+  } catch {}
 }
 
 // ---- Tabs ----
@@ -171,6 +183,44 @@ $("test").onclick = async () => {
   }
   const reg = await navigator.serviceWorker.ready;
   reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
+};
+
+// ---- Install guide (shown on the sign-in screen when opened in a browser on a phone) ----
+if (!standalone() && /iPhone|iPad|Android/.test(navigator.userAgent)) {
+  const steps = /iPhone|iPad/.test(navigator.userAgent)
+    ? ["Tap the Share button in Safari.", "Choose Add to Home Screen.", "Open TP Notify from its new icon."]
+    : ["Tap the menu in Chrome.", "Choose Install App.", "Open TP Notify from its new icon."];
+  $("tip-steps").innerHTML = steps.map((s) => `<li>${s}</li>`).join("");
+  $("install-tip").hidden = false;
+}
+
+// ---- Fix My Alerts: checks each link in the chain and says how to repair the broken one ----
+$("diagnose").onclick = async () => {
+  const rows = [], add = (ok, label, fix) => rows.push({ ok, label, fix });
+  $("diag").innerHTML = '<li class="muted">Checking...</li>'; $("diag-note").textContent = "";
+  add(standalone(), "Opened from the Home Screen icon", "Add the app to your Home Screen and open it from there.");
+  add("Notification" in window && Notification.permission === "granted", "Notifications allowed",
+    "Allow them in your phone's Settings, then tap Turn On Notifications on the Setup screen.");
+  let sub = null, note = "";
+  try { sub = await currentSub(); } catch {}
+  add(!!sub, "This phone can receive alerts", "Tap Turn On Notifications on the Setup screen.");
+  try {
+    const p = (await api(`profiles?id=eq.${session.user.id}&select=status,paused,alert_types`))[0];
+    add(p && p.status === "approved", "Account approved", "Ask the admin to approve you.");
+    add(p && !p.paused, "Alerts not paused", "Ask the admin to resume your alerts.");
+    add(p && p.alert_types.length > 0, "At least one alert type is on", "Ask the admin to turn on an alert type.");
+    if (sub) {
+      const d = (await api(`subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=active,last_ok_at`))[0];
+      add(d && d.active, "Phone linked to your account", "Tap Turn On Notifications on the Setup screen to link it again.");
+      note = d && d.last_ok_at ? `The last alert reached this phone ${ago(d.last_ok_at)}.` : "No alert has reached this phone yet.";
+    }
+    const w = (await api("watcher_status?select=last_check_at"))[0];
+    add(w && w.last_check_at && Date.now() - new Date(w.last_check_at) < 5 * 60e3, "Watcher is running",
+      "The admin's computer may be off. Alerts start again when it is back on.");
+  } catch (e) { add(false, "Couldn't reach the server", e.message); }
+  $("diag").innerHTML = rows.map((r) => `<li class="${r.ok ? "done" : "bad"}"><span class="mark">${r.ok ? "\u2713" : "!"}</span>
+    <span>${esc(r.label)}${r.ok ? "" : `<span class="fix">${esc(r.fix)}</span>`}</span></li>`).join("");
+  $("diag-note").textContent = note;
 };
 
 // ---- Theme (Dark / Light / Auto; default Dark) ----

@@ -1,4 +1,4 @@
-const CACHE = "timepiece-v13";
+const CACHE = "timepiece-v14";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 
@@ -35,11 +35,14 @@ function saveAlert(alert) {
     req.onupgradeneeded = () => req.result.createObjectStore("alerts", { keyPath: "id", autoIncrement: true });
     req.onsuccess = () => {
       const tx = req.result.transaction("alerts", "readwrite");
-      tx.objectStore("alerts").add(alert);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
+      const store = tx.objectStore("alerts");
+      store.add(alert);
+      let unseen = 0;
+      store.getAll().onsuccess = (ev) => { unseen = ev.target.result.filter((a) => a.seen === false).length; };
+      tx.oncomplete = () => resolve(unseen);
+      tx.onerror = () => resolve(0);
     };
-    req.onerror = () => resolve();
+    req.onerror = () => resolve(0);
   });
 }
 
@@ -51,7 +54,8 @@ self.addEventListener("push", (e) => {
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
   e.waitUntil((async () => {
-    await saveAlert({ type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", received: Date.now() });
+    const unseen = await saveAlert({ type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", received: Date.now(), seen: false });
+    try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
     await self.registration.showNotification(TITLES[type], {
       body: body || "Open the app for details.",
       tag: d.url || "timepiece",

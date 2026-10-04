@@ -183,6 +183,11 @@
   .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
   .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
   .logrow { padding: 10px 0; border-top: 1px solid var(--line); }
+  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: 14px; padding: 14px 16px; margin: 0 0 8px; }
+  .tip p { margin: 4px 0; }
+  .alert .new { font-size: 12px; font-weight: 700; background: var(--brass); color: var(--on-brass); border-radius: 6px; padding: 1px 7px; }
+  .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
+  .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #sheet { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; }
   #sheet .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
   #sheet .panel {
@@ -238,6 +243,11 @@
   </section>
 
   <section id="gate-auth" class="screen gate" aria-label="Sign In">
+    <div id="install-tip" class="tip" hidden>
+      <b>Install First, Then Sign In</b>
+      <p class="muted">Alerts only work from the Home Screen app. You'll sign in again there.</p>
+      <ol class="guide" id="tip-steps"></ol>
+    </div>
     <h2 id="auth-title">Sign In to TP Notify</h2>
     <form id="auth-form">
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
@@ -284,6 +294,11 @@
     <h2>Check This Phone</h2>
     <p class="muted">Shows a notification on this phone only. Your PC's own test is <b>py timepiece_watcher.py --test-push</b>.</p>
     <button id="test">Send Test Notification</button>
+    <h2>Fix My Alerts</h2>
+    <p class="muted">Checks everything that has to work for alerts to reach this phone.</p>
+    <button id="diagnose" class="secondary">Run Check</button>
+    <ul class="steps" id="diag"></ul>
+    <p class="muted" id="diag-note"></p>
     <h2>Make Alerts Loud on iPhone</h2>
     <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
     <ol class="guide">
