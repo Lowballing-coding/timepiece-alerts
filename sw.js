@@ -1,6 +1,6 @@
-const CACHE = "timepiece-v11";
+const CACHE = "timepiece-v12";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const TITLES = { on_sale: "Tickets on sale", check: "Check manually", problem: "Watcher problem", test: "Test notification" };
+const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 
 self.addEventListener("install", (e) => {
   // One missing file must never stop the service worker installing (push depends on it).

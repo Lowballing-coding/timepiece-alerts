@@ -211,19 +211,19 @@
   <section id="alerts" class="screen active" aria-label="Alerts">
     <p id="watcher-line" class="health" hidden></p>
     <div id="list"></div>
-    <button id="clear" class="secondary">Clear history</button>
+    <button id="clear" class="secondary">Clear History</button>
   </section>
 
   <section id="setup" class="screen" aria-label="Setup">
-    <h2>Get this phone ready</h2>
+    <h2>Get This Phone Ready</h2>
     <ul class="steps" id="checklist"></ul>
-    <button id="enable">Turn on notifications</button>
+    <button id="enable">Turn On Notifications</button>
     <p id="setup-msg" class="muted" role="status"></p>
     <div id="manual-link" hidden>
-      <h2>Manual link (admin)</h2>
+      <h2>Manual Link (Admin)</h2>
       <p class="muted">Your PC still reads <b>watcher_secrets.json</b> until the watcher is switched to accounts. Keep this private.</p>
       <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
-      <button id="copy" class="secondary">Copy subscription</button>
+      <button id="copy" class="secondary">Copy Subscription</button>
     </div>
   </section>
 
@@ -233,47 +233,47 @@
     <p class="muted">Approve friends so they get alerts. Tap the dots for more. Only you can see this tab.</p>
     <p id="admin-msg" class="msg muted" role="status"></p>
     <div id="people"></div>
-    <h2>Recent alerts sent</h2>
+    <h2>Recent Alerts Sent</h2>
     <div id="alert-log"></div>
   </section>
 
-  <section id="gate-auth" class="screen gate" aria-label="Sign in">
-    <h2 id="auth-title">Sign in to TP Notify</h2>
+  <section id="gate-auth" class="screen gate" aria-label="Sign In">
+    <h2 id="auth-title">Sign In to TP Notify</h2>
     <form id="auth-form">
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="auth-pass" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
       <p id="auth-hint" class="muted" hidden>At least 6 characters. You'll need approval before alerts start.</p>
-      <button id="auth-submit" type="submit">Sign in</button>
+      <button id="auth-submit" type="submit">Sign In</button>
     </form>
-    <button id="auth-toggle" type="button" class="secondary">Create an account</button>
+    <button id="auth-toggle" type="button" class="secondary">Create an Account</button>
     <p id="auth-msg" class="msg" role="alert"></p>
   </section>
 
-  <section id="gate-pending" class="screen gate" aria-label="Waiting for approval">
-    <h2>Waiting for approval</h2>
+  <section id="gate-pending" class="screen gate" aria-label="Waiting for Approval">
+    <h2>Waiting for Approval</h2>
     <p class="muted">Your account is created. Alerts start once the admin approves it.</p>
-    <button id="pending-check">Check again</button>
-    <button class="secondary signout" type="button">Sign out</button>
+    <button id="pending-check">Check Again</button>
+    <button class="secondary signout" type="button">Sign Out</button>
   </section>
 
-  <section id="gate-blocked" class="screen gate" aria-label="Access paused">
-    <h2>Access paused</h2>
+  <section id="gate-blocked" class="screen gate" aria-label="Access Paused">
+    <h2>Access Paused</h2>
     <p class="muted">The admin has paused your access.</p>
-    <button class="secondary signout" type="button">Sign out</button>
+    <button class="secondary signout" type="button">Sign Out</button>
   </section>
 
-  <section id="gate-removed" class="screen gate" aria-label="Account removed">
-    <h2>Account removed</h2>
+  <section id="gate-removed" class="screen gate" aria-label="Account Removed">
+    <h2>Account Removed</h2>
     <p class="muted">This account no longer has access. You can ask to rejoin and the admin will review it.</p>
-    <button id="rejoin" type="button">Ask to rejoin</button>
+    <button id="rejoin" type="button">Ask to Rejoin</button>
     <p id="rejoin-msg" class="msg" role="alert"></p>
-    <button class="secondary signout" type="button">Sign out</button>
+    <button class="secondary signout" type="button">Sign Out</button>
   </section>
 
   <section id="settings" class="screen" aria-label="Settings">
     <h2>Account</h2>
     <p class="muted" id="acct-email"></p>
-    <button class="secondary signout" type="button">Sign out</button>
+    <button class="secondary signout" type="button">Sign Out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
       <button data-mode="dark" aria-pressed="true">Dark</button>
@@ -281,10 +281,10 @@
       <button data-mode="auto" aria-pressed="false">Auto</button>
     </div>
     <p class="muted">Auto follows your phone's setting.</p>
-    <h2>Check this phone</h2>
+    <h2>Check This Phone</h2>
     <p class="muted">Shows a notification on this phone only. Your PC's own test is <b>py timepiece_watcher.py --test-push</b>.</p>
-    <button id="test">Send test notification</button>
-    <h2>Make alerts loud on iPhone</h2>
+    <button id="test">Send Test Notification</button>
+    <h2>Make Alerts Loud on iPhone</h2>
     <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
     <ol class="guide">
       <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>

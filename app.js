@@ -2,7 +2,7 @@
 const VAPID_PUBLIC_KEY = "BCw69mMtS2gckHI0voqwM4uR0eupiXHxpfijl5sU0IrPSgD6SYNlcgKPKvkgH24NCACK8-TbzvuH6D1QHfVzGuI";
 
 const $ = (id) => document.getElementById(id);
-const LABELS = { on_sale: "Tickets on sale", check: "Check manually", problem: "Watcher problem", test: "Test notification" };
+const LABELS = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
 function openDb() {
@@ -45,7 +45,7 @@ async function renderAlerts() {
         <g class="sweep"><line class="sweepline" x1="60" y1="70" x2="60" y2="14" stroke-width="1.5"/></g>
         <circle class="hub" cx="60" cy="60" r="3.5"/>
       </svg>
-      <h2>Nothing on sale yet</h2>
+      <h2>Nothing on Sale Yet</h2>
       <p class="muted">When your watcher finds tickets, they show up here and on your lock screen.</p>
     </div>`;
     return;
@@ -100,7 +100,7 @@ async function currentSub() {
 async function renderChecklist() {
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   const sub = await currentSub();
-  const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (done)" : ""}</span></li>`;
+  const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (Done)" : ""}</span></li>`;
   $("checklist").innerHTML =
     row(1, standalone(), "Open the app from its Home Screen icon") +
     row(2, perm === "granted", "Allow notifications") +
@@ -126,7 +126,7 @@ $("enable").onclick = async () => {
     }
     const reg = await Promise.race([
       navigator.serviceWorker.ready,
-      new Promise((_, no) => setTimeout(() => no({ name: "service worker not ready, close and reopen the app" }), 10000)),
+      new Promise((_, no) => setTimeout(() => no({ name: "The app isn't ready yet. Close it and open it again" }), 10000)),
     ]);
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
@@ -134,7 +134,7 @@ $("enable").onclick = async () => {
     await saveSubscription(sub);
     $("setup-msg").textContent = "Done. This phone is linked to your account.";
   } catch (e) {
-    $("setup-msg").textContent = "Couldn't finish setup: " + (e.message || e.name);
+    $("setup-msg").textContent = "Couldn't finish setup. " + (e.message || e.name) + ".";
   }
   renderChecklist();
 };
@@ -170,7 +170,7 @@ $("test").onclick = async () => {
     return;
   }
   const reg = await navigator.serviceWorker.ready;
-  reg.showNotification("Test notification", { body: "This phone can show Timepiece alerts.", icon: "icon-192.png" });
+  reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
 };
 
 // ---- Theme (Dark / Light / Auto; default Dark) ----
@@ -203,7 +203,11 @@ async function call(url, opts) {
   let r;
   try { r = await fetch(url, opts); } catch { const e = new Error("No connection. Check your internet and try again."); e.network = true; throw e; }
   const j = r.status === 204 ? null : await r.json().catch(() => null);
-  if (!r.ok) { const e = new Error((j && (j.msg || j.error_description || j.message)) || "Something went wrong."); e.status = r.status; throw e; }
+  if (!r.ok) {
+    const text = (j && (j.msg || j.error_description || j.message)) || "Something went wrong.";
+    const e = new Error(text.charAt(0).toUpperCase() + text.slice(1));
+    e.status = r.status; throw e;
+  }
   return j;
 }
 const authCall = (path, body) => call(`${SB_URL}/auth/v1/${path}`, {
@@ -271,9 +275,9 @@ function signedOut() {
 // ---- Sign in / create account ----
 function setMode(signUp) {
   signUpMode = signUp;
-  $("auth-title").textContent = signUp ? "Create your account" : "Sign in to TP Notify";
-  $("auth-submit").textContent = signUp ? "Create account" : "Sign in";
-  $("auth-toggle").textContent = signUp ? "I already have an account" : "Create an account";
+  $("auth-title").textContent = signUp ? "Create Your Account" : "Sign In to TP Notify";
+  $("auth-submit").textContent = signUp ? "Create Account" : "Sign In";
+  $("auth-toggle").textContent = signUp ? "I Already Have an Account" : "Create an Account";
   $("auth-hint").hidden = !signUp;
   $("auth-pass").autocomplete = signUp ? "new-password" : "current-password";
   $("auth-msg").textContent = "";
@@ -323,21 +327,21 @@ async function renderWatcher() {
 }
 
 // ---- Admin (the database refuses anyone who isn't the admin) ----
-const TYPE_NAMES = { on_sale: "Tickets on sale", check: "Check manually" };
+const TYPE_NAMES = { on_sale: "Tickets on Sale", check: "Check Manually" };
 let people = [], sheetPerson = null, sheetMode = "menu";
 const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 
 function personRow(p) {
   const me = p.id === session.user.id;
   const name = p.nickname || p.email;
-  const devices = p.active_devices === 1 ? "1 device" : `${p.active_devices} devices`;
-  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No alerts";
+  const devices = p.active_devices === 1 ? "1 Device" : `${p.active_devices} Devices`;
+  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No Alerts";
   return `<div class="person">
     <div class="person-head">
       <div>
         <div class="who">${esc(name)}${me ? " (you)" : ""}</div>
         ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
-        <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status)}</span>${p.paused ? ", paused" : ""}, ${esc(devices)}</div>
+        <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>${p.paused ? ", Paused" : ""}, ${esc(devices)}</div>
         <div class="meta">${esc(types)}</div>
       </div>
       <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
@@ -384,7 +388,7 @@ function drawSheet() {
       <input id="nick-input" maxlength="40" value="${esc(p.nickname)}" placeholder="For example: Sam from work">
       <button data-act="save-nick">Save</button><button class="secondary" data-act="back">Cancel</button>`;
   } else if (sheetMode === "types") {
-    html = `<h3>Alert types</h3><p class="muted">What ${name} gets alerts for.</p>
+    html = `<h3>Alert Types</h3><p class="muted">What ${name} gets alerts for.</p>
       ${Object.entries(TYPE_NAMES).map(([k, v]) => `<label class="check"><input type="checkbox" data-type="${k}" ${p.alert_types.includes(k) ? "checked" : ""}>${v}</label>`).join("")}
       <button data-act="save-types">Save</button><button class="secondary" data-act="back">Cancel</button>`;
   } else if (sheetMode === "remove") {
@@ -392,10 +396,10 @@ function drawSheet() {
       <button class="danger-btn" data-act="confirm-remove">Remove</button><button class="secondary" data-act="back">Cancel</button>`;
   } else {
     html = `<h3>${name}</h3>
-      <button class="item" data-act="nickname">${p.nickname ? "Edit nickname" : "Add nickname"}</button>
-      <button class="item" data-act="types">Alert types</button>
-      ${p.active_devices > 0 ? '<button class="item" data-act="test">Send test notification</button>' : ""}
-      <button class="item" data-act="pause">${p.paused ? "Resume alerts" : "Pause alerts"}</button>
+      <button class="item" data-act="nickname">${p.nickname ? "Edit Nickname" : "Add Nickname"}</button>
+      <button class="item" data-act="types">Alert Types</button>
+      ${p.active_devices > 0 ? '<button class="item" data-act="test">Send Test Notification</button>' : ""}
+      <button class="item" data-act="pause">${p.paused ? "Resume Alerts" : "Pause Alerts"}</button>
       ${me ? "" : (p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
         : `<button class="item" data-act="approve">${p.status === "blocked" ? "Unblock" : "Approve"}</button>`)}
       ${me ? "" : '<button class="item danger" data-act="remove">Remove</button>'}
