@@ -71,13 +71,13 @@ const supported = () => "serviceWorker" in navigator && "PushManager" in window 
 
 async function currentSub() {
   if (!supported()) return null;
-  const reg = await navigator.serviceWorker.ready;
-  return reg.pushManager.getSubscription();
+  const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(r, 3000))]);
+  return reg ? reg.pushManager.getSubscription() : null;
 }
 async function renderChecklist() {
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   const sub = await currentSub();
-  const row = (ok, text) => `<li>${ok ? "✅" : "⬜"} ${text}</li>`;
+  const row = (ok, text) => `<li>${ok ? "âœ…" : "â¬œ"} ${text}</li>`;
   $("checklist").innerHTML =
     row(standalone(), "Installed to Home Screen (opened from the icon)") +
     row(perm === "granted", "Notifications allowed") +
@@ -101,7 +101,10 @@ $("enable").onclick = async () => {
       $("setup-msg").textContent = "Notifications were not allowed. Allow them in the phone's Settings, then try again.";
       return renderChecklist();
     }
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, no) => setTimeout(() => no({ name: "service worker not ready, close and reopen the app" }), 10000)),
+    ]);
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
     $("setup-msg").textContent = "Done. Tap Copy and paste it into watcher_secrets.json.";
@@ -125,7 +128,7 @@ $("test").onclick = async () => {
     return;
   }
   const reg = await navigator.serviceWorker.ready;
-  reg.showNotification("Test notification", { body: "This phone can show Timepiece alerts.", icon: "icons/icon-192.png" });
+  reg.showNotification("Test notification", { body: "This phone can show Timepiece alerts.", icon: "icon-192.png" });
 };
 
 // ---- Boot ----

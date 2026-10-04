@@ -1,9 +1,10 @@
-const CACHE = "timepiece-v1";
-const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const CACHE = "timepiece-v2";
+const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const TITLES = { on_sale: "Tickets on sale", check: "Check manually", problem: "Watcher problem" };
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
+  // One missing file must never stop the service worker installing (push depends on it).
+  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))));
   self.skipWaiting();
 });
 
@@ -56,7 +57,7 @@ self.addEventListener("push", (e) => {
       tag: d.url || "timepiece",
       renotify: true,
       requireInteraction: type === "on_sale",
-      icon: "icons/icon-192.png",
+      icon: "icon-192.png",
       data: { url: d.url || "" },
     });
     const wins = await self.clients.matchAll({ type: "window" });
