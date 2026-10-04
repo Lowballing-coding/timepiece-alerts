@@ -220,6 +220,28 @@ $("test").onclick = async () => {
   reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
 };
 
+// ---- Screen Info: the real sizes this phone reports, for fixing layout problems ----
+$("screeninfo").onclick = () => {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe), r = (el) => { const b = el.getBoundingClientRect(); return `top ${Math.round(b.top)}, bottom ${Math.round(b.bottom)}, height ${Math.round(b.height)}`; };
+  const vv = window.visualViewport;
+  $("screeninfo-out").textContent = [
+    `window: ${innerWidth} x ${innerHeight}`,
+    `screen: ${screen.width} x ${screen.height}`,
+    `visual viewport: ${vv ? Math.round(vv.width) + " x " + Math.round(vv.height) : "n/a"}`,
+    `html client: ${document.documentElement.clientWidth} x ${document.documentElement.clientHeight}`,
+    `safe area (top/right/bottom/left): ${cs.paddingTop} / ${cs.paddingRight} / ${cs.paddingBottom} / ${cs.paddingLeft}`,
+    `body: ${r(document.body)}`,
+    `header: ${r(document.querySelector("header"))}`,
+    `tab bar: ${r($("tabs"))}`,
+    `standalone: ${standalone()}`,
+    `pixel ratio: ${devicePixelRatio}`,
+  ].join("\n");
+  probe.remove();
+};
+
 // ---- Quiet hours (each person's own; the watcher skips alerts in this window, using their time zone) ----
 function fillQuiet() {
   const on = !!(profile && profile.quiet_start && profile.quiet_end);
