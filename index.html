@@ -204,6 +204,20 @@
   .msg.error { color: var(--problem); }
   label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
   label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--brass); }
+  /* On and off switch. Brass because it is something you tap. */
+  input.switch { -webkit-appearance: none; appearance: none; display: block; flex: none; width: 51px; min-height: 0; height: 31px; margin: 0; padding: 0;
+    border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); position: relative; cursor: pointer; transition: background .2s; }
+  input.switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: 25px; height: 25px; border-radius: 50%; background: var(--muted); transition: transform .2s; }
+  input.switch:checked { background: var(--brass); border-color: var(--brass); }
+  input.switch:checked::before { transform: translateX(20px); background: var(--on-brass); }
+  @media (prefers-reduced-motion: reduce) { input.switch, input.switch::before { transition: none; } }
+  /* Grouped rows: a quiet container with hairlines between rows (Settings, Setup, results). */
+  .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; margin-top: 10px; }
+  .rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; min-height: 52px; border-top: 1px solid var(--line); }
+  .group > .rowline:first-child { border-top: 0; }
+  .rowline .val { color: var(--muted); font-size: 15px; text-align: right; word-break: break-all; }
+  .group .row2 { padding: 0 14px 14px; }
+  .group .row2 label { margin-top: 4px; }
   .row2 { display: flex; gap: 10px; }
   .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
   .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; padding: 0; text-align: center; line-height: normal;
@@ -219,8 +233,9 @@
   .seg.filter button { font-size: 13px; padding: 8px 2px; }
 
   /* ===== Setup steps and guides ===== */
-  ul.steps { list-style: none; padding: 0; margin: 10px 0; }
-  .steps li { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line); }
+  ul.steps { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
+  .steps li { display: flex; align-items: center; gap: 14px; padding: 14px; border-top: 1px solid var(--line); }
+  .steps li:first-child { border-top: 0; }
   .mark {
     width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted);
     display: grid; place-items: center; font: 600 15px/1 var(--sans); flex: none;
@@ -229,12 +244,22 @@
   .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
   .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #setup-msg { min-height: 1.4em; }
-  ol.guide { padding-left: 22px; margin: 8px 0; }
-  ol.guide li { margin: 10px 0; padding-left: 4px; }
-  ol.guide li::marker { font-weight: 700; color: var(--brass); }
-  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: var(--r-m); padding: 14px 16px; margin: 0 0 8px; }
+  /* Numbered steps: a real sequence, so the numbers carry meaning. */
+  ol.guide { list-style: none; counter-reset: g; padding: 0; margin: 10px 0; }
+  ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-top: 1px solid var(--line); margin: 0; }
+  ol.guide li:first-child { border-top: 0; }
+  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--brass);
+    font: 650 14px/26px var(--sans); text-align: center; }
+  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: var(--r-m); padding: 14px 16px 4px; margin: 0 0 22px; }
   .tip p { margin: 4px 0; }
+  .tip ol.guide { margin: 6px 0 0; }
+  .tip ol.guide li { padding: 10px 0; }
+
+  /* Sign-in and waiting screens */
   .gate { padding-top: 24px; }
+  .gate.center { text-align: center; padding-top: 48px; }
+  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--brass); display: grid; place-items: center; margin: 0 auto 16px; }
+  .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== Tab bar ===== */
   nav {
@@ -314,7 +339,8 @@
   </section>
 
   <section id="setup" class="screen" aria-label="Setup">
-    <h2>Get This Phone Ready</h2>
+    <h2 class="title">Setup</h2>
+    <p class="muted">Three steps to get alerts on this phone.</p>
     <ul class="steps" id="checklist"></ul>
     <button id="enable">Turn On Notifications</button>
     <p id="setup-msg" class="muted" role="status"></p>
@@ -349,7 +375,8 @@
       <p class="muted">Alerts only work from the Home Screen app. You'll sign in again there.</p>
       <ol class="guide" id="tip-steps"></ol>
     </div>
-    <h2 id="auth-title">Sign In to TP Notify</h2>
+    <h2 id="auth-title" class="title">Sign In to TP Notify</h2>
+    <p class="muted">Get Timepiece ticket alerts on your phone.</p>
     <form id="auth-form">
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="auth-pass" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
@@ -360,20 +387,23 @@
     <p id="auth-msg" class="msg" role="alert"></p>
   </section>
 
-  <section id="gate-pending" class="screen gate" aria-label="Waiting for Approval">
+  <section id="gate-pending" class="screen gate center" aria-label="Waiting for Approval">
+    <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
     <h2>Waiting for Approval</h2>
     <p class="muted">Your account is created. Alerts start once the admin approves it.</p>
     <button id="pending-check">Check Again</button>
     <button class="secondary signout" type="button">Sign Out</button>
   </section>
 
-  <section id="gate-blocked" class="screen gate" aria-label="Access Paused">
+  <section id="gate-blocked" class="screen gate center" aria-label="Access Paused">
+    <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9v6M14.5 9v6"/></svg></div>
     <h2>Access Paused</h2>
     <p class="muted">The admin has paused your access.</p>
     <button class="secondary signout" type="button">Sign Out</button>
   </section>
 
-  <section id="gate-removed" class="screen gate" aria-label="Account Removed">
+  <section id="gate-removed" class="screen gate center" aria-label="Account Removed">
+    <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg></div>
     <h2>Account Removed</h2>
     <p class="muted">This account no longer has access. You can ask to rejoin and the admin will review it.</p>
     <button id="rejoin" type="button">Ask to Rejoin</button>
@@ -382,8 +412,9 @@
   </section>
 
   <section id="settings" class="screen" aria-label="Settings">
+    <h2 class="title">Settings</h2>
     <h2>Account</h2>
-    <p class="muted" id="acct-email"></p>
+    <div class="group"><div class="rowline"><span>Signed In As</span><span class="val" id="acct-email"></span></div></div>
     <button class="secondary signout" type="button">Sign Out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
@@ -394,10 +425,12 @@
     <p class="muted">Auto follows your phone's setting.</p>
     <h2>Quiet Hours</h2>
     <p class="muted">Alerts that arrive during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
-    <label class="check"><input type="checkbox" id="quiet-on">Use Quiet Hours</label>
-    <div class="row2">
-      <label>From<input type="time" id="quiet-start" value="23:00"></label>
-      <label>To<input type="time" id="quiet-end" value="08:00"></label>
+    <div class="group">
+      <label class="rowline"><span>Use Quiet Hours</span><input class="switch" type="checkbox" id="quiet-on"></label>
+      <div class="row2">
+        <label>From<input type="time" id="quiet-start" value="23:00"></label>
+        <label>To<input type="time" id="quiet-end" value="08:00"></label>
+      </div>
     </div>
     <button id="quiet-save" class="secondary">Save Quiet Hours</button>
     <p id="quiet-msg" class="msg muted" role="status"></p>
@@ -411,7 +444,7 @@
     <p class="muted" id="diag-note"></p>
     <h2>Make Alerts Loud on iPhone</h2>
     <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
-    <ol class="guide">
+    <ol class="guide group">
       <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
       <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
       <li>If you see Time Sensitive Notifications, turn it on.</li>
