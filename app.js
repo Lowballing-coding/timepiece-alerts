@@ -58,6 +58,10 @@ async function fetchMissed(local) {
       .filter((m) => !local.some((a) => a.type === m.type && a.name === m.name && Math.abs(a.received - m.received) < 15 * 60e3));
   } catch { return []; }
 }
+const ICONS = {
+  bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
+};
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
 async function renderAlerts() {
   const stored = await allAlerts();
@@ -96,17 +100,34 @@ async function renderAlerts() {
     const heading = dayKey(a.received) !== lastDay ? `<h2 class="day">${esc(dayName(a.received))}</h2>` : "";
     lastDay = dayKey(a.received);
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
-    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc((a.day || "").slice(0, 3))}</span></div>` : "";
-    return `${heading}<article class="alert ${type}${fresh.has(a.id) ? " arrive" : ""}">
-      <time class="at">${esc(time)}</time>
+    const when = [a.day, a.date].filter(Boolean).join(" ");
+    const tag = a.missed ? '<span class="new missed">Missed</span>' : a.seen === false ? '<span class="new">New</span>' : "";
+    const cls = `alert ${type}${fresh.has(a.id) ? " arrive" : ""}`;
+    if (type === "on_sale") {   // the one memorable element: a ticket stub
+      const stub = d ? `<span>${esc((a.day || "").slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc(d[2].slice(0, 3))}</span>` : `<span>On</span><b>&#9733;</b><span>Sale</span>`;
+      return `${heading}<article class="${cls}">
+        <div class="ticket">
+          <div class="stub">${stub}</div>
+          <div class="tbody">
+            <div class="line1"><span class="pill on">On Sale Now</span>${tag}</div>
+            <h3>${esc(a.name)}</h3>
+            <p class="when">${esc(when)}</p>
+            <p class="rec">Received ${esc(time)}</p>
+          </div>
+        </div>
+        ${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
+      </article>`;
+    }
+    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
+      : `<div class="tile icon">${type === "test" ? ICONS.bell : ICONS.warn}</div>`;
+    return `${heading}<article class="${cls} row">
+      ${tile}
       <div>
-        <div class="head">${tile}<div>
-          <p class="status">${LABELS[type]}${a.missed ? ' <span class="new missed">Missed</span>' : a.seen === false ? ' <span class="new">New</span>' : ""}</p>
-          <h3>${esc(a.name)}</h3>
-          <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
-        </div></div>
-        ${type === "on_sale" && url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
+        <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
+        <h3>${esc(a.name)}</h3>
+        ${when ? `<p class="when">${esc(when)}</p>` : ""}
       </div>
+      <time class="at">${esc(time)}</time>
     </article>`;
   }).join("");
   // Once the person is looking at the list, those alerts count as seen and the icon badge clears.
@@ -448,7 +469,7 @@ async function renderWatcher() {
     const text = stale
       ? (r && r.last_check_at ? `Watcher quiet since ${ago(r.last_check_at)}` : "Watcher hasn't checked in yet")
       : r.ok ? `Watcher checked ${ago(r.last_check_at)}` : `Watcher had a problem ${ago(r.last_check_at)}`;
-    ["watcher-line", "watcher-admin"].forEach((id) => { const el = $(id); el.hidden = false; el.className = `health ${state}`; el.textContent = text; });
+    ["watcher-line", "watcher-admin"].forEach((id) => { const el = $(id); el.hidden = false; el.className = `health ${state}${id === "watcher-admin" ? " card" : ""}`; el.textContent = text; });
   } catch { /* offline: keep whatever is showing */ }
 }
 
@@ -462,17 +483,22 @@ function personRow(p) {
   const name = p.nickname || p.email;
   const devices = p.active_devices === 1 ? "1 Device" : `${p.active_devices} Devices`;
   const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No Alerts";
-  return `<div class="person">
-    <div class="person-head">
-      <div>
-        <div class="who">${esc(name)}${me ? " (You)" : ""}</div>
-        ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
-        <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>${p.paused ? ", Paused" : ""}, ${esc(devices)}</div>
-        <div class="meta">${esc(types)}</div>
-        ${p.keywords && p.keywords.length ? `<div class="meta">Keywords: ${esc(p.keywords.join(", "))}</div>` : ""}
+  const initials = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
+  const statePill = { approved: ["on", "Approved"], pending: ["check", "Waiting"], blocked: ["problem", "Blocked"] }[p.status] || ["", p.status];
+  return `<div class="person ${esc(p.status)}">
+    <div class="avatar" aria-hidden="true">${esc(initials)}</div>
+    <div>
+      <div class="who">${esc(name)}${me ? " (You)" : ""}</div>
+      ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
+      <div class="chips">
+        <span class="pill ${statePill[0]}">${statePill[1]}</span>
+        ${p.paused ? '<span class="pill">Paused</span>' : ""}
+        <span class="meta">${esc(devices)}</span>
       </div>
-      <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
+      <div class="meta" style="margin-top:6px">${esc(types)}</div>
+      ${p.keywords && p.keywords.length ? `<div class="meta">Keywords: ${esc(p.keywords.join(", "))}</div>` : ""}
     </div>
+    <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
     ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve" data-id="${esc(p.id)}">Approve</button></div>` : ""}
   </div>`;
 }
@@ -485,13 +511,21 @@ async function renderLog() {
   } catch { $("alert-log").innerHTML = ""; }
 }
 // People waiting for approval come first; the search box (shown once there are more than 5 people) narrows the list.
+let peopleFilter = "all";
 function showPeople() {
   const q = $("people-search").value.trim().toLowerCase(), order = { pending: 0, approved: 1, blocked: 2 };
-  const list = people.filter((p) => !q || `${p.nickname} ${p.email}`.toLowerCase().includes(q))
+  const list = people.filter((p) => (peopleFilter === "all" || p.status === peopleFilter) && (!q || `${p.nickname} ${p.email}`.toLowerCase().includes(q)))
     .sort((a, b) => order[a.status] - order[b.status]);
   $("people").innerHTML = list.map(personRow).join("") || `<p class="muted">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
 }
 $("people-search").oninput = showPeople;
+$("people-filter").onclick = (ev) => {
+  const b = ev.target.closest("button[data-filter]");
+  if (!b) return;
+  peopleFilter = b.dataset.filter;
+  document.querySelectorAll("#people-filter button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  showPeople();
+};
 $("invite").onclick = async () => {
   const link = new URL("./", location.href).href;
   const text = `Join TP Notify for Timepiece ticket alerts.\n1. Open this link in Safari: ${link}\n2. Tap Share, then Add to Home Screen.\n3. Open TP Notify from its new icon, create an account and turn on notifications.\nI'll approve you once you've signed up.`;
@@ -506,7 +540,11 @@ async function renderAdmin() {
     people = await api("rpc/admin_people", { method: "POST", body: "{}" });
     if (msg.textContent === "Loading...") msg.textContent = "";
     const n = (s) => people.filter((p) => p.status === s).length;
-    $("people-count").textContent = `${n("approved")} Approved, ${n("pending")} Waiting, ${n("blocked")} Blocked`;
+    const labels = { all: ["All", people.length], pending: ["Waiting", n("pending")], approved: ["Approved", n("approved")], blocked: ["Blocked", n("blocked")] };
+    document.querySelectorAll("#people-filter button").forEach((b) => {
+      b.textContent = `${labels[b.dataset.filter][0]} ${labels[b.dataset.filter][1]}`;
+      b.setAttribute("aria-pressed", String(b.dataset.filter === peopleFilter));
+    });
     $("people-search").hidden = people.length <= 5;
     showPeople();
   } catch (e) {

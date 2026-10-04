@@ -20,35 +20,57 @@
   })();
 </script>
 <style>
+  /* ===== Design tokens. Brass means "tap this"; green, orange and red only ever mean status. ===== */
   :root, :root[data-theme="dark"] {
     --bg: #0d1126;
     --surface: #151a38;
+    --surface-2: #1d2347;
     --line: #2a3160;
     --text: #ece8dc;
     --muted: #8f95b8;
     --brass: #d9b66f;
-    --on: #8ff0c0;
-    --on-tint: rgba(143,240,192,.10);
-    --on-glow: rgba(143,240,192,.14);
+    --on-brass: #0d1126;
+    --on: #6fd9a8;
     --check: #ff9f43;
     --problem: #ff6b6b;
-    --on-brass: #0d1126;
+    --on-tint: rgba(111, 217, 168, .14);
+    --check-tint: rgba(255, 159, 67, .14);
+    --problem-tint: rgba(255, 107, 107, .14);
+    --muted-tint: rgba(143, 149, 184, .16);
+    --paper: #ece8dc;
+    --ink: #141a3a;
+    --ink-muted: #5b6388;
+    --paper-line: #b9b4a4;
+    --on-ink: #0c7a52;
+    --ticket-shadow: none;
     --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    --r-s: 8px; --r-m: 12px; --r-l: 16px;
   }
   :root[data-theme="light"] {
     --bg: #f3f5fb;
     --surface: #ffffff;
+    --surface-2: #eaedf7;
     --line: #d9deef;
     --text: #141a3a;
     --muted: #5b6388;
     --brass: #8f6a1c;
+    --on-brass: #ffffff;
     --on: #0c7a52;
-    --on-tint: rgba(12,122,82,.07);
-    --on-glow: rgba(12,122,82,.10);
     --check: #b45a00;
     --problem: #c42b2b;
-    --on-brass: #ffffff;
+    --on-tint: rgba(12, 122, 82, .10);
+    --check-tint: rgba(180, 90, 0, .10);
+    --problem-tint: rgba(196, 43, 43, .09);
+    --muted-tint: rgba(91, 99, 136, .12);
+    --paper: #ffffff;
+    --ink: #141a3a;
+    --ink-muted: #5b6388;
+    --paper-line: #c9cfe4;
+    --on-ink: #0c7a52;
+    --ticket-shadow: 0 1px 3px rgba(20, 26, 58, .12);
   }
+
+  /* ===== Base ===== */
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
@@ -57,15 +79,21 @@
     background: var(--bg); color: var(--text); font: 17px/1.45 var(--sans);
   }
   :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  p { margin: 6px 0; }
+  h2 { font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; margin: 24px 0 6px; }
+  .title { font: 700 28px/1.15 var(--sans); letter-spacing: -.02em; margin: 6px 0 2px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  .meta { color: var(--muted); font-size: 13px; }
 
   /* Header and tab bar stay put; only <main> scrolls. */
   header {
     flex: none; width: 100%; max-width: 560px; margin: 0 auto;
-    display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 14px) 20px 10px;
+    display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 10px) 20px 4px;
     position: relative; z-index: 1; background: var(--bg);
   }
-  header svg { width: 30px; height: 30px; flex: none; }
-  h1 { margin: 0; font: 700 24px/1 var(--sans); letter-spacing: -.02em; }
+  header svg { width: 26px; height: 26px; flex: none; }
+  h1 { margin: 0; font: 650 17px/1 var(--sans); letter-spacing: -.01em; }
   main {
     flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto;
     overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
@@ -73,9 +101,6 @@
   }
   .screen { display: none; }
   .screen.active { display: block; }
-  h2 { font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; margin: 24px 0 6px; }
-  p { margin: 6px 0; }
-  .muted { color: var(--muted); font-size: 15px; }
 
   .ring { fill: none; stroke: var(--brass); }
   .hand { fill: none; stroke: var(--text); stroke-linecap: round; }
@@ -84,38 +109,65 @@
   .hub { fill: var(--brass); }
   .dot { fill: var(--on); }
 
-  /* ---- Alerts timeline ---- */
-  .day { font: 500 15px/1 var(--sans); color: var(--muted); margin: 24px 0 4px; letter-spacing: 0; }
-  .alert {
-    display: grid; grid-template-columns: 64px 1fr; gap: 14px;
-    padding: 16px 0; border-top: 1px solid var(--line);
-  }
-  .alert .at { font: 650 22px/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.02em; padding-top: 2px; }
-  .alert .status { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin: 0 0 4px; }
-  .alert .status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .alert h3 { margin: 0; font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; }
-  .alert .when { color: var(--muted); font-size: 15px; margin: 2px 0 0; }
-  .alert.check .status { color: var(--check); } .alert.check .status::before { background: var(--check); }
-  .alert.problem .status { color: var(--problem); } .alert.problem .status::before { background: var(--problem); }
-  .alert.on_sale {
-    border: 1px solid var(--on); border-radius: 18px; padding: 18px 16px; margin: 12px 0;
-    background: linear-gradient(180deg, var(--on-tint), transparent);
-    box-shadow: 0 0 28px var(--on-glow);
-  }
-  .alert.on_sale .status { color: var(--on); } .alert.on_sale .status::before { background: var(--on); }
-  .alert.on_sale h3 { font-size: 22px; }
-  .alert.on_sale .go { background: var(--on); color: var(--on-brass); }
-
+  /* ===== Buttons: brass primary, outline secondary, red destructive ===== */
   .go, button {
-    display: block; width: 100%; min-height: 52px; border: 0; border-radius: 14px;
+    display: block; width: 100%; min-height: 50px; border: 0; border-radius: var(--r-m);
     background: var(--brass); color: var(--on-brass); font: 600 17px/1.2 var(--sans);
-    text-align: center; text-decoration: none; padding: 15px; margin: 14px 0 0; cursor: pointer;
+    text-align: center; text-decoration: none; padding: 14px; margin: 14px 0 0; cursor: pointer;
   }
   button:active, .go:active { transform: scale(.985); }
   button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
   button:disabled { opacity: .5; }
 
-  /* ---- Empty state ---- */
+  /* ===== Pills and tags ===== */
+  .pill { display: inline-flex; align-items: center; font: 600 13px/1 var(--sans); padding: 5px 10px; border-radius: 99px; background: var(--muted-tint); color: var(--muted); }
+  .pill.on { background: var(--on-tint); color: var(--on); }
+  .pill.check { background: var(--check-tint); color: var(--check); }
+  .pill.problem { background: var(--problem-tint); color: var(--problem); }
+  .new { display: inline-flex; font: 600 13px/1 var(--sans); background: var(--brass); color: var(--on-brass); border-radius: 99px; padding: 5px 9px; }
+  .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); padding: 4px 8px; }
+
+  /* ===== Alerts ===== */
+  .health { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
+  .health.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px 14px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
+
+  .day { font: 600 13px/1 var(--sans); color: var(--muted); margin: 22px 0 6px; letter-spacing: 0; }
+  .alert { padding: 14px 0; border-top: 1px solid var(--line); }
+  .alert.row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+  .alert .line1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .alert h3 { margin: 6px 0 0; font: 650 17px/1.25 var(--sans); letter-spacing: -.01em; }
+  .alert .when { color: var(--muted); font-size: 15px; margin: 2px 0 0; }
+  .alert .at { font: 500 13px/1.2 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 3px; }
+  .tile { flex: none; width: 48px; padding: 5px 0; border: 1px solid var(--line); border-radius: 10px; text-align: center; line-height: 1.2; }
+  .tile span { display: block; font-size: 13px; color: var(--muted); }
+  .tile b { display: block; font: 700 20px/1.1 var(--sans); font-variant-numeric: tabular-nums; }
+  .tile.icon { height: 48px; display: grid; place-items: center; padding: 0; }
+  .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .alert.check .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
+
+  /* The on-sale alert is a ticket: stub on the left, perforation, notches cut into the edge. */
+  .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
+  .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); box-shadow: var(--ticket-shadow); }
+  .stub { position: relative; flex: none; width: 78px; padding: 16px 0; text-align: center; line-height: 1.1;
+    display: flex; flex-direction: column; justify-content: center; border-right: 2px dashed var(--paper-line); }
+  .stub span { display: block; font-size: 13px; color: var(--ink-muted); }
+  .stub b { display: block; font: 800 34px/1.05 var(--sans); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stub::before, .stub::after { content: ""; position: absolute; right: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); }
+  .stub::before { top: -7px; } .stub::after { bottom: -7px; }
+  .tbody { min-width: 0; padding: 14px 14px 14px 16px; }
+  .tbody h3 { margin: 8px 0 0; font: 700 21px/1.2 var(--sans); letter-spacing: -.015em; color: var(--ink); }
+  .tbody .when { color: var(--ink-muted); }
+  .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
+  .ticket .pill.on { background: rgba(12, 122, 82, .12); color: var(--on-ink); }
+  .ticket .new { background: var(--ink); color: var(--paper); }
+  .alert.on_sale .go { margin-top: 10px; }
+  .alert.arrive { animation: arrive .4s ease-out; }
+  @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
+  @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
+
+  /* ===== Empty state ===== */
   .empty { text-align: center; padding: 40px 12px 24px; }
   .empty svg { width: 150px; height: 150px; }
   .empty h2 { margin-top: 18px; }
@@ -123,7 +175,37 @@
   @keyframes sweep { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .sweep { animation: none; } }
 
-  /* ---- Setup steps ---- */
+  /* ===== Forms ===== */
+  input {
+    display: block; width: 100%; min-height: 50px; margin-top: 12px; padding: 0 14px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--line);
+    border-radius: var(--r-m); font: 17px/1.2 var(--sans);
+  }
+  input::placeholder { color: var(--muted); }
+  textarea {
+    width: 100%; min-height: 150px; background: var(--surface); color: var(--text);
+    border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px;
+    font: 13px/1.35 ui-monospace, Consolas, monospace; resize: none;
+  }
+  .msg { min-height: 1.4em; margin-top: 10px; }
+  .msg.error { color: var(--problem); }
+  label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
+  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--brass); }
+  .row2 { display: flex; gap: 10px; }
+  .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
+  .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; padding: 0; text-align: center; line-height: normal;
+    display: flex; align-items: center; justify-content: center; }
+  /* iPhone draws the time inside its own inner element, which has to be centred separately. */
+  .row2 input::-webkit-date-and-time-value { text-align: center; margin: 0 auto; }
+  .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
+
+  /* ===== Segmented control (theme choice, Admin filter) ===== */
+  .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); }
+  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border-radius: 9px; background: transparent; color: var(--muted); font-weight: 600; font-size: 15px; flex: 1; width: auto; }
+  .seg button[aria-pressed="true"] { background: var(--brass); color: var(--on-brass); }
+  .seg.filter button { font-size: 13px; padding: 8px 2px; }
+
+  /* ===== Setup steps and guides ===== */
   ul.steps { list-style: none; padding: 0; margin: 10px 0; }
   .steps li { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line); }
   .mark {
@@ -131,22 +213,17 @@
     display: grid; place-items: center; font: 600 15px/1 var(--sans); flex: none;
   }
   .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--on-brass); font-weight: 700; }
-  textarea {
-    width: 100%; min-height: 150px; background: var(--surface); color: var(--text);
-    border: 1px solid var(--line); border-radius: 12px; padding: 12px;
-    font: 13px/1.35 ui-monospace, Consolas, monospace; resize: none;
-  }
+  .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
+  .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #setup-msg { min-height: 1.4em; }
-
-  /* ---- Settings ---- */
-  .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
-  .seg button { margin: 0; min-height: 44px; padding: 10px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; flex: 1; width: auto; }
-  .seg button[aria-pressed="true"] { background: var(--brass); color: var(--on-brass); }
   ol.guide { padding-left: 22px; margin: 8px 0; }
   ol.guide li { margin: 10px 0; padding-left: 4px; }
   ol.guide li::marker { font-weight: 700; color: var(--brass); }
+  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: var(--r-m); padding: 14px 16px; margin: 0 0 8px; }
+  .tip p { margin: 4px 0; }
+  .gate { padding-top: 24px; }
 
-  /* ---- Tab bar ---- */
+  /* ===== Tab bar ===== */
   nav {
     flex: none; display: flex; background: var(--surface);
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
@@ -156,73 +233,45 @@
     min-height: 76px; font-weight: 500; font-size: 14px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 6px; padding: 10px 4px;
   }
-  nav button svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  nav button svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   nav button.active { color: var(--brass); font-weight: 600; }
-
-  /* ---- Sign-in, gates, admin ---- */
-  [hidden] { display: none !important; }
-  input {
-    display: block; width: 100%; min-height: 52px; margin-top: 12px; padding: 0 14px;
-    background: var(--surface); color: var(--text); border: 1px solid var(--line);
-    border-radius: 14px; font: 17px/1.2 var(--sans);
-  }
-  input::placeholder { color: var(--muted); }
-  .msg { min-height: 1.4em; margin-top: 10px; }
-  .msg.error { color: var(--problem); }
-  .gate { padding-top: 24px; }
-  .person { padding: 14px 0; border-top: 1px solid var(--line); }
-  .person .who { font-weight: 600; word-break: break-all; }
-  .person .meta { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
-  .person .state-pending { color: var(--check); } .person .state-approved { color: var(--on); } .person .state-blocked { color: var(--problem); }
-  .row-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .row-actions button { width: auto; min-height: 40px; padding: 8px 16px; margin: 0; font-size: 15px; }
-  .person-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: 12px; flex: none; display: grid; place-items: center; }
-  .dots svg { width: 22px; height: 22px; fill: currentColor; }
-  .health { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
-  .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
-  .logrow { padding: 10px 0; border-top: 1px solid var(--line); }
-  #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
-  #splash.gone { opacity: 0; pointer-events: none; }
-  #splash svg { width: 96px; height: 96px; }
-  .alert .head { display: flex; gap: 12px; align-items: flex-start; }
-  .alert .head > div:last-child { min-width: 0; }
-  .tile { flex: none; width: 52px; padding: 4px 0; border: 1px solid var(--line); border-radius: 12px; text-align: center; line-height: 1.2; }
-  .tile span { display: block; font-size: 12px; color: var(--muted); }
-  .tile b { display: block; font: 700 22px/1.1 var(--sans); }
-  .alert.on_sale .tile { border-color: var(--on); }
   /* Some iPhones give a Home Screen app a page shorter than the screen; colour the leftover strip like the tab bar. */
   html.strip { background: var(--surface); }
   html.strip nav { padding-bottom: 0; }
-  .row2 { display: flex; gap: 10px; }
-  .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
-  .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; padding: 0; text-align: center; line-height: normal;
-    display: flex; align-items: center; justify-content: center; }
-  /* iPhone draws the time inside its own inner element, which has to be centred separately. */
-  .row2 input::-webkit-date-and-time-value { text-align: center; margin: 0 auto; }
-  .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
-  .alert .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); }
-  .alert.arrive { animation: arrive .4s ease-out; }
-  @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
-  @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
-  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: 14px; padding: 14px 16px; margin: 0 0 8px; }
-  .tip p { margin: 4px 0; }
-  .alert .new { font-size: 12px; font-weight: 700; background: var(--brass); color: var(--on-brass); border-radius: 6px; padding: 1px 7px; }
-  .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
-  .steps .fix { display: block; color: var(--muted); font-size: 14px; }
+
+  /* ===== Admin ===== */
+  .person { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 650 15px/1 var(--sans); }
+  .person.pending .avatar { box-shadow: 0 0 0 2px var(--brass); }
+  .person .who { font: 600 17px/1.25 var(--sans); word-break: break-word; }
+  .person .meta { margin-top: 2px; word-break: break-all; }
+  .person .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+  .person .row-actions { grid-column: 2 / 4; display: flex; margin-top: 2px; }
+  .row-actions button { width: auto; min-height: 42px; padding: 8px 20px; margin: 0; font-size: 15px; }
+  .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-m); flex: none; display: grid; place-items: center; }
+  .dots svg { width: 22px; height: 22px; fill: currentColor; }
+  .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
+  #people-search { margin-top: 10px; }
+  #admin-msg:empty { display: none; }
+  #admin-msg { margin-bottom: 4px; }
+
+  /* ===== Bottom sheet ===== */
   #sheet { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; }
   #sheet .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
   #sheet .panel {
     position: relative; width: 100%; max-width: 560px; margin: 0 auto; max-height: 85vh; overflow-y: auto;
-    background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 20px calc(16px + env(safe-area-inset-bottom));
+    background: var(--surface); border-radius: 20px 20px 0 0; padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   }
+  #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px; }
   .panel h3 { margin: 0 0 6px; font: 650 20px/1.25 var(--sans); word-break: break-word; }
   button.item { background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 52px; margin: 0; padding: 14px 4px; font-weight: 500; }
   button.item.danger { color: var(--problem); }
   button.danger-btn { background: var(--problem); color: #fff; }
-  label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
-  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--brass); }
+
+  /* ===== Launch screen ===== */
+  #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
+  #splash.gone { opacity: 0; pointer-events: none; }
+  #splash svg { width: 96px; height: 96px; }
 </style>
 </head>
 <body>
@@ -245,6 +294,7 @@
 </header>
 <main>
   <section id="alerts" class="screen active" aria-label="Alerts">
+    <h2 class="title">Alerts</h2>
     <p id="watcher-line" class="health" hidden></p>
     <div id="list"></div>
     <button id="clear" class="secondary">Clear History</button>
@@ -264,11 +314,15 @@
   </section>
 
   <section id="admin" class="screen" aria-label="Admin">
+    <h2 class="title">Admin</h2>
     <p id="watcher-admin" class="health" hidden></p>
-    <h2>People</h2>
-    <p class="muted">Approve friends so they get alerts. Tap the dots for more. Only you can see this tab.</p>
-    <p id="people-count" class="muted"></p>
-    <button id="invite" class="secondary">Copy Invite Message</button>
+    <button id="invite">Copy Invite Message</button>
+    <div class="seg filter" id="people-filter" role="group" aria-label="Show people">
+      <button data-filter="all" aria-pressed="true">All</button>
+      <button data-filter="pending" aria-pressed="false">Waiting</button>
+      <button data-filter="approved" aria-pressed="false">Approved</button>
+      <button data-filter="blocked" aria-pressed="false">Blocked</button>
+    </div>
     <input id="people-search" type="search" placeholder="Search People" hidden>
     <p id="admin-msg" class="msg muted" role="status"></p>
     <div id="people"></div>
