@@ -37,11 +37,17 @@
     --check-tint: rgba(255, 159, 67, .14);
     --problem-tint: rgba(255, 107, 107, .14);
     --muted-tint: rgba(143, 149, 184, .16);
-    --paper: #ece8dc;
-    --ink: #141a3a;
-    --ink-muted: #5b6388;
-    --paper-line: #b9b4a4;
-    --on-ink: #0c7a52;
+    --paper: #1d2347;
+    --ink: #ece8dc;
+    --ink-muted: #8f95b8;
+    --paper-line: #0d1126;
+    --stub: #6fd9a8;
+    --stub-ink: #0d1126;
+    --stub-muted: #1f5a45;
+    --ticket-pill-bg: rgba(111, 217, 168, .14);
+    --ticket-pill-fg: #6fd9a8;
+    --ticket-new-bg: #d9b66f;
+    --ticket-new-fg: #0d1126;
     --ticket-shadow: none;
     --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
     --r-s: 8px; --r-m: 12px; --r-l: 16px;
@@ -66,7 +72,13 @@
     --ink: #141a3a;
     --ink-muted: #5b6388;
     --paper-line: #c9cfe4;
-    --on-ink: #0c7a52;
+    --stub: transparent;
+    --stub-ink: #141a3a;
+    --stub-muted: #5b6388;
+    --ticket-pill-bg: rgba(12, 122, 82, .12);
+    --ticket-pill-fg: #0c7a52;
+    --ticket-new-bg: #141a3a;
+    --ticket-new-fg: #ffffff;
     --ticket-shadow: 0 1px 3px rgba(20, 26, 58, .12);
   }
 
@@ -151,8 +163,9 @@
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
   .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); box-shadow: var(--ticket-shadow); }
   .stub { position: relative; flex: none; width: 78px; padding: 16px 0; text-align: center; line-height: 1.1;
-    display: flex; flex-direction: column; justify-content: center; border-right: 2px dashed var(--paper-line); }
-  .stub span { display: block; font-size: 13px; color: var(--ink-muted); }
+    display: flex; flex-direction: column; justify-content: center; border-right: 2px dashed var(--paper-line);
+    background: var(--stub); color: var(--stub-ink); border-radius: var(--r-l) 0 0 var(--r-l); }
+  .stub span { display: block; font-size: 13px; color: var(--stub-muted); }
   .stub b { display: block; font: 800 34px/1.05 var(--sans); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .stub::before, .stub::after { content: ""; position: absolute; right: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); }
   .stub::before { top: -7px; } .stub::after { bottom: -7px; }
@@ -160,8 +173,8 @@
   .tbody h3 { margin: 8px 0 0; font: 700 21px/1.2 var(--sans); letter-spacing: -.015em; color: var(--ink); }
   .tbody .when { color: var(--ink-muted); }
   .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
-  .ticket .pill.on { background: rgba(12, 122, 82, .12); color: var(--on-ink); }
-  .ticket .new { background: var(--ink); color: var(--paper); }
+  .ticket .pill.on { background: var(--ticket-pill-bg); color: var(--ticket-pill-fg); }
+  .ticket .new { background: var(--ticket-new-bg); color: var(--ticket-new-fg); }
   .alert.on_sale .go { margin-top: 10px; }
   .alert.arrive { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
