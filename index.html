@@ -195,7 +195,6 @@
   /* Some iPhones give a Home Screen app a page shorter than the screen; colour the leftover strip like the tab bar. */
   html.strip { background: var(--surface); }
   html.strip nav { padding-bottom: 0; }
-  #screeninfo-out { white-space: pre-wrap; font: 12px/1.5 ui-monospace, Consolas, monospace; color: var(--muted); }
   .row2 { display: flex; gap: 10px; }
   .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
   .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; }
@@ -339,10 +338,6 @@
     <button id="diagnose" class="secondary">Run Check</button>
     <ul class="steps" id="diag"></ul>
     <p class="muted" id="diag-note"></p>
-    <h2>Screen Info</h2>
-    <p class="muted">For fixing layout problems. Tap it, then send a screenshot to whoever is helping you.</p>
-    <button id="screeninfo" class="secondary">Show Screen Info</button>
-    <pre id="screeninfo-out"></pre>
     <h2>Make Alerts Loud on iPhone</h2>
     <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
     <ol class="guide">
