@@ -64,12 +64,16 @@ async function renderAlerts() {
     const time = new Date(a.received).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
     const heading = dayKey(a.received) !== lastDay ? `<h2 class="day">${esc(dayName(a.received))}</h2>` : "";
     lastDay = dayKey(a.received);
+    const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
+    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc((a.day || "").slice(0, 3))}</span></div>` : "";
     return `${heading}<article class="alert ${type}">
       <time class="at">${esc(time)}</time>
       <div>
-        <p class="status">${LABELS[type]}${a.seen === false ? ' <span class="new">New</span>' : ""}</p>
-        <h3>${esc(a.name)}</h3>
-        <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
+        <div class="head">${tile}<div>
+          <p class="status">${LABELS[type]}${a.seen === false ? ' <span class="new">New</span>' : ""}</p>
+          <h3>${esc(a.name)}</h3>
+          <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
+        </div></div>
         ${type === "on_sale" && url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
       </div>
     </article>`;
@@ -288,11 +292,15 @@ async function api(path, opts = {}) {
 }
 
 // ---- Which screen to show ----
+const hideSplash = () => $("splash").classList.add("gone");
+setTimeout(hideSplash, 4000);   // never leave the launch screen up if the network is slow
 function showGate(id) {
+  hideSplash();
   $("tabs").hidden = true;
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
 }
 function showApp() {
+  hideSplash();
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
@@ -393,6 +401,7 @@ function personRow(p) {
         ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
         <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>${p.paused ? ", Paused" : ""}, ${esc(devices)}</div>
         <div class="meta">${esc(types)}</div>
+        ${p.keywords && p.keywords.length ? `<div class="meta">Keywords: ${esc(p.keywords.join(", "))}</div>` : ""}
       </div>
       <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
     </div>
@@ -407,6 +416,20 @@ async function renderLog() {
       || '<p class="muted">No alerts sent yet.</p>';
   } catch { $("alert-log").innerHTML = ""; }
 }
+// People waiting for approval come first; the search box (shown once there are more than 5 people) narrows the list.
+function showPeople() {
+  const q = $("people-search").value.trim().toLowerCase(), order = { pending: 0, approved: 1, blocked: 2 };
+  const list = people.filter((p) => !q || `${p.nickname} ${p.email}`.toLowerCase().includes(q))
+    .sort((a, b) => order[a.status] - order[b.status]);
+  $("people").innerHTML = list.map(personRow).join("") || `<p class="muted">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
+}
+$("people-search").oninput = showPeople;
+$("invite").onclick = async () => {
+  const link = new URL("./", location.href).href;
+  const text = `Join TP Notify for Timepiece ticket alerts.\n1. Open this link in Safari: ${link}\n2. Tap Share, then Add to Home Screen.\n3. Open TP Notify from its new icon, create an account and turn on notifications.\nI'll approve you once you've signed up.`;
+  try { await navigator.clipboard.writeText(text); say("Invite message copied. Paste it into a chat."); }
+  catch { say("Couldn't copy. Send them this link: " + link, true); }
+};
 async function renderAdmin() {
   const msg = $("admin-msg");
   if (!msg.textContent) { msg.className = "msg muted"; msg.textContent = "Loading..."; }
@@ -414,7 +437,10 @@ async function renderAdmin() {
   try {
     people = await api("rpc/admin_people", { method: "POST", body: "{}" });
     if (msg.textContent === "Loading...") msg.textContent = "";
-    $("people").innerHTML = people.map(personRow).join("") || '<p class="muted">No one has signed up yet.</p>';
+    const n = (s) => people.filter((p) => p.status === s).length;
+    $("people-count").textContent = `${n("approved")} Approved, ${n("pending")} Waiting, ${n("blocked")} Blocked`;
+    $("people-search").hidden = people.length <= 5;
+    showPeople();
   } catch (e) {
     $("people").innerHTML = "";
     msg.className = "msg error"; msg.textContent = e.message;
@@ -441,6 +467,10 @@ function drawSheet() {
     html = `<h3>Alert Types</h3><p class="muted">What ${name} gets alerts for.</p>
       ${Object.entries(TYPE_NAMES).map(([k, v]) => `<label class="check"><input type="checkbox" data-type="${k}" ${p.alert_types.includes(k) ? "checked" : ""}>${v}</label>`).join("")}
       <button data-act="save-types">Save</button><button class="secondary" data-act="back">Cancel</button>`;
+  } else if (sheetMode === "keywords") {
+    html = `<h3>Keywords</h3><p class="muted">${name} only gets events containing one of these words. Separate them with commas. Leave it empty for every event.</p>
+      <input id="kw-input" maxlength="120" value="${esc((p.keywords || []).join(", "))}" placeholder="For example: saturday, sketch">
+      <button data-act="save-keywords">Save</button><button class="secondary" data-act="back">Cancel</button>`;
   } else if (sheetMode === "remove") {
     html = `<h3>Remove ${name}?</h3><p class="muted">This deletes their devices and nickname. They can ask to rejoin, and you would approve them again.</p>
       <button class="danger-btn" data-act="confirm-remove">Remove</button><button class="secondary" data-act="back">Cancel</button>`;
@@ -448,6 +478,7 @@ function drawSheet() {
     html = `<h3>${name}</h3>
       <button class="item" data-act="nickname">${p.nickname ? "Edit Nickname" : "Add Nickname"}</button>
       <button class="item" data-act="types">Alert Types</button>
+      <button class="item" data-act="keywords">Keywords</button>
       ${p.active_devices > 0 ? '<button class="item" data-act="test">Send Test Notification</button>' : ""}
       <button class="item" data-act="pause">${p.paused ? "Resume Alerts" : "Pause Alerts"}</button>
       ${me ? "" : (p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
@@ -480,7 +511,7 @@ $("sheet").onclick = async (ev) => {
   const b = ev.target.closest("[data-act]");
   if (!b) return;
   const act = b.dataset.act, p = sheetPerson;
-  if (["nickname", "types", "remove"].includes(act)) { sheetMode = act; return drawSheet(); }
+  if (["nickname", "types", "keywords", "remove"].includes(act)) { sheetMode = act; return drawSheet(); }
   if (act === "back") { sheetMode = "menu"; return drawSheet(); }
   b.disabled = true;
   try {
@@ -490,6 +521,10 @@ $("sheet").onclick = async (ev) => {
         body: JSON.stringify({ user_id: p.id, nickname: $("nick-input").value.trim() }),
       });
       say("Nickname saved.");
+    } else if (act === "save-keywords") {
+      const words = $("kw-input").value.split(",").map((w) => w.trim()).filter(Boolean).slice(0, 10);
+      await patchProfile(p.id, { keywords: words });
+      say("Keywords saved.");
     } else if (act === "save-types") {
       const types = [...document.querySelectorAll("#sheet-panel input[data-type]")].filter((i) => i.checked).map((i) => i.dataset.type);
       await patchProfile(p.id, { alert_types: types });

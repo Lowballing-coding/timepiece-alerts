@@ -183,6 +183,15 @@
   .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
   .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
   .logrow { padding: 10px 0; border-top: 1px solid var(--line); }
+  #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
+  #splash.gone { opacity: 0; pointer-events: none; }
+  #splash svg { width: 96px; height: 96px; }
+  .alert .head { display: flex; gap: 12px; align-items: flex-start; }
+  .alert .head > div:last-child { min-width: 0; }
+  .tile { flex: none; width: 52px; padding: 4px 0; border: 1px solid var(--line); border-radius: 12px; text-align: center; line-height: 1.2; }
+  .tile span { display: block; font-size: 12px; color: var(--muted); }
+  .tile b { display: block; font: 700 22px/1.1 var(--sans); }
+  .alert.on_sale .tile { border-color: var(--on); }
   .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: 14px; padding: 14px 16px; margin: 0 0 8px; }
   .tip p { margin: 4px 0; }
   .alert .new { font-size: 12px; font-weight: 700; background: var(--brass); color: var(--on-brass); border-radius: 6px; padding: 1px 7px; }
@@ -203,6 +212,14 @@
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg viewBox="96 96 320 320">
+    <path class="ring" d="M399 210.7A150 150 0 1 1 301.4 113" stroke-width="34" stroke-linecap="round"/>
+    <circle class="dot" cx="362.1" cy="149.9" r="36"/>
+    <path class="hand" d="M256 256L326.7 185.3" stroke-width="26"/>
+    <circle class="hub" cx="256" cy="256" r="22"/>
+  </svg>
+</div>
 <header>
   <svg viewBox="96 96 320 320" aria-hidden="true">
     <path class="ring" d="M399 210.7A150 150 0 1 1 301.4 113" stroke-width="34" stroke-linecap="round"/>
@@ -236,6 +253,9 @@
     <p id="watcher-admin" class="health" hidden></p>
     <h2>People</h2>
     <p class="muted">Approve friends so they get alerts. Tap the dots for more. Only you can see this tab.</p>
+    <p id="people-count" class="muted"></p>
+    <button id="invite" class="secondary">Copy Invite Message</button>
+    <input id="people-search" type="search" placeholder="Search People" hidden>
     <p id="admin-msg" class="msg muted" role="status"></p>
     <div id="people"></div>
     <h2>Recent Alerts Sent</h2>
