@@ -1,6 +1,6 @@
-const CACHE = "timepiece-v27";
+const CACHE = "timepiece-v28";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
+const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification", signup: "New Sign-Up Request" };
 
 self.addEventListener("install", (e) => {
   // One missing file must never stop the service worker installing (push depends on it).
@@ -54,15 +54,17 @@ self.addEventListener("push", (e) => {
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
   e.waitUntil((async () => {
-    const unseen = await saveAlert({ type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", received: Date.now(), seen: false });
-    try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
+    if (type !== "signup") {   // sign-up requests are for the Admin tab, not the alert history
+      const unseen = await saveAlert({ type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", received: Date.now(), seen: false });
+      try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
+    }
     await self.registration.showNotification(TITLES[type], {
       body: body || "Open the app for details.",
-      tag: d.url || "timepiece",
+      tag: d.url || (type === "signup" ? d.name : "timepiece"),
       renotify: true,
       requireInteraction: type === "on_sale",
       icon: "icon-192.png",
-      data: { url: d.url || "" },
+      data: { url: d.url || "", tab: d.tab === "admin" ? "admin" : "" },
     });
     const wins = await self.clients.matchAll({ type: "window" });
     wins.forEach((w) => w.postMessage("refresh"));
@@ -72,9 +74,14 @@ self.addEventListener("push", (e) => {
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const url = e.notification.data && e.notification.data.url;
+  const tab = (e.notification.data && e.notification.data.tab) || "";
   e.waitUntil(
     url && /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(url)
       ? self.clients.openWindow(url)
-      : self.clients.matchAll({ type: "window" }).then((wins) => (wins[0] ? wins[0].focus() : self.clients.openWindow("./")))
+      : self.clients.matchAll({ type: "window" }).then((wins) => {
+          if (!wins[0]) return self.clients.openWindow(tab ? `./?tab=${tab}` : "./");
+          if (tab) wins[0].postMessage({ tab });   // already open: switch it to the Admin tab
+          return wins[0].focus();
+        })
   );
 });

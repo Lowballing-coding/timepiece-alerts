@@ -397,6 +397,8 @@ function showApp() {
   syncSubscription();
   renderWatcher();
   let tab = document.querySelector("#tabs button.active");
+  const wanted = new URLSearchParams(location.search).get("tab");   // a notification can open straight on the Admin tab
+  if (wanted) { history.replaceState(null, "", location.pathname); tab = document.querySelector(`#tabs [data-tab="${wanted === "admin" ? "admin" : "alerts"}"]`); }
   if (!tab || tab.hidden) tab = document.querySelector('#tabs [data-tab="alerts"]');
   tab.click();
 }
@@ -665,7 +667,10 @@ $("rejoin").onclick = async () => {
 // ---- Boot ----
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
-  navigator.serviceWorker.addEventListener("message", renderAlerts);
+  navigator.serviceWorker.addEventListener("message", (ev) => {
+    const t = ev.data && ev.data.tab === "admin" && document.querySelector('#tabs [data-tab="admin"]');
+    if (t && !t.hidden && !$("tabs").hidden) t.click(); else renderAlerts();
+  });
 }
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
