@@ -339,7 +339,7 @@ function personRow(p) {
   return `<div class="person">
     <div class="person-head">
       <div>
-        <div class="who">${esc(name)}${me ? " (you)" : ""}</div>
+        <div class="who">${esc(name)}${me ? " (You)" : ""}</div>
         ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
         <div class="meta"><span class="state-${esc(p.status)}">${esc(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</span>${p.paused ? ", Paused" : ""}, ${esc(devices)}</div>
         <div class="meta">${esc(types)}</div>
