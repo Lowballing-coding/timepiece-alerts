@@ -199,10 +199,12 @@
     <ul class="steps" id="checklist"></ul>
     <button id="enable">Turn on notifications</button>
     <p id="setup-msg" class="muted" role="status"></p>
-    <h2>Link to your watcher</h2>
-    <p class="muted">Copy this into <b>watcher_secrets.json</b> on your PC, replacing <b>null</b> after "subscription". Keep it private.</p>
-    <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
-    <button id="copy" class="secondary">Copy subscription</button>
+    <div id="manual-link" hidden>
+      <h2>Manual link (admin)</h2>
+      <p class="muted">Your PC still reads <b>watcher_secrets.json</b> until the watcher is switched to accounts. Keep this private.</p>
+      <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
+      <button id="copy" class="secondary">Copy subscription</button>
+    </div>
   </section>
 
   <section id="admin" class="screen" aria-label="Admin">

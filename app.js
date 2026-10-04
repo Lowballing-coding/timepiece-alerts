@@ -104,7 +104,7 @@ async function renderChecklist() {
   $("checklist").innerHTML =
     row(1, standalone(), "Open the app from its Home Screen icon") +
     row(2, perm === "granted", "Allow notifications") +
-    row(3, !!sub, "Create the link to your watcher");
+    row(3, !!sub && store.get("tp-linked") === sub.endpoint, "Link this phone to your account");
   $("sub").value = sub ? JSON.stringify(sub.toJSON(), null, 2) : "";
   if (!supported()) {
     $("setup-msg").textContent = "Push isn't available here. On iPhone, add this app to the Home Screen first (iOS 16.4 or newer) and open it from there.";
@@ -130,13 +130,32 @@ $("enable").onclick = async () => {
     ]);
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
-    $("setup-msg").textContent = "Done. Tap Copy subscription, then paste it into watcher_secrets.json.";
     $("sub").value = JSON.stringify(sub.toJSON(), null, 2);
+    await saveSubscription(sub);
+    $("setup-msg").textContent = "Done. This phone is linked to your account.";
   } catch (e) {
-    $("setup-msg").textContent = "Couldn't turn on notifications: " + e.name;
+    $("setup-msg").textContent = "Couldn't finish setup: " + (e.message || e.name);
   }
   renderChecklist();
 };
+
+// Saves this phone's push subscription to the signed-in account (the watcher reads it from there).
+const deviceLabel = () => (/iPhone|iPad/.test(navigator.userAgent) ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "Computer");
+async function saveSubscription(sub) {
+  await api("subscriptions?on_conflict=endpoint", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ user_id: session.user.id, endpoint: sub.endpoint, subscription: sub.toJSON(), device_label: deviceLabel(), active: true }),
+  });
+  store.set("tp-linked", sub.endpoint);
+}
+async function syncSubscription() {   // quietly keep the saved copy fresh on each launch
+  try {
+    if (!supported() || Notification.permission !== "granted") return;
+    const sub = await currentSub();
+    if (sub) await saveSubscription(sub);
+  } catch {}
+}
 $("copy").onclick = async () => {
   const text = $("sub").value;
   if (!text) return;
@@ -223,6 +242,8 @@ function showApp() {
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
+  $("manual-link").hidden = !(profile && profile.role === "admin");
+  syncSubscription();
   let tab = document.querySelector("#tabs button.active");
   if (!tab || tab.hidden) tab = document.querySelector('#tabs [data-tab="alerts"]');
   tab.click();
