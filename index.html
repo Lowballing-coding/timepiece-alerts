@@ -158,6 +158,24 @@
   }
   nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   nav button.active { color: var(--brass); }
+
+  /* ---- Sign-in, gates, admin ---- */
+  [hidden] { display: none !important; }
+  input {
+    display: block; width: 100%; min-height: 52px; margin-top: 12px; padding: 0 14px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--line);
+    border-radius: 14px; font: 17px/1.2 var(--sans);
+  }
+  input::placeholder { color: var(--muted); }
+  .msg { min-height: 1.4em; margin-top: 10px; }
+  .msg.error { color: var(--problem); }
+  .gate { padding-top: 24px; }
+  .person { padding: 14px 0; border-top: 1px solid var(--line); }
+  .person .who { font-weight: 600; word-break: break-all; }
+  .person .meta { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+  .person .state-pending { color: var(--check); } .person .state-approved { color: var(--on); } .person .state-blocked { color: var(--problem); }
+  .row-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .row-actions button { width: auto; min-height: 40px; padding: 8px 16px; margin: 0; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -187,7 +205,48 @@
     <button id="copy" class="secondary">Copy subscription</button>
   </section>
 
+  <section id="admin" class="screen" aria-label="Admin">
+    <h2>People</h2>
+    <p class="muted">Approve friends so they get alerts. Only you can see this tab.</p>
+    <div id="people"></div>
+    <p id="admin-msg" class="msg muted" role="status"></p>
+  </section>
+
+  <section id="gate-auth" class="screen gate" aria-label="Sign in">
+    <h2 id="auth-title">Sign in to TP Notify</h2>
+    <form id="auth-form">
+      <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="auth-pass" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
+      <p id="auth-hint" class="muted" hidden>At least 6 characters. You'll need approval before alerts start.</p>
+      <button id="auth-submit" type="submit">Sign in</button>
+    </form>
+    <button id="auth-toggle" type="button" class="secondary">Create an account</button>
+    <p id="auth-msg" class="msg" role="alert"></p>
+  </section>
+
+  <section id="gate-pending" class="screen gate" aria-label="Waiting for approval">
+    <h2>Waiting for approval</h2>
+    <p class="muted">Your account is created. Alerts start once the admin approves it.</p>
+    <button id="pending-check">Check again</button>
+    <button class="secondary signout" type="button">Sign out</button>
+  </section>
+
+  <section id="gate-blocked" class="screen gate" aria-label="Access paused">
+    <h2>Access paused</h2>
+    <p class="muted">The admin has paused your access.</p>
+    <button class="secondary signout" type="button">Sign out</button>
+  </section>
+
+  <section id="gate-removed" class="screen gate" aria-label="Account removed">
+    <h2>Account removed</h2>
+    <p class="muted">This account no longer has access. Ask the admin if that's a mistake.</p>
+    <button class="secondary signout" type="button">Sign out</button>
+  </section>
+
   <section id="settings" class="screen" aria-label="Settings">
+    <h2>Account</h2>
+    <p class="muted" id="acct-email"></p>
+    <button class="secondary signout" type="button">Sign out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
       <button data-mode="dark" aria-pressed="true">Dark</button>
@@ -209,7 +268,7 @@
     </ol>
   </section>
 </main>
-<nav>
+<nav id="tabs" hidden>
   <button data-tab="alerts" class="active">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>Alerts
   </button>
@@ -218,6 +277,9 @@
   </button>
   <button data-tab="settings">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>Settings
+  </button>
+  <button data-tab="admin" id="admin-tab" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/></svg>Admin
   </button>
 </nav>
 <script src="app.js"></script>
