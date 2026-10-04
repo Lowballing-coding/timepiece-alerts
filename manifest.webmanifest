@@ -1,6 +1,6 @@
 {
-  "name": "TP notify",
-  "short_name": "TP notify",
+  "name": "TP Notify",
+  "short_name": "TP Notify",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
