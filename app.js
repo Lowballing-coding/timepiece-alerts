@@ -37,20 +37,42 @@ async function renderAlerts() {
   const items = await allAlerts();
   $("clear").style.display = items.length ? "block" : "none";
   if (!items.length) {
-    $("list").innerHTML = '<div class="empty">No alerts yet.<br>They will appear here when the watcher sends one.</div>';
+    $("list").innerHTML = `<div class="empty">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#d9b66f" stroke-width="3"/>
+        ${Array.from({ length: 12 }, (_, i) => `<line x1="60" y1="10" x2="60" y2="${i % 3 ? 16 : 20}" stroke="#8f95b8" stroke-width="${i % 3 ? 2 : 3}" transform="rotate(${i * 30} 60 60)"/>`).join("")}
+        <path d="M60 60V34M60 60l18 10" stroke="#ece8dc" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <g class="sweep"><line x1="60" y1="70" x2="60" y2="14" stroke="#8ff0c0" stroke-width="1.5"/></g>
+        <circle cx="60" cy="60" r="3.5" fill="#d9b66f"/>
+      </svg>
+      <h2>Nothing on sale yet</h2>
+      <p class="muted">When your watcher finds tickets, they show up here and on your lock screen.</p>
+    </div>`;
     return;
   }
+  const dayKey = (t) => new Date(t).toDateString();
+  const dayName = (t) => {
+    const d = new Date(t), today = new Date();
+    if (dayKey(t) === today.toDateString()) return "Today";
+    if (dayKey(t) === new Date(today - 864e5).toDateString()) return "Yesterday";
+    return d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+  };
+  let lastDay = "";
   $("list").innerHTML = items.map((a) => {
     const type = LABELS[a.type] ? a.type : "check";
     const url = safeUrl(a.url);
-    const when = new Date(a.received).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
-    return `<div class="card ${type}">
-      <div class="label">${LABELS[type]}</div>
-      <div class="name">${esc(a.name)}</div>
-      <div class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</div>
-      <div class="muted">Received ${esc(when)}</div>
-      ${type === "on_sale" && url ? `<a class="btn big" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
-    </div>`;
+    const time = new Date(a.received).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    const heading = dayKey(a.received) !== lastDay ? `<h2 class="day">${esc(dayName(a.received))}</h2>` : "";
+    lastDay = dayKey(a.received);
+    return `${heading}<article class="alert ${type}">
+      <time class="at">${esc(time)}</time>
+      <div>
+        <p class="status">${LABELS[type]}</p>
+        <h3>${esc(a.name)}</h3>
+        <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
+        ${type === "on_sale" && url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
+      </div>
+    </article>`;
   }).join("");
 }
 
@@ -77,11 +99,11 @@ async function currentSub() {
 async function renderChecklist() {
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   const sub = await currentSub();
-  const row = (ok, text) => `<li>${ok ? "âœ…" : "â¬œ"} ${text}</li>`;
+  const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (done)" : ""}</span></li>`;
   $("checklist").innerHTML =
-    row(standalone(), "Installed to Home Screen (opened from the icon)") +
-    row(perm === "granted", "Notifications allowed") +
-    row(!!sub, "Subscription created");
+    row(1, standalone(), "Open the app from its Home Screen icon") +
+    row(2, perm === "granted", "Allow notifications") +
+    row(3, !!sub, "Create the link to your watcher");
   $("sub").value = sub ? JSON.stringify(sub.toJSON(), null, 2) : "";
   if (!supported()) {
     $("setup-msg").textContent = "Push isn't available here. On iPhone, add this app to the Home Screen first (iOS 16.4 or newer) and open it from there.";
@@ -107,10 +129,10 @@ $("enable").onclick = async () => {
     ]);
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
-    $("setup-msg").textContent = "Done. Tap Copy and paste it into watcher_secrets.json.";
+    $("setup-msg").textContent = "Done. Tap Copy subscription, then paste it into watcher_secrets.json.";
     $("sub").value = JSON.stringify(sub.toJSON(), null, 2);
   } catch (e) {
-    $("setup-msg").textContent = "Couldn't enable notifications: " + e.name;
+    $("setup-msg").textContent = "Couldn't turn on notifications: " + e.name;
   }
   renderChecklist();
 };
@@ -124,7 +146,7 @@ $("copy").onclick = async () => {
 // ---- Settings screen ----
 $("test").onclick = async () => {
   if (!supported() || Notification.permission !== "granted") {
-    alert("Enable notifications on the Setup screen first.");
+    alert("Turn on notifications on the Setup screen first.");
     return;
   }
   const reg = await navigator.serviceWorker.ready;
