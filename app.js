@@ -33,8 +33,27 @@ function esc(s) {
 function safeUrl(u) {
   return /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(u || "") ? u : "";
 }
+// Alerts the server sent to this person that never reached this phone (it was off, the push expired, ...).
+async function fetchMissed(local) {
+  if (!session || !profile || profile.status !== "approved") return [];
+  try {
+    const since = new Date(Math.max(store.get("tp-since") || 0, Date.now() - 864e5)).toISOString();
+    const rows = await Promise.race([
+      api(`alert_log?select=created_at,type,event_name,event_day,event_date,url&user_ids=cs.{${session.user.id}}&type=neq.test`
+        + `&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=20`),
+      new Promise((r) => setTimeout(() => r([]), 1500)),
+    ]);
+    return rows.map((r) => ({ type: r.type, name: r.event_name || "", day: r.event_day || "", date: r.event_date || "", url: r.url || "",
+      received: Date.parse(r.created_at), missed: true }))
+      .filter((m) => !local.some((a) => a.type === m.type && a.name === m.name && Math.abs(a.received - m.received) < 15 * 60e3));
+  } catch { return []; }
+}
+let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
 async function renderAlerts() {
-  const items = await allAlerts();
+  const stored = await allAlerts();
+  const items = [...stored, ...(await fetchMissed(stored))].sort((a, b) => b.received - a.received);
+  const fresh = new Set(knownIds ? items.filter((a) => a.id && !knownIds.has(a.id)).map((a) => a.id) : []);
+  knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
   $("clear").style.display = items.length ? "block" : "none";
   if (!items.length) {
     $("list").innerHTML = `<div class="empty">
@@ -66,11 +85,11 @@ async function renderAlerts() {
     lastDay = dayKey(a.received);
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc((a.day || "").slice(0, 3))}</span></div>` : "";
-    return `${heading}<article class="alert ${type}">
+    return `${heading}<article class="alert ${type}${fresh.has(a.id) ? " arrive" : ""}">
       <time class="at">${esc(time)}</time>
       <div>
         <div class="head">${tile}<div>
-          <p class="status">${LABELS[type]}${a.seen === false ? ' <span class="new">New</span>' : ""}</p>
+          <p class="status">${LABELS[type]}${a.missed ? ' <span class="new missed">Missed</span>' : a.seen === false ? ' <span class="new">New</span>' : ""}</p>
           <h3>${esc(a.name)}</h3>
           <p class="when">${esc([a.day, a.date].filter(Boolean).join(" "))}</p>
         </div></div>
@@ -102,7 +121,7 @@ document.querySelectorAll("nav button").forEach((b) => {
     if (b.dataset.tab === "admin") renderAdmin();
   };
 });
-$("clear").onclick = async () => { await clearAlerts(); renderAlerts(); };
+$("clear").onclick = async () => { await clearAlerts(); store.set("tp-since", Date.now()); renderAlerts(); };
 
 // ---- Setup screen ----
 const standalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -189,6 +208,31 @@ $("test").onclick = async () => {
   reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
 };
 
+// ---- Quiet hours (each person's own; the watcher skips alerts in this window, using their time zone) ----
+function fillQuiet() {
+  const on = !!(profile && profile.quiet_start && profile.quiet_end);
+  $("quiet-on").checked = on;
+  if (on) { $("quiet-start").value = profile.quiet_start; $("quiet-end").value = profile.quiet_end; }
+}
+const inQuiet = (start, end) => {
+  const t = new Date().toTimeString().slice(0, 5);
+  return start <= end ? start <= t && t < end : t >= start || t < end;
+};
+$("quiet-save").onclick = async () => {
+  const msg = $("quiet-msg"), on = $("quiet-on").checked;
+  const fields = on
+    ? { quiet_start: $("quiet-start").value, quiet_end: $("quiet-end").value, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }
+    : { quiet_start: null, quiet_end: null };
+  msg.className = "msg muted";
+  if (on && (!fields.quiet_start || !fields.quiet_end)) { msg.className = "msg error"; msg.textContent = "Choose both times."; return; }
+  try {
+    await patchProfile(session.user.id, fields);
+    Object.assign(profile, fields); store.set("tp-profile", profile);
+    msg.textContent = on ? "Quiet hours saved." : "Quiet hours are off.";
+  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ""; }, 6000);
+};
+
 // ---- Install guide (shown on the sign-in screen when opened in a browser on a phone) ----
 if (!standalone() && /iPhone|iPad|Android/.test(navigator.userAgent)) {
   const steps = /iPhone|iPad/.test(navigator.userAgent)
@@ -209,8 +253,9 @@ $("diagnose").onclick = async () => {
   try { sub = await currentSub(); } catch {}
   add(!!sub, "This phone can receive alerts", "Tap Turn On Notifications on the Setup screen.");
   try {
-    const p = (await api(`profiles?id=eq.${session.user.id}&select=status,paused,alert_types`))[0];
+    const p = (await api(`profiles?id=eq.${session.user.id}&select=*`))[0];
     add(p && p.status === "approved", "Account approved", "Ask the admin to approve you.");
+    if (p && p.quiet_start && p.quiet_end) add(!inQuiet(p.quiet_start, p.quiet_end), "Outside your quiet hours", "Alerts sent during quiet hours are skipped. Change them in Settings.");
     add(p && !p.paused, "Alerts not paused", "Ask the admin to resume your alerts.");
     add(p && p.alert_types.length > 0, "At least one alert type is on", "Ask the admin to turn on an alert type.");
     if (sub) {
@@ -305,6 +350,8 @@ function showApp() {
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
   $("manual-link").hidden = !(profile && profile.role === "admin");
+  if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
+  fillQuiet();
   syncSubscription();
   renderWatcher();
   let tab = document.querySelector("#tabs button.active");
