@@ -197,7 +197,11 @@
   html.strip nav { padding-bottom: 0; }
   .row2 { display: flex; gap: 10px; }
   .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
-  .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; }
+  .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; padding: 0; text-align: center; line-height: normal;
+    display: flex; align-items: center; justify-content: center; }
+  /* iPhone draws the time inside its own inner element, which has to be centred separately. */
+  .row2 input::-webkit-date-and-time-value { text-align: center; margin: 0 auto; }
+  .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
   .alert .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); }
   .alert.arrive { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
