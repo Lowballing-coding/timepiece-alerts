@@ -1,6 +1,6 @@
 {
-  "name": "Timepiece Alerts",
-  "short_name": "Timepiece",
+  "name": "TP notify",
+  "short_name": "TP notify",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -39,11 +39,11 @@ async function renderAlerts() {
   if (!items.length) {
     $("list").innerHTML = `<div class="empty">
       <svg viewBox="0 0 120 120" aria-hidden="true">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="#d9b66f" stroke-width="3"/>
-        ${Array.from({ length: 12 }, (_, i) => `<line x1="60" y1="10" x2="60" y2="${i % 3 ? 16 : 20}" stroke="#8f95b8" stroke-width="${i % 3 ? 2 : 3}" transform="rotate(${i * 30} 60 60)"/>`).join("")}
-        <path d="M60 60V34M60 60l18 10" stroke="#ece8dc" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <g class="sweep"><line x1="60" y1="70" x2="60" y2="14" stroke="#8ff0c0" stroke-width="1.5"/></g>
-        <circle cx="60" cy="60" r="3.5" fill="#d9b66f"/>
+        <circle class="ring" cx="60" cy="60" r="54" stroke-width="3"/>
+        ${Array.from({ length: 12 }, (_, i) => `<line class="tick" x1="60" y1="10" x2="60" y2="${i % 3 ? 16 : 20}" stroke-width="${i % 3 ? 2 : 3}" transform="rotate(${i * 30} 60 60)"/>`).join("")}
+        <path class="hand" d="M60 60V34M60 60l18 10" stroke-width="4"/>
+        <g class="sweep"><line class="sweepline" x1="60" y1="70" x2="60" y2="14" stroke-width="1.5"/></g>
+        <circle class="hub" cx="60" cy="60" r="3.5"/>
       </svg>
       <h2>Nothing on sale yet</h2>
       <p class="muted">When your watcher finds tickets, they show up here and on your lock screen.</p>
@@ -152,6 +152,23 @@ $("test").onclick = async () => {
   const reg = await navigator.serviceWorker.ready;
   reg.showNotification("Test notification", { body: "This phone can show Timepiece alerts.", icon: "icon-192.png" });
 };
+
+// ---- Theme (Dark / Light / Auto; default Dark) ----
+function savedMode() { try { return localStorage.getItem("tp-theme") || "dark"; } catch { return "dark"; } }
+function applyTheme(mode) {
+  const dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0d1126" : "#f3f5fb";
+  document.querySelectorAll("#theme button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+}
+document.querySelectorAll("#theme button").forEach((b) => {
+  b.onclick = () => {
+    try { localStorage.setItem("tp-theme", b.dataset.mode); } catch {}
+    applyTheme(b.dataset.mode);
+  };
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme(savedMode()));
+applyTheme(savedMode());
 
 // ---- Boot ----
 if ("serviceWorker" in navigator) {

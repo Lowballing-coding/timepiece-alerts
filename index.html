@@ -1,70 +1,107 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Timepiece Alerts</title>
+<title>TP notify</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d1126">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Timepiece">
+<meta name="apple-mobile-web-app-title" content="TP notify">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script>
+  // Apply the saved theme before first paint so there is no flash. Default is dark.
+  (function () {
+    var mode = "dark";
+    try { mode = localStorage.getItem("tp-theme") || "dark"; } catch (e) {}
+    var dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  })();
+</script>
 <style>
-  :root {
+  :root, :root[data-theme="dark"] {
     --bg: #0d1126;
     --surface: #151a38;
-    --surface-2: #1d2347;
     --line: #2a3160;
     --text: #ece8dc;
     --muted: #8f95b8;
     --brass: #d9b66f;
     --on: #8ff0c0;
+    --on-tint: rgba(143,240,192,.10);
+    --on-glow: rgba(143,240,192,.14);
     --check: #ff9f43;
     --problem: #ff6b6b;
     --on-brass: #0d1126;
-    --serif: "Bodoni 72", Didot, "Bodoni MT", "Playfair Display", Georgia, serif;
     --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
   }
+  :root[data-theme="light"] {
+    --bg: #f3f5fb;
+    --surface: #ffffff;
+    --line: #d9deef;
+    --text: #141a3a;
+    --muted: #5b6388;
+    --brass: #8f6a1c;
+    --on: #0c7a52;
+    --on-tint: rgba(12,122,82,.07);
+    --on-glow: rgba(12,122,82,.10);
+    --check: #b45a00;
+    --problem: #c42b2b;
+    --on-brass: #ffffff;
+  }
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 17px/1.45 var(--sans);
-    padding: env(safe-area-inset-top) 0 calc(78px + env(safe-area-inset-bottom));
+    margin: 0; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none;
+    display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text); font: 17px/1.45 var(--sans);
   }
   :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
 
-  header { display: flex; align-items: center; gap: 12px; padding: 20px 20px 4px; max-width: 560px; margin: 0 auto; }
-  header svg { width: 34px; height: 34px; flex: none; }
-  h1 { margin: 0; font: 400 28px/1 var(--serif); letter-spacing: .01em; }
-  main { padding: 8px 20px; max-width: 560px; margin: 0 auto; }
+  /* Header and tab bar stay put; only <main> scrolls. */
+  header {
+    flex: none; width: 100%; max-width: 560px; margin: 0 auto;
+    display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 14px) 20px 10px;
+  }
+  header svg { width: 30px; height: 30px; flex: none; }
+  h1 { margin: 0; font: 700 24px/1 var(--sans); letter-spacing: -.02em; }
+  main {
+    flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto;
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: 4px 20px 28px;
+  }
   .screen { display: none; }
   .screen.active { display: block; }
-  h2 { font: 400 22px/1.2 var(--serif); margin: 22px 0 6px; }
+  h2 { font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; margin: 24px 0 6px; }
   p { margin: 6px 0; }
   .muted { color: var(--muted); font-size: 15px; }
 
+  .ring { fill: none; stroke: var(--brass); }
+  .hand { fill: none; stroke: var(--text); stroke-linecap: round; }
+  .tick { stroke: var(--muted); }
+  .sweepline { stroke: var(--on); }
+  .hub { fill: var(--brass); }
+
   /* ---- Alerts timeline ---- */
-  .day { font: 400 15px/1 var(--sans); color: var(--muted); margin: 26px 0 4px; }
+  .day { font: 500 15px/1 var(--sans); color: var(--muted); margin: 24px 0 4px; letter-spacing: 0; }
   .alert {
-    display: grid; grid-template-columns: 76px 1fr; gap: 14px;
+    display: grid; grid-template-columns: 64px 1fr; gap: 14px;
     padding: 16px 0; border-top: 1px solid var(--line);
   }
-  .alert .at { font: 400 26px/1 var(--serif); font-variant-numeric: tabular-nums; color: var(--text); padding-top: 3px; }
+  .alert .at { font: 650 22px/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.02em; padding-top: 2px; }
   .alert .status { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin: 0 0 4px; }
   .alert .status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .alert h3 { margin: 0; font: 400 21px/1.2 var(--serif); }
+  .alert h3 { margin: 0; font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; }
   .alert .when { color: var(--muted); font-size: 15px; margin: 2px 0 0; }
   .alert.check .status { color: var(--check); } .alert.check .status::before { background: var(--check); }
   .alert.problem .status { color: var(--problem); } .alert.problem .status::before { background: var(--problem); }
   .alert.on_sale {
     border: 1px solid var(--on); border-radius: 18px; padding: 18px 16px; margin: 12px 0;
-    background: linear-gradient(180deg, rgba(143,240,192,.10), rgba(143,240,192,.02));
-    box-shadow: 0 0 28px rgba(143,240,192,.14);
+    background: linear-gradient(180deg, var(--on-tint), transparent);
+    box-shadow: 0 0 28px var(--on-glow);
   }
   .alert.on_sale .status { color: var(--on); } .alert.on_sale .status::before { background: var(--on); }
-  .alert.on_sale h3 { font-size: 24px; }
+  .alert.on_sale h3 { font-size: 22px; }
   .alert.on_sale .go { background: var(--on); color: var(--on-brass); }
 
   .go, button {
@@ -77,7 +114,7 @@
   button:disabled { opacity: .5; }
 
   /* ---- Empty state ---- */
-  .empty { text-align: center; padding: 48px 12px 24px; }
+  .empty { text-align: center; padding: 40px 12px 24px; }
   .empty svg { width: 150px; height: 150px; }
   .empty h2 { margin-top: 18px; }
   .sweep { transform-origin: 60px 60px; animation: sweep 60s linear infinite; }
@@ -89,9 +126,9 @@
   .steps li { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line); }
   .mark {
     width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted);
-    display: grid; place-items: center; font: 400 16px/1 var(--serif); flex: none;
+    display: grid; place-items: center; font: 600 15px/1 var(--sans); flex: none;
   }
-  .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--on-brass); font-family: var(--sans); font-weight: 700; }
+  .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--on-brass); font-weight: 700; }
   textarea {
     width: 100%; min-height: 150px; background: var(--surface); color: var(--text);
     border: 1px solid var(--line); border-radius: 12px; padding: 12px;
@@ -99,14 +136,17 @@
   }
   #setup-msg { min-height: 1.4em; }
 
-  /* ---- Settings guide ---- */
+  /* ---- Settings ---- */
+  .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .seg button { margin: 0; min-height: 44px; padding: 10px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; flex: 1; width: auto; }
+  .seg button[aria-pressed="true"] { background: var(--brass); color: var(--on-brass); }
   ol.guide { padding-left: 22px; margin: 8px 0; }
   ol.guide li { margin: 10px 0; padding-left: 4px; }
-  ol.guide li::marker { font-family: var(--serif); color: var(--brass); }
+  ol.guide li::marker { font-weight: 700; color: var(--brass); }
 
   /* ---- Tab bar ---- */
   nav {
-    position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--surface);
+    flex: none; display: flex; background: var(--surface);
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
   }
   nav button {
@@ -121,10 +161,10 @@
 <body>
 <header>
   <svg viewBox="0 0 120 120" aria-hidden="true">
-    <circle cx="60" cy="60" r="54" fill="none" stroke="#d9b66f" stroke-width="5"/>
-    <path d="M60 60V28M60 60l24 14" stroke="#ece8dc" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <circle class="ring" cx="60" cy="60" r="54" stroke-width="7"/>
+    <path class="hand" d="M60 60V28M60 60l24 14" stroke-width="8"/>
   </svg>
-  <h1>Timepiece</h1>
+  <h1>TP notify</h1>
 </header>
 <main>
   <section id="alerts" class="screen active" aria-label="Alerts">
@@ -144,6 +184,13 @@
   </section>
 
   <section id="settings" class="screen" aria-label="Settings">
+    <h2>Appearance</h2>
+    <div class="seg" id="theme" role="group" aria-label="Appearance">
+      <button data-mode="dark" aria-pressed="true">Dark</button>
+      <button data-mode="light" aria-pressed="false">Light</button>
+      <button data-mode="auto" aria-pressed="false">Auto</button>
+    </div>
+    <p class="muted">Auto follows your phone's setting.</p>
     <h2>Check this phone</h2>
     <p class="muted">Shows a notification on this phone only. Your PC's own test is <b>py timepiece_watcher.py --test-push</b>.</p>
     <button id="test">Send test notification</button>
@@ -151,9 +198,9 @@
     <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
     <ol class="guide">
       <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
-      <li>In Settings, go to Notifications, then Timepiece. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
+      <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
       <li>If you see Time Sensitive Notifications, turn it on.</li>
-      <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow Timepiece.</li>
+      <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow this app.</li>
       <li>Leave the ringer switch on if you want sound.</li>
     </ol>
   </section>
