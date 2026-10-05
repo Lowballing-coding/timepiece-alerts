@@ -223,6 +223,7 @@ async function markSeen(items) {
 // ---- Tabs ----
 document.querySelectorAll("nav button").forEach((b) => {
   b.onclick = () => {
+    closeSub(true);   // leaving the tab closes any sub-page straight away
     document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === b.dataset.tab));
     if (b.dataset.tab === "alerts") renderAlerts();
@@ -287,12 +288,50 @@ async function enableNotifications(msgEl) {
 $("enable").onclick = async () => { await enableNotifications($("setup-msg")); renderChecklist(); };
 
 // ---- Sub-pages inside a tab (the tab bar stays; Back returns to the tab's main page) ----
-function showSub(id) {
-  document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
-  document.querySelector("main").scrollTop = 0;
+// They slide in from the right like Apple Settings; the page underneath shifts left. Tap Back or drag from the left edge to return.
+let subOpen = null;
+const stageMain = () => $("stage").firstElementChild;
+function openSub(id) {
+  subOpen = $(id);
+  subOpen.setAttribute("aria-hidden", "false"); subOpen.scrollTop = 0;
+  $("stage").classList.add("pushed"); subOpen.classList.add("open");
 }
-$("manual-open").onclick = () => showSub("manual");
-$("manual-back").onclick = () => showSub("setup");
+function closeSub(instant) {
+  const s = subOpen; if (!s) return;
+  subOpen = null; s.setAttribute("aria-hidden", "true");
+  if (instant) { s.classList.add("dragging"); $("stage").classList.add("dragging"); }
+  s.style.transform = ""; stageMain().style.transform = "";
+  s.classList.remove("open"); $("stage").classList.remove("pushed");
+  if (instant) requestAnimationFrame(() => requestAnimationFrame(() => { s.classList.remove("dragging"); $("stage").classList.remove("dragging"); }));
+}
+$("manual-open").onclick = () => openSub("manual");
+$("manual-back").onclick = () => closeSub();
+document.querySelectorAll(".sub").forEach((s) => {
+  let edge = null;
+  s.addEventListener("pointerdown", (e) => {
+    const r = s.getBoundingClientRect();
+    if (e.clientX - r.left < 28) edge = { id: e.pointerId, x0: e.clientX, y0: e.clientY, lock: null, w: r.width, dx: 0, cap: false };
+  });
+  s.addEventListener("pointermove", (e) => {
+    if (!edge || e.pointerId !== edge.id) return;
+    const dx = e.clientX - edge.x0, dy = e.clientY - edge.y0;
+    if (!edge.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) edge.lock = dx > 0 && Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (edge.lock !== "x") return;
+    if (!edge.cap) { try { s.setPointerCapture(e.pointerId); } catch {} edge.cap = true; s.classList.add("dragging"); $("stage").classList.add("dragging"); }
+    edge.dx = Math.max(0, Math.min(edge.w, dx));
+    s.style.transform = `translateX(${edge.dx}px)`;
+    stageMain().style.transform = `translateX(${-26 * (1 - edge.dx / edge.w)}%)`;
+  });
+  const done = (e) => {
+    if (!edge || e.pointerId !== edge.id) return;
+    const g = edge; edge = null;
+    if (g.lock !== "x") return;
+    s.classList.remove("dragging"); $("stage").classList.remove("dragging");
+    if (g.dx > g.w * 0.35) closeSub(); else { s.style.transform = ""; stageMain().style.transform = ""; }
+  };
+  s.addEventListener("pointerup", done);
+  s.addEventListener("pointercancel", done);
+});
 
 // ---- Notification prompt: after approval, phones without notifications get a full-screen step until they turn them on ----
 let notifyLater = false;   // "Maybe Later" skips it for this launch only
@@ -351,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 35;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 36;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -409,14 +448,70 @@ $("quiet-save").onclick = async () => {
   setTimeout(() => { msg.textContent = ""; }, 6000);
 };
 
-// ---- Install guide (shown on the sign-in screen when opened in a browser on a phone) ----
-if (!standalone() && /iPhone|iPad|Android/.test(navigator.userAgent)) {
-  const steps = /iPhone|iPad/.test(navigator.userAgent)
-    ? ["Tap the Share button in Safari.", "Choose Add to Home Screen.", "Open TP Notify from its new icon."]
-    : ["Tap the menu in Chrome.", "Choose Install App.", "Open TP Notify from its new icon."];
-  $("tip-steps").innerHTML = steps.map((s) => `<li>${s}</li>`).join("");
-  $("install-tip").hidden = false;
+// ---- Install gate: on a phone, nobody reaches the sign-in page until the app is on their Home Screen ----
+const device = () => {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return {
+    ios, android: /Android/.test(ua), ipad: ios && !/iPhone|iPod/.test(ua),
+    safari: ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram|Line\/|Twitter/.test(ua),   // the browser that can install web apps on iPhone
+    inApp: /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter/.test(ua),
+  };
+};
+let installPrompt = null;   // Android Chrome can add the app with one tap
+addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if ($("gate-install").classList.contains("active")) showInstallGate(); });
+addEventListener("appinstalled", () => {
+  installPrompt = null;
+  $("install-msg").className = "msg"; $("install-msg").textContent = "Added. Now open TP Notify from your Home Screen.";
+  $("install-go").hidden = true;
+});
+function installNeeded() {
+  const d = device();
+  if (standalone() || !(d.ios || d.android)) return false;   // already installed, or not a phone
+  try {
+    if (new URLSearchParams(location.search).get("install") === "skip") sessionStorage.setItem("tp-skip-install", "1");   // an escape hatch for the owner
+    if (sessionStorage.getItem("tp-skip-install")) return false;
+  } catch {}
+  return true;
 }
+const SHARE_GLYPH = '<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8.5 7.5L12 4l3.5 3.5"/><path d="M7 10H5v10h14V10h-2"/></svg>';
+const DOTS_GLYPH = '<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+function showInstallGate() {
+  const d = device();
+  let steps, arrow = "", label = "", copy = false;
+  if (d.inApp) {
+    steps = ["Tap the menu in this app.", "Choose Open in Browser (Safari or Chrome).", "Then add TP Notify to your Home Screen from there."];
+  } else if (d.ios && !d.safari) {
+    steps = ["Copy the link below and open it in Safari. Other browsers on iPhone can't add the app properly.", `In Safari, tap the Share button ${SHARE_GLYPH}.`, "Choose Add to Home Screen, then tap Add."];
+    copy = true;
+  } else if (d.ios) {
+    arrow = d.ipad ? "top" : "bottom"; label = "Tap Share";
+    steps = [d.ipad ? `Tap the Share button ${SHARE_GLYPH} at the top right of Safari.` : `Tap the Share button ${SHARE_GLYPH} at the bottom of Safari. Can't see it? Tap ${DOTS_GLYPH} first.`,
+      "Scroll down and tap Add to Home Screen.", "Tap Add, then open TP Notify from your Home Screen."];
+  } else if (installPrompt) {
+    steps = ["Tap Add to Home Screen above and confirm.", "Open TP Notify from your Home Screen."];
+  } else {
+    arrow = "top"; label = "Open the menu";
+    steps = [`Tap the menu ${DOTS_GLYPH} at the top right of Chrome.`, "Choose Install App (or Add to Home screen).", "Open TP Notify from your Home Screen."];
+  }
+  $("install-steps").innerHTML = steps.map((s) => `<li><span>${s}</span></li>`).join("");
+  $("install-go").hidden = !installPrompt; $("install-copy").hidden = !copy;
+  $("install-msg").textContent = "";
+  showGate("gate-install");
+  const a = $("install-arrow");
+  a.hidden = !arrow; a.className = `arrow ${arrow}`; $("arrow-label").textContent = label;
+}
+$("install-go").onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  const choice = await installPrompt.userChoice;
+  if (choice.outcome !== "accepted") { $("install-msg").className = "msg"; $("install-msg").textContent = "No problem. Tap Add to Home Screen when you're ready."; }
+  installPrompt = null; $("install-go").hidden = true;
+};
+$("install-copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(new URL("./", location.href).href); $("install-msg").className = "msg"; $("install-msg").textContent = "Link copied. Paste it into Safari."; }
+  catch { $("install-msg").className = "msg error"; $("install-msg").textContent = "Couldn't copy. Open this page in Safari instead."; }
+};
 
 // ---- Fix My Alerts: checks each link in the chain and says how to repair the broken one ----
 $("diagnose").onclick = async () => {
@@ -517,6 +612,8 @@ const hideSplash = () => $("splash").classList.add("gone");
 setTimeout(hideSplash, 4000);   // never leave the launch screen up if the network is slow
 function showGate(id) {
   hideSplash();
+  closeSub(true);
+  $("install-arrow").hidden = true;
   $("tabs").hidden = true;
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
 }
@@ -823,4 +920,5 @@ document.addEventListener("visibilitychange", () => {
 });
 renderAlerts();
 session = store.get("tp-session");
-if (session) loadProfile(); else showGate("gate-auth");
+if (installNeeded()) showInstallGate();
+else if (session) loadProfile(); else showGate("gate-auth");
