@@ -329,7 +329,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 31;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 32;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -349,6 +349,18 @@ function checkStrip() {
 checkStrip();
 addEventListener("resize", checkStrip);
 addEventListener("orientationchange", checkStrip);
+
+// ---- Your name (shown to the admin in place of your email) ----
+$("save-name").onclick = async () => {
+  const msg = $("name-msg"), name = $("my-name").value.trim();
+  msg.className = "msg muted";
+  try {
+    await patchProfile(session.user.id, { display_name: name || null });
+    profile.display_name = name || null; store.set("tp-profile", profile);
+    msg.textContent = name ? "Name saved." : "Name removed.";
+  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ""; }, 6000);
+};
 
 // ---- Quiet hours (each person's own; the watcher skips alerts in this window, using their time zone) ----
 function fillQuiet() {
@@ -492,6 +504,7 @@ function showApp() {
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
   $("manual-link").hidden = !(profile && profile.role === "admin");
+  $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
   syncSubscription();
@@ -528,6 +541,7 @@ function setMode(signUp) {
   $("auth-submit").textContent = signUp ? "Create Account" : "Sign In";
   $("auth-toggle").textContent = signUp ? "I Already Have an Account" : "Create an Account";
   $("auth-hint").hidden = !signUp;
+  $("auth-name").hidden = !signUp; $("auth-name").required = signUp;   // the name is only asked for at sign-up
   $("auth-pass").autocomplete = signUp ? "new-password" : "current-password";
   $("auth-msg").textContent = "";
 }
@@ -538,9 +552,12 @@ $("auth-form").onsubmit = async (ev) => {
   msg.className = "msg"; msg.textContent = ""; btn.disabled = true;
   try {
     const body = { email: $("auth-email").value.trim(), password: $("auth-pass").value };
+    const name = $("auth-name").value.trim();
+    if (signUpMode) body.data = { name };
     const j = await authCall(signUpMode ? "signup" : "token?grant_type=password", body);
     if (!j.access_token) throw new Error("Account created, but sign-in didn't finish. Try signing in.");
     session = toSession(j); store.set("tp-session", session);
+    if (signUpMode && name) { try { await patchProfile(session.user.id, { display_name: name }); } catch { /* the name can be added later in Settings */ } }
     $("auth-pass").value = "";
     await loadProfile();
   } catch (e) {
@@ -582,7 +599,7 @@ const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12"
 
 function personRow(p) {
   const me = p.id === session.user.id;
-  const name = p.nickname || p.email;
+  const name = p.nickname || p.display_name || p.email;   // your nickname wins, then the name they gave, then their email
   const devices = p.active_devices === 1 ? "1 Device" : `${p.active_devices} Devices`;
   const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No Alerts";
   const initials = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
@@ -591,7 +608,8 @@ function personRow(p) {
     <div class="avatar" aria-hidden="true">${esc(initials)}</div>
     <div>
       <div class="who">${esc(name)}${me ? " (You)" : ""}</div>
-      ${p.nickname ? `<div class="meta">${esc(p.email)}</div>` : ""}
+      ${p.nickname && p.display_name ? `<div class="meta">${esc(p.display_name)}</div>` : ""}
+      ${name !== p.email ? `<div class="meta">${esc(p.email)}</div>` : ""}
       <div class="chips">
         <span class="pill ${statePill[0]}">${statePill[1]}</span>
         ${p.paused ? '<span class="pill">Paused</span>' : ""}
@@ -616,7 +634,7 @@ async function renderLog() {
 let peopleFilter = "all";
 function showPeople() {
   const q = $("people-search").value.trim().toLowerCase(), order = { pending: 0, approved: 1, blocked: 2 };
-  const list = people.filter((p) => (peopleFilter === "all" || p.status === peopleFilter) && (!q || `${p.nickname} ${p.email}`.toLowerCase().includes(q)))
+  const list = people.filter((p) => (peopleFilter === "all" || p.status === peopleFilter) && (!q || `${p.nickname} ${p.display_name || ""} ${p.email}`.toLowerCase().includes(q)))
     .sort((a, b) => order[a.status] - order[b.status]);
   $("people").innerHTML = list.map(personRow).join("") || `<p class="muted">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
 }
@@ -665,7 +683,7 @@ const patchProfile = (id, fields) => api(`profiles?id=eq.${encodeURIComponent(id
 
 // ---- Triple-dot menu (a bottom sheet) ----
 function drawSheet() {
-  const p = sheetPerson, me = p.id === session.user.id, name = esc(p.nickname || p.email);
+  const p = sheetPerson, me = p.id === session.user.id, name = esc(p.nickname || p.display_name || p.email);
   let html;
   if (sheetMode === "nickname") {
     html = `<h3>Nickname</h3><p class="muted">Only you can see this.</p>

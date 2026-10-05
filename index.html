@@ -358,7 +358,7 @@
     <p id="watcher-line" class="health" hidden></p>
     <div id="list"></div>
     <p id="swipe-hint" class="meta" style="text-align:center; display:none">Swipe an alert left to delete it.</p>
-    <button id="clear" class="secondary">Clear History</button>
+    <button id="clear" class="secondary">Clear All</button>
   </section>
 
   <section id="setup" class="screen" aria-label="Setup">
@@ -401,6 +401,7 @@
     <h2 id="auth-title" class="title">Sign In to TP Notify</h2>
     <p class="muted">Get Timepiece ticket alerts on your phone.</p>
     <form id="auth-form">
+      <input id="auth-name" type="text" placeholder="Your Name" autocomplete="name" maxlength="60" hidden>
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="auth-pass" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
       <p id="auth-hint" class="muted" hidden>At least 6 characters. You'll need approval before alerts start.</p>
@@ -463,6 +464,9 @@
     <h2 class="title">Settings</h2>
     <h2>Account</h2>
     <div class="group"><div class="rowline"><span>Signed In As</span><span class="val" id="acct-email"></span></div></div>
+    <input id="my-name" type="text" placeholder="Your Name" autocomplete="name" maxlength="60" aria-label="Your name">
+    <button id="save-name" class="secondary" type="button">Save Name</button>
+    <p id="name-msg" class="msg muted" role="status"></p>
     <button class="secondary signout" type="button">Sign Out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
