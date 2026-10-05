@@ -277,6 +277,14 @@ async function enableNotifications(msgEl) {
 }
 $("enable").onclick = async () => { await enableNotifications($("setup-msg")); renderChecklist(); };
 
+// ---- Sub-pages inside a tab (the tab bar stays; Back returns to the tab's main page) ----
+function showSub(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+  document.querySelector("main").scrollTop = 0;
+}
+$("manual-open").onclick = () => showSub("manual");
+$("manual-back").onclick = () => showSub("setup");
+
 // ---- Notification prompt: after approval, phones without notifications get a full-screen step until they turn them on ----
 let notifyLater = false;   // "Maybe Later" skips it for this launch only
 function notifyGate() {
@@ -334,7 +342,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 33;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 34;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());

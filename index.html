@@ -275,6 +275,13 @@
   .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--brass); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
+  /* A row that opens a sub-page, and the Back button on that page. */
+  button.linkrow { display: flex; align-items: center; justify-content: space-between; text-align: left; }
+  button.linkrow svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  button.back { display: flex; align-items: center; gap: 2px; width: auto; min-height: 44px; margin: 0 0 0 -6px; padding: 0 8px 0 0;
+    background: none; color: var(--brass); font-weight: 600; }
+  button.back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
   /* ===== Tab bar ===== */
   nav {
     flex: none; display: flex; background: var(--surface);
@@ -371,11 +378,21 @@
     <button id="enable">Turn On Notifications</button>
     <p id="setup-msg" class="muted" role="status"></p>
     <div id="manual-link" hidden>
-      <h2>Manual Link (Admin)</h2>
-      <p class="muted">Your PC still reads <b>watcher_secrets.json</b> until the watcher is switched to accounts. Keep this private.</p>
-      <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
-      <button id="copy" class="secondary">Copy Subscription</button>
+      <button id="manual-open" class="secondary linkrow" type="button">
+        <span>Manual Link (Admin)</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
     </div>
+  </section>
+
+  <section id="manual" class="screen" aria-label="Manual Link">
+    <button id="manual-back" class="back" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Setup
+    </button>
+    <h2 class="title">Manual Link</h2>
+    <p class="muted">Admin only. Your PC still reads <b>watcher_secrets.json</b> until the watcher is switched to accounts. Keep this private.</p>
+    <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
+    <button id="copy" class="secondary">Copy Subscription</button>
   </section>
 
   <section id="admin" class="screen" aria-label="Admin">
