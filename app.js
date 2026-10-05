@@ -55,9 +55,64 @@ async function fetchMissed(local) {
     ]);
     return rows.map((r) => ({ type: r.type, name: r.event_name || "", day: r.event_day || "", date: r.event_date || "", url: r.url || "",
       received: Date.parse(r.created_at), missed: true }))
-      .filter((m) => !local.some((a) => a.type === m.type && a.name === m.name && Math.abs(a.received - m.received) < 15 * 60e3));
+      .filter((m) => !local.some((a) => a.type === m.type && a.name === m.name && Math.abs(a.received - m.received) < 15 * 60e3))
+      .filter((m) => !(store.get("tp-dismissed") || []).some((d) => d.type === m.type && d.name === m.name && Math.abs(d.t - m.received) < 15 * 60e3));
   } catch { return []; }
 }
+
+// ---- Swipe an alert left to delete it, like an Apple notification ----
+const REVEAL = 96;   // width of the red Delete area
+let swipe = null, swiped = false;
+function slide(s, x, animate) {
+  const c = s.querySelector(".alert");
+  c.classList.toggle("dragging", !animate);
+  c.style.transform = x ? `translateX(${x}px)` : "";
+}
+function closeSwipes(except) {
+  $("list").querySelectorAll(".swipe.open").forEach((s) => { if (s !== except) { slide(s, 0, true); s.classList.remove("open"); } });
+}
+async function removeAlert(s) {
+  slide(s, -s.offsetWidth, true);
+  const type = s.dataset.type, name = s.dataset.name, t = Number(s.dataset.t);
+  // Remember it, so the server's copy doesn't come back as a "Missed" alert.
+  store.set("tp-dismissed", [...(store.get("tp-dismissed") || []), { type, name, t }].slice(-200));
+  if (s.dataset.id) { try { (await openDb()).transaction("alerts", "readwrite").objectStore("alerts").delete(Number(s.dataset.id)); } catch {} }
+  s.style.height = `${s.offsetHeight}px`;
+  requestAnimationFrame(() => { s.style.transition = "height .2s, margin .2s"; s.style.height = "0"; s.style.margin = "0"; });
+  setTimeout(renderAlerts, 240);
+}
+$("list").addEventListener("pointerdown", (e) => {
+  const s = e.target.closest(".swipe");
+  closeSwipes(s);
+  if (!s || e.target.closest(".del")) return;
+  const x = s.classList.contains("open") ? -REVEAL : 0;
+  swipe = { s, id: e.pointerId, x0: e.clientX, y0: e.clientY, lock: null, base: x, x, w: s.offsetWidth, cap: false };
+});
+$("list").addEventListener("pointermove", (e) => {
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
+  if (!swipe.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) swipe.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+  if (swipe.lock !== "x") return;
+  if (!swipe.cap) { try { swipe.s.setPointerCapture(e.pointerId); } catch {} swipe.cap = true; }
+  swipe.x = Math.min(0, Math.max(-swipe.w, swipe.base + dx));
+  slide(swipe.s, swipe.x, false);
+});
+function endSwipe(e) {
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const { s, x, w, lock } = swipe; swipe = null;
+  if (lock !== "x") return;
+  swiped = true; setTimeout(() => { swiped = false; }, 60);   // a drag must not count as a tap on a link
+  if (x < -w * 0.55) return removeAlert(s);
+  const open = x < -REVEAL / 2;
+  slide(s, open ? -REVEAL : 0, true); s.classList.toggle("open", open);
+}
+$("list").addEventListener("pointerup", endSwipe);
+$("list").addEventListener("pointercancel", endSwipe);
+$("list").addEventListener("click", (e) => {
+  if (swiped) { e.preventDefault(); e.stopPropagation(); return; }
+  const d = e.target.closest(".del");
+  if (d) removeAlert(d.closest(".swipe"));
+}, true);
 const ICONS = {
   bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
@@ -70,6 +125,7 @@ async function renderAlerts() {
   const fresh = new Set(knownIds ? items.filter((a) => a.id && !knownIds.has(a.id)).map((a) => a.id) : []);
   knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
   $("clear").style.display = items.length ? "block" : "none";
+  $("swipe-hint").style.display = items.length ? "block" : "none";
   if (!items.length) {
     $("list").innerHTML = `<div class="empty">
       <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -104,9 +160,11 @@ async function renderAlerts() {
     const when = [a.day, a.date].filter(Boolean).join(" ");
     const tag = a.missed ? '<span class="new missed">Missed</span>' : a.seen === false ? '<span class="new">New</span>' : "";
     const cls = `alert ${type}${fresh.has(a.id) ? " arrive" : ""}`;
+    // Every alert sits in a swipe holder: drag it left to reveal Delete, or all the way to delete it.
+    const wrap = (extra, inner) => `<div class="swipe${extra}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
     if (type === "on_sale") {   // the one memorable element: a ticket stub
       const stub = d ? `<span>${esc((a.day || "").slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc(d[2].slice(0, 3))}</span>` : `<span>On</span><b>&#9733;</b><span>Sale</span>`;
-      return `${heading}<article class="${cls}">
+      return heading + wrap(" tk", `<article class="${cls}">
         <div class="ticket">
           <div class="stub">${stub}</div>
           <div class="tbody">
@@ -118,12 +176,12 @@ async function renderAlerts() {
           </div>
         </div>
         ${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
-      </article>`;
+      </article>`);
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
     const url2 = type === "on_sale_soon" ? safeUrl(a.url) : "";
-    return `${heading}<article class="${cls} row">
+    return heading + wrap("", `<article class="${cls} row">
       ${tile}
       <div>
         <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" || type === "on_sale_soon" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
@@ -132,7 +190,7 @@ async function renderAlerts() {
         ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" style="color:var(--brass)">Open FIXR</a>` : ""}</p>` : ""}
       </div>
       <time class="at">${esc(time)}</time>
-    </article>`;
+    </article>`);
   }).join("");
   // Once the person is looking at the list, those alerts count as seen and the icon badge clears.
   if (!$("tabs").hidden && $("alerts").classList.contains("active") && !document.hidden) markSeen(items);
@@ -271,7 +329,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 30;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 31;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());

@@ -159,6 +159,16 @@
   .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   .alert.check .tile.icon, .alert.on_sale_soon .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
 
+  /* Swipe to delete: the alert slides left over a red Delete area. */
+  .swipe { position: relative; overflow: hidden; background: #d33; touch-action: pan-y; }
+  .swipe > .alert { position: relative; background: var(--bg); transition: transform .2s ease-out; }
+  .swipe > .alert.dragging { transition: none; }
+  .swipe > .del { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; min-height: 0; margin: 0; padding: 0; border-radius: 0;
+    background: transparent; color: #fff; font: 600 15px/1 var(--sans); display: grid; place-items: center; }
+  .swipe.tk { margin: 14px 0 18px; border-radius: var(--r-l); }
+  .swipe.tk > .alert.on_sale { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } }
+
   /* The on-sale alert is a ticket: stub on the left, perforation, notches cut into the edge. */
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
   .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); box-shadow: var(--ticket-shadow); }
@@ -347,6 +357,7 @@
     <h2 class="title">Alerts</h2>
     <p id="watcher-line" class="health" hidden></p>
     <div id="list"></div>
+    <p id="swipe-hint" class="meta" style="text-align:center; display:none">Swipe an alert left to delete it.</p>
     <button id="clear" class="secondary">Clear History</button>
   </section>
 
