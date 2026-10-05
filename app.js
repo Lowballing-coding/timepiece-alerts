@@ -390,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 39;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 40;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -454,6 +454,7 @@ const device = () => {
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   return {
     ios, android: /Android/.test(ua), ipad: ios && !/iPhone|iPod/.test(ua),
+    samsung: /SamsungBrowser/.test(ua), firefox: /Android/.test(ua) && /Firefox\//.test(ua),   // Android browsers whose menu differs from Chrome's
     safari: ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram|Line\/|Twitter/.test(ua),   // the browser that can install web apps on iPhone
     inApp: /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter/.test(ua),
   };
@@ -490,9 +491,12 @@ function showInstallGate() {
       "Scroll down and tap Add to Home Screen.", "Tap Add, then open TP Notify from your Home Screen."];
   } else if (installPrompt) {
     steps = ["Tap Add to Home Screen above and confirm.", "Open TP Notify from your Home Screen."];
+  } else if (d.samsung) {
+    arrow = "bottom"; label = "Open the menu";
+    steps = ["Tap the menu (three lines) at the bottom right of Samsung Internet.", "Choose Add Page To, then Home Screen, then tap Add.", "Open TP Notify from your Home Screen."];
   } else {
     arrow = "top"; label = "Open the menu";
-    steps = [`Tap the menu ${DOTS_GLYPH} at the top right of Chrome.`, "Choose Install App (or Add to Home screen).", "Open TP Notify from your Home Screen."];
+    steps = [`Tap the menu ${DOTS_GLYPH} at the top right of ${d.firefox ? "Firefox" : "Chrome"}.`, `Choose ${d.firefox ? "Install" : "Install App"} (or Add to Home Screen), then tap Add.`, "Open TP Notify from your Home Screen."];
   }
   $("install-steps").innerHTML = steps.map((s) => `<li><span>${s}</span></li>`).join("");
   $("install-go").hidden = !installPrompt; $("install-copy").hidden = !copy;
