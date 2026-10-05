@@ -67,19 +67,24 @@ function slide(s, x, animate) {
   const c = s.querySelector(".alert");
   c.classList.toggle("dragging", !animate);
   c.style.transform = x ? `translateX(${x}px)` : "";
+  const go = s.parentElement.querySelector(":scope > .go");   // the ticket's button fades as the ticket moves away
+  if (go) go.style.opacity = x ? String(1 - 0.6 * Math.min(1, Math.abs(x) / s.offsetWidth)) : "";
 }
 function closeSwipes(except) {
   $("list").querySelectorAll(".swipe.open").forEach((s) => { if (s !== except) { slide(s, 0, true); s.classList.remove("open"); } });
 }
 async function removeAlert(s) {
+  const group = s.closest(".tgroup") || s;   // a ticket and its button leave together
   slide(s, -s.offsetWidth, true);
+  const go = group.querySelector(":scope > .go");
+  if (go) go.classList.add("pop");   // the button pops like a bubble
   const type = s.dataset.type, name = s.dataset.name, t = Number(s.dataset.t);
   // Remember it, so the server's copy doesn't come back as a "Missed" alert.
   store.set("tp-dismissed", [...(store.get("tp-dismissed") || []), { type, name, t }].slice(-200));
   if (s.dataset.id) { try { (await openDb()).transaction("alerts", "readwrite").objectStore("alerts").delete(Number(s.dataset.id)); } catch {} }
-  s.style.height = `${s.offsetHeight}px`;
-  requestAnimationFrame(() => { s.style.transition = "height .2s, margin .2s"; s.style.height = "0"; s.style.margin = "0"; });
-  setTimeout(renderAlerts, 240);
+  group.style.height = `${group.offsetHeight}px`; group.style.overflow = "hidden";
+  setTimeout(() => { group.style.transition = "height .2s, margin .2s"; group.style.height = "0"; group.style.margin = "0"; }, go ? 160 : 0);
+  setTimeout(renderAlerts, go ? 400 : 240);
 }
 $("list").addEventListener("pointerdown", (e) => {
   const s = e.target.closest(".swipe");
@@ -164,7 +169,8 @@ async function renderAlerts() {
     const wrap = (extra, inner) => `<div class="swipe${extra}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
     if (type === "on_sale") {   // the one memorable element: a ticket stub
       const stub = d ? `<span>${esc((a.day || "").slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc(d[2].slice(0, 3))}</span>` : `<span>On</span><b>&#9733;</b><span>Sale</span>`;
-      return heading + wrap(" tk", `<article class="${cls}">
+      // Only the ticket slides when swiped; the button below stays put and pops away when the ticket is deleted.
+      return `${heading}<div class="tgroup">${wrap(" tk", `<article class="${cls}">
         <div class="ticket">
           <div class="stub">${stub}</div>
           <div class="tbody">
@@ -175,8 +181,7 @@ async function renderAlerts() {
             <p class="rec">Listed as on sale. Check the tickets on FIXR.</p>
           </div>
         </div>
-        ${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
-      </article>`);
+      </article>`)}${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -329,7 +334,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 32;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 33;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());

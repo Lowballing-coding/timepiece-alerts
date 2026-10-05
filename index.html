@@ -165,9 +165,13 @@
   .swipe > .alert.dragging { transition: none; }
   .swipe > .del { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; min-height: 0; margin: 0; padding: 0; border-radius: 0;
     background: transparent; color: #fff; font: 600 15px/1 var(--sans); display: grid; place-items: center; }
-  .swipe.tk { margin: 14px 0 18px; border-radius: var(--r-l); }
-  .swipe.tk > .alert.on_sale { margin: 0; }
-  @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } }
+  .tgroup { margin: 14px 0 18px; }
+  .tgroup > .swipe.tk { border-radius: var(--r-l); }
+  .tgroup .alert.on_sale { margin: 0; }
+  .tgroup > .go { margin-top: 10px; transition: opacity .2s; }
+  .tgroup > .go.pop { animation: pop .22s ease-in forwards; pointer-events: none; }
+  @keyframes pop { to { transform: scale(.55); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } .tgroup > .go.pop { animation: none; opacity: 0; } }
 
   /* The on-sale alert is a ticket: stub on the left, perforation, notches cut into the edge. */
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
@@ -185,7 +189,6 @@
   .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
   .ticket .pill.on { background: var(--ticket-pill-bg); color: var(--ticket-pill-fg); }
   .ticket .new { background: var(--ticket-new-bg); color: var(--ticket-new-fg); }
-  .alert.on_sale .go { margin-top: 10px; }
   .alert.arrive { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
   @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
