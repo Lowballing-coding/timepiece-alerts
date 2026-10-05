@@ -337,7 +337,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 50;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 51;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -684,7 +684,7 @@ function signedOut() {
 // ---- Sign in / create account ----
 // Spam check: Cloudflare Turnstile SITE key (public; the secret lives only in Supabase's CAPTCHA setting). Empty = off.
 // Must match turnstileSiteKey in the website's config.js. Ship this before switching CAPTCHA on in Supabase.
-const TURNSTILE_SITE_KEY = "";
+const TURNSTILE_SITE_KEY = "0x4AAAAAAFOxe4Sm4jFD1ucJ";
 let captchaToken = null, captchaWidget = null;
 window.tpTurnstileReady = () => {
   captchaWidget = window.turnstile.render("#auth-captcha", {
