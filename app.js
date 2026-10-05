@@ -201,7 +201,7 @@ async function renderAlerts() {
         <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" || type === "on_sale_soon" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
         <h3>${esc(a.name)}</h3>
         ${when ? `<p class="when">${esc(when)}</p>` : ""}
-        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" style="color:var(--brass)">Open FIXR</a>` : ""}</p>` : ""}
+        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" style="color:var(--accent)">Open FIXR</a>` : ""}</p>` : ""}
       </div>
       <time class="at">${esc(time)}</time>
     </article>`);
@@ -390,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 37;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 38;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -543,12 +543,12 @@ $("diagnose").onclick = async () => {
   $("diag-note").textContent = note;
 };
 
-// ---- Theme (Dark / Light / Auto; default Dark) ----
-function savedMode() { try { return localStorage.getItem("tp-theme") || "dark"; } catch { return "dark"; } }
+// ---- Theme (Light / Dark / Auto; default Light) ----
+function savedMode() { try { return localStorage.getItem("tp-theme") || "light"; } catch { return "light"; } }
 function applyTheme(mode) {
   const dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#0d1126" : "#f3f5fb";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#181715" : "#faf9f5";
   document.querySelectorAll("#theme button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
 }
 document.querySelectorAll("#theme button").forEach((b) => {

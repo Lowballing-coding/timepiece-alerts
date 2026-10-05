@@ -1,85 +1,89 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TP Notify</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d1126">
+<meta name="theme-color" content="#faf9f5">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TP Notify">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script>
-  // Apply the saved theme before first paint so there is no flash. Default is dark.
+  // Apply the saved theme before first paint so there is no flash. Default is light (cream).
   (function () {
-    var mode = "dark";
-    try { mode = localStorage.getItem("tp-theme") || "dark"; } catch (e) {}
+    var mode = "light";
+    try { mode = localStorage.getItem("tp-theme") || "light"; } catch (e) {}
     var dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   })();
 </script>
 <style>
-  /* ===== Design tokens. Brass means "tap this"; green, orange and red only ever mean status. ===== */
-  :root, :root[data-theme="dark"] {
-    --bg: #0d1126;
-    --surface: #151a38;
-    --surface-2: #1d2347;
-    --line: #2a3160;
-    --text: #ece8dc;
-    --muted: #8f95b8;
-    --brass: #d9b66f;
-    --on-brass: #0d1126;
-    --on: #6fd9a8;
-    --check: #ff9f43;
-    --problem: #ff6b6b;
-    --on-tint: rgba(111, 217, 168, .14);
-    --check-tint: rgba(255, 159, 67, .14);
-    --problem-tint: rgba(255, 107, 107, .14);
-    --muted-tint: rgba(143, 149, 184, .16);
-    --paper: #1d2347;
-    --ink: #ece8dc;
-    --ink-muted: #8f95b8;
-    --paper-line: #0d1126;
-    --stub: #6fd9a8;
-    --stub-ink: #0d1126;
-    --stub-muted: #1f5a45;
-    --ticket-pill-bg: rgba(111, 217, 168, .14);
-    --ticket-pill-fg: #6fd9a8;
-    --ticket-new-bg: #d9b66f;
-    --ticket-new-fg: #0d1126;
-    --ticket-shadow: none;
+  /* ===== Design tokens (from DESIGN.md: warm cream canvas, coral accent, dark warm surfaces) =====
+     Coral means "tap this" (primary buttons, active tab, switches, links). Green, amber and red only ever mean status. ===== */
+  :root, :root[data-theme="light"] {
+    --bg: #faf9f5;
+    --surface: #f5f0e8;
+    --surface-2: #efe9de;
+    --line: #e6dfd8;
+    --line-strong: #d3cabb;
+    --text: #141413;
+    --muted: #65635d;
+    --accent: #a9583e;
+    --coral: #cc785c;
+    --fill: #b5593b;
+    --fill-press: #8f4730;
+    --on-fill: #ffffff;
+    --danger-fill: #c64545;
+    --on: #26703c;
+    --check: #8a5a00;
+    --problem: #c64545;
+    --on-tint: rgba(38, 112, 60, .11);
+    --check-tint: rgba(138, 90, 0, .12);
+    --problem-tint: rgba(198, 69, 69, .10);
+    --muted-tint: rgba(101, 99, 93, .12);
+    --seg-on: #e8e0d2;
+    --paper: #efe9de;
+    --ink: #141413;
+    --ink-muted: #65635d;
+    --paper-line: #cfc5b3;
+    --stub: #b5593b;
+    --stub-ink: #ffffff;
+    --stub-muted: #fbe9e1;
+    --ticket-pill-bg: rgba(38, 112, 60, .12);
+    --ticket-pill-fg: #26703c;
+    --ticket-new-bg: #141413;
+    --ticket-new-fg: #faf9f5;
+    --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
     --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
     --r-s: 8px; --r-m: 12px; --r-l: 16px;
   }
-  :root[data-theme="light"] {
-    --bg: #f3f5fb;
-    --surface: #ffffff;
-    --surface-2: #eaedf7;
-    --line: #d9deef;
-    --text: #141a3a;
-    --muted: #5b6388;
-    --brass: #8f6a1c;
-    --on-brass: #ffffff;
-    --on: #0c7a52;
-    --check: #b45a00;
-    --problem: #c42b2b;
-    --on-tint: rgba(12, 122, 82, .10);
-    --check-tint: rgba(180, 90, 0, .10);
-    --problem-tint: rgba(196, 43, 43, .09);
-    --muted-tint: rgba(91, 99, 136, .12);
-    --paper: #ffffff;
-    --ink: #141a3a;
-    --ink-muted: #5b6388;
-    --paper-line: #c9cfe4;
-    --stub: transparent;
-    --stub-ink: #141a3a;
-    --stub-muted: #5b6388;
-    --ticket-pill-bg: rgba(12, 122, 82, .12);
-    --ticket-pill-fg: #0c7a52;
-    --ticket-new-bg: #141a3a;
-    --ticket-new-fg: #ffffff;
-    --ticket-shadow: 0 1px 3px rgba(20, 26, 58, .12);
+  :root[data-theme="dark"] {
+    --bg: #181715;
+    --surface: #1f1e1b;
+    --surface-2: #252320;
+    --line: #35332f;
+    --line-strong: #4a4741;
+    --text: #faf9f5;
+    --muted: #a09d96;
+    --accent: #e39679;
+    --on: #5db872;
+    --check: #e8a55a;
+    --problem: #ec7a7a;
+    --on-tint: rgba(93, 184, 114, .16);
+    --check-tint: rgba(232, 165, 90, .16);
+    --problem-tint: rgba(236, 122, 122, .16);
+    --muted-tint: rgba(160, 157, 150, .16);
+    --seg-on: #35332f;
+    --paper: #252320;
+    --ink: #faf9f5;
+    --ink-muted: #a09d96;
+    --paper-line: #181715;
+    --ticket-pill-bg: rgba(93, 184, 114, .16);
+    --ticket-pill-fg: #5db872;
+    --ticket-new-bg: #faf9f5;
+    --ticket-new-fg: #181715;
   }
 
   /* ===== Base ===== */
@@ -88,13 +92,14 @@
   body {
     margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
     display: flex; flex-direction: column;
-    background: var(--bg); color: var(--text); font: 17px/1.45 var(--sans);
+    background: var(--bg); color: var(--text); font: 17px/1.5 var(--sans);
   }
-  :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
   [hidden] { display: none !important; }
   p { margin: 6px 0; }
-  h2 { font: 650 20px/1.25 var(--sans); letter-spacing: -.01em; margin: 24px 0 6px; }
-  .title { font: 700 28px/1.15 var(--sans); letter-spacing: -.02em; margin: 6px 0 2px; }
+  /* Headlines are serif at regular weight with tight tracking; everything else is the phone's sans. */
+  h2 { font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; margin: 28px 0 6px; }
+  .title { font: 400 34px/1.1 var(--serif); letter-spacing: -.5px; margin: 8px 0 4px; }
   .muted { color: var(--muted); font-size: 15px; }
   .meta { color: var(--muted); font-size: 13px; }
 
@@ -105,7 +110,7 @@
     position: relative; z-index: 1; background: var(--bg);
   }
   header svg { width: 26px; height: 26px; flex: none; }
-  h1 { margin: 0; font: 650 17px/1 var(--sans); letter-spacing: -.01em; }
+  h1 { margin: 0; font: 400 22px/1 var(--serif); letter-spacing: -.3px; }
   /* #stage holds the tab pages (main) and the sub-pages that slide in over them. */
   #stage { flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; position: relative; overflow: hidden; }
   #stage > main { transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
@@ -125,57 +130,58 @@
   .screen { display: none; }
   .screen.active { display: block; }
 
-  .ring { fill: none; stroke: var(--brass); }
+  .ring { fill: none; stroke: var(--coral); }
   .hand { fill: none; stroke: var(--text); stroke-linecap: round; }
   .tick { stroke: var(--muted); }
   .sweepline { stroke: var(--on); }
-  .hub { fill: var(--brass); }
+  .hub { fill: var(--coral); }
   .dot { fill: var(--on); }
 
-  /* ===== Buttons: brass primary, outline secondary, red destructive ===== */
+  /* ===== Buttons: coral primary, outline secondary, red destructive ===== */
   .go, button {
-    display: block; width: 100%; min-height: 50px; border: 0; border-radius: var(--r-m);
-    background: var(--brass); color: var(--on-brass); font: 600 17px/1.2 var(--sans);
+    display: block; width: 100%; min-height: 50px; border: 0; border-radius: var(--r-s);
+    background: var(--fill); color: var(--on-fill); font: 500 17px/1.2 var(--sans);
     text-align: center; text-decoration: none; padding: 14px; margin: 14px 0 0; cursor: pointer;
   }
-  button:active, .go:active { transform: scale(.985); }
-  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button:active, .go:active { background: var(--fill-press); }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
+  button.secondary:active { background: var(--surface-2); }
   button:disabled { opacity: .5; }
 
   /* ===== Pills and tags ===== */
-  .pill { display: inline-flex; align-items: center; font: 600 13px/1 var(--sans); padding: 5px 10px; border-radius: 99px; background: var(--muted-tint); color: var(--muted); }
+  .pill { display: inline-flex; align-items: center; font: 500 13px/1 var(--sans); padding: 5px 12px; border-radius: 99px; background: var(--muted-tint); color: var(--muted); }
   .pill.on { background: var(--on-tint); color: var(--on); }
   .pill.check { background: var(--check-tint); color: var(--check); }
   .pill.problem { background: var(--problem-tint); color: var(--problem); }
-  .new { display: inline-flex; font: 600 13px/1 var(--sans); background: var(--brass); color: var(--on-brass); border-radius: 99px; padding: 5px 9px; }
-  .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); padding: 4px 8px; }
+  .new { display: inline-flex; font: 500 13px/1 var(--sans); background: var(--fill); color: var(--on-fill); border-radius: 99px; padding: 5px 10px; }
+  .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); padding: 4px 9px; }
 
   /* ===== Alerts ===== */
   .health { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
   .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
   .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
-  .health.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px 14px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
+  .health.card { background: var(--surface-2); border-radius: var(--r-m); padding: 12px 16px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
 
-  .day { font: 600 13px/1 var(--sans); color: var(--muted); margin: 22px 0 6px; letter-spacing: 0; }
-  .alert { padding: 14px 0; border-top: 1px solid var(--line); }
+  .day { font: 500 13px/1 var(--sans); color: var(--muted); margin: 24px 0 6px; letter-spacing: 0; }
+  .alert { padding: 16px 0; border-top: 1px solid var(--line); }
   .alert.row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
   .alert .line1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .alert h3 { margin: 6px 0 0; font: 650 17px/1.25 var(--sans); letter-spacing: -.01em; }
+  .alert h3 { margin: 6px 0 0; font: 500 18px/1.3 var(--sans); }
   .alert .when { color: var(--muted); font-size: 15px; margin: 2px 0 0; }
   .alert .at { font: 500 13px/1.2 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 3px; }
-  .tile { flex: none; width: 48px; padding: 5px 0; border: 1px solid var(--line); border-radius: 10px; text-align: center; line-height: 1.2; }
+  .tile { flex: none; width: 48px; padding: 5px 0; border: 1px solid var(--line-strong); border-radius: var(--r-s); text-align: center; line-height: 1.2; }
   .tile span { display: block; font-size: 13px; color: var(--muted); }
-  .tile b { display: block; font: 700 20px/1.1 var(--sans); font-variant-numeric: tabular-nums; }
+  .tile b { display: block; font: 400 22px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
   .tile.icon { height: 48px; display: grid; place-items: center; padding: 0; }
   .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   .alert.check .tile.icon, .alert.on_sale_soon .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
 
   /* Swipe to delete: the alert slides left over a red Delete area. */
-  .swipe { position: relative; overflow: hidden; background: #d33; touch-action: pan-y; }
+  .swipe { position: relative; overflow: hidden; background: var(--danger-fill); touch-action: pan-y; }
   .swipe > .alert { position: relative; background: var(--bg); transition: transform .2s ease-out; }
   .swipe > .alert.dragging { transition: none; }
   .swipe > .del { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; min-height: 0; margin: 0; padding: 0; border-radius: 0;
-    background: transparent; color: #fff; font: 600 15px/1 var(--sans); display: grid; place-items: center; }
+    background: transparent; color: #fff; font: 500 15px/1 var(--sans); display: grid; place-items: center; }
   .tgroup { margin: 14px 0 18px; }
   .tgroup > .swipe.tk { border-radius: var(--r-l); }
   .tgroup .alert.on_sale { margin: 0; }
@@ -184,18 +190,18 @@
   @keyframes pop { to { transform: scale(.55); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } .tgroup > .go.pop { animation: none; opacity: 0; } }
 
-  /* The on-sale alert is a ticket: stub on the left, perforation, notches cut into the edge. */
+  /* The on-sale alert is a ticket: a coral stub on the left, perforation, notches cut into the edge. */
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
-  .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); box-shadow: var(--ticket-shadow); }
+  .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); }
   .stub { position: relative; flex: none; width: 78px; padding: 16px 0; text-align: center; line-height: 1.1;
     display: flex; flex-direction: column; justify-content: center; border-right: 2px dashed var(--paper-line);
     background: var(--stub); color: var(--stub-ink); border-radius: var(--r-l) 0 0 var(--r-l); }
   .stub span { display: block; font-size: 13px; color: var(--stub-muted); }
-  .stub b { display: block; font: 800 34px/1.05 var(--sans); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stub b { display: block; font: 400 38px/1.05 var(--serif); letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
   .stub::before, .stub::after { content: ""; position: absolute; right: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); }
   .stub::before { top: -7px; } .stub::after { bottom: -7px; }
   .tbody { min-width: 0; padding: 14px 14px 14px 16px; }
-  .tbody h3 { margin: 8px 0 0; font: 700 21px/1.2 var(--sans); letter-spacing: -.015em; color: var(--ink); }
+  .tbody h3 { margin: 8px 0 0; font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; color: var(--ink); }
   .tbody .when { color: var(--ink-muted); }
   .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
   .ticket .pill.on { background: var(--ticket-pill-bg); color: var(--ticket-pill-fg); }
@@ -215,32 +221,33 @@
   /* ===== Forms ===== */
   input {
     display: block; width: 100%; min-height: 50px; margin-top: 12px; padding: 0 14px;
-    background: var(--surface); color: var(--text); border: 1px solid var(--line);
-    border-radius: var(--r-m); font: 17px/1.2 var(--sans);
+    background: var(--bg); color: var(--text); border: 1px solid var(--line-strong);
+    border-radius: var(--r-s); font: 17px/1.2 var(--sans);
   }
+  input:focus { outline: 0; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(204, 120, 92, .2); }
   input::placeholder { color: var(--muted); }
   textarea {
-    width: 100%; min-height: 150px; background: var(--surface); color: var(--text);
-    border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px;
-    font: 13px/1.35 ui-monospace, Consolas, monospace; resize: none;
+    width: 100%; min-height: 150px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--line-strong); border-radius: var(--r-s); padding: 12px;
+    font: 13px/1.5 ui-monospace, "JetBrains Mono", Consolas, monospace; resize: none;
   }
   .msg { min-height: 1.4em; margin-top: 10px; }
   .msg.error { color: var(--problem); }
   label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
-  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--brass); }
-  /* On and off switch. Brass because it is something you tap. */
+  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--coral); }
+  /* On and off switch. Coral because it is something you tap. */
   input.switch { -webkit-appearance: none; appearance: none; display: block; flex: none; width: 51px; min-height: 0; height: 31px; margin: 0; padding: 0;
-    border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); position: relative; cursor: pointer; transition: background .2s; }
+    border-radius: 99px; background: var(--seg-on); border: 1px solid var(--line-strong); position: relative; cursor: pointer; transition: background .2s; }
   input.switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: 25px; height: 25px; border-radius: 50%; background: var(--muted); transition: transform .2s; }
-  input.switch:checked { background: var(--brass); border-color: var(--brass); }
-  input.switch:checked::before { transform: translateX(20px); background: var(--on-brass); }
+  input.switch:checked { background: var(--coral); border-color: var(--coral); }
+  input.switch:checked::before { transform: translateX(20px); background: #fff; }
   @media (prefers-reduced-motion: reduce) { input.switch, input.switch::before { transition: none; } }
   /* Grouped rows: a quiet container with hairlines between rows (Settings, Setup, results). */
   .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; margin-top: 10px; }
-  .rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; min-height: 52px; border-top: 1px solid var(--line); }
+  .rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; min-height: 52px; border-top: 1px solid var(--line); }
   .group > .rowline:first-child { border-top: 0; }
   .rowline .val { color: var(--muted); font-size: 15px; text-align: right; word-break: break-all; }
-  .group .row2 { padding: 0 14px 14px; }
+  .group .row2 { padding: 0 16px 16px; }
   .group .row2 label { margin-top: 4px; }
   .row2 { display: flex; gap: 10px; }
   .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
@@ -250,31 +257,32 @@
   .row2 input::-webkit-date-and-time-value { text-align: center; margin: 0 auto; }
   .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
 
-  /* ===== Segmented control (theme choice, Admin filter) ===== */
+  /* ===== Segmented control (theme choice, Admin filter). Selected is a neutral cream chip, not coral. ===== */
   .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); }
-  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border-radius: 9px; background: transparent; color: var(--muted); font-weight: 600; font-size: 15px; flex: 1; width: auto; }
-  .seg button[aria-pressed="true"] { background: var(--brass); color: var(--on-brass); }
+  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border-radius: var(--r-s); background: transparent; color: var(--muted); font-weight: 500; font-size: 15px; flex: 1; width: auto; }
+  .seg button:active { background: var(--seg-on); }
+  .seg button[aria-pressed="true"] { background: var(--seg-on); color: var(--text); font-weight: 600; }
   .seg.filter button { font-size: 13px; padding: 8px 2px; }
 
   /* ===== Setup steps and guides ===== */
   ul.steps { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
-  .steps li { display: flex; align-items: center; gap: 14px; padding: 14px; border-top: 1px solid var(--line); }
+  .steps li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--line); }
   .steps li:first-child { border-top: 0; }
   .mark {
     width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted);
-    display: grid; place-items: center; font: 600 15px/1 var(--sans); flex: none;
+    display: grid; place-items: center; font: 500 15px/1 var(--sans); flex: none;
   }
-  .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--on-brass); font-weight: 700; }
+  .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--bg); font-weight: 700; }
   .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
   .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #setup-msg { min-height: 1.4em; }
   /* Numbered steps: a real sequence, so the numbers carry meaning. */
   ol.guide { list-style: none; counter-reset: g; padding: 0; margin: 10px 0; }
-  ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-top: 1px solid var(--line); margin: 0; }
+  ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-top: 1px solid var(--line); margin: 0; }
   ol.guide li:first-child { border-top: 0; }
-  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--brass);
-    font: 650 14px/26px var(--sans); text-align: center; }
-  .tip { background: var(--surface); border: 1px solid var(--brass); border-radius: var(--r-m); padding: 14px 16px 4px; margin: 0 0 22px; }
+  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--seg-on); color: var(--accent);
+    font: 500 14px/26px var(--sans); text-align: center; }
+  .tip { background: var(--surface); border: 1px solid var(--coral); border-radius: var(--r-m); padding: 14px 16px 4px; margin: 0 0 22px; }
   .tip p { margin: 4px 0; }
   .tip ol.guide { margin: 6px 0 0; }
   .tip ol.guide li { padding: 10px 0; }
@@ -283,19 +291,20 @@
   .gate { padding-top: 24px; }
   .gate.center { text-align: center; padding-top: 48px; }
   .gate.center ol.guide { text-align: left; }
-  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--brass); display: grid; place-items: center; margin: 0 auto 16px; }
+  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--accent); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
   /* A row that opens a sub-page, and the Back button on that page. */
   button.linkrow { display: flex; align-items: center; justify-content: space-between; text-align: left; }
   button.linkrow svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   button.back { display: flex; align-items: center; gap: 2px; width: auto; min-height: 44px; margin: 0 0 0 -6px; padding: 0 8px 0 0;
-    background: none; color: var(--brass); font-weight: 600; }
+    background: none; color: var(--accent); font-weight: 500; }
+  button.back:active { background: none; opacity: .6; }
   button.back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== Tab bar ===== */
   nav {
-    flex: none; display: flex; background: var(--surface);
+    flex: none; display: flex; background: var(--bg);
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
   }
   nav button {
@@ -303,22 +312,23 @@
     min-height: 76px; font-weight: 500; font-size: 14px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 6px; padding: 10px 4px;
   }
+  nav button:active { background: none; opacity: .6; }
   nav button svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  nav button.active { color: var(--brass); font-weight: 600; }
+  nav button.active { color: var(--accent); font-weight: 600; }
   /* Some iPhones give a Home Screen app a page shorter than the screen; colour the leftover strip like the tab bar. */
-  html.strip { background: var(--surface); }
+  html.strip { background: var(--bg); }
   html.strip nav { padding-bottom: 0; }
 
   /* ===== Admin ===== */
-  .person { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
-  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 650 15px/1 var(--sans); }
-  .person.pending .avatar { box-shadow: 0 0 0 2px var(--brass); }
-  .person .who { font: 600 17px/1.25 var(--sans); word-break: break-word; }
+  .person { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 16px 0; border-top: 1px solid var(--line); }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 500 15px/1 var(--sans); }
+  .person.pending .avatar { box-shadow: 0 0 0 2px var(--coral); }
+  .person .who { font: 500 17px/1.3 var(--sans); word-break: break-word; }
   .person .meta { margin-top: 2px; word-break: break-all; }
   .person .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
   .person .row-actions { grid-column: 2 / 4; display: flex; margin-top: 2px; }
   .row-actions button { width: auto; min-height: 42px; padding: 8px 20px; margin: 0; font-size: 15px; }
-  .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-m); flex: none; display: grid; place-items: center; }
+  .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-s); flex: none; display: grid; place-items: center; }
   .dots svg { width: 22px; height: 22px; fill: currentColor; }
   .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
   #people-search { margin-top: 10px; }
@@ -327,19 +337,20 @@
 
   /* ===== Bottom sheet ===== */
   #sheet { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; }
-  #sheet .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+  #sheet .backdrop { position: absolute; inset: 0; background: rgba(20, 20, 19, .5); }
   #sheet .panel {
     position: relative; width: 100%; max-width: 560px; margin: 0 auto; max-height: 85vh; overflow-y: auto;
-    background: var(--surface); border-radius: 20px 20px 0 0; padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    background: var(--bg); border-radius: var(--r-l) var(--r-l) 0 0; padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   }
-  #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px; }
-  .panel h3 { margin: 0 0 6px; font: 650 20px/1.25 var(--sans); word-break: break-word; }
+  #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 14px; }
+  .panel h3 { margin: 0 0 6px; font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; word-break: break-word; }
   button.item { background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 52px; margin: 0; padding: 14px 4px; font-weight: 500; }
+  button.item:active { background: var(--surface-2); }
   button.item.danger { color: var(--problem); }
-  button.danger-btn { background: var(--problem); color: #fff; }
+  button.danger-btn { background: var(--danger-fill); color: #fff; }
 
   /* ===== Install gate: an arrow that points at where the Share or menu button is ===== */
-  .arrow { position: fixed; z-index: 15; pointer-events: none; color: var(--brass); font: 600 15px/1.25 var(--sans); text-align: center; }
+  .arrow { position: fixed; z-index: 15; pointer-events: none; color: var(--accent); font: 500 15px/1.25 var(--sans); text-align: center; }
   .arrow .bob { display: flex; flex-direction: column; align-items: center; animation: bob 1.1s ease-in-out infinite; }
   .arrow svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .arrow.bottom { left: 50%; bottom: calc(env(safe-area-inset-bottom) + 8px); transform: translateX(-50%); }
@@ -349,11 +360,11 @@
   @keyframes bob { 50% { transform: translateY(8px); } }
   @keyframes bobup { 50% { transform: translateY(-8px); } }
   @media (prefers-reduced-motion: reduce) { .arrow .bob { animation: none; } }
-  .glyph { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; fill: none; stroke: var(--brass); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .glyph { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== Update notice (stays above the content until the app is reloaded) ===== */
   #update-bar { flex: none; width: 100%; max-width: 560px; margin: 4px auto 0; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
-    background: var(--surface-2); border: 1px solid var(--brass); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
+    background: var(--surface-2); border: 1px solid var(--coral); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
   #update-bar span { flex: 1; min-width: 0; }
   #update-bar button { flex: none; width: auto; min-height: 40px; padding: 8px 14px; margin: 0; font-size: 15px; }
   @media (max-width: 600px) { #update-bar { width: calc(100% - 40px); } }
@@ -510,8 +521,8 @@
     <button class="secondary signout" type="button">Sign Out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
-      <button data-mode="dark" aria-pressed="true">Dark</button>
-      <button data-mode="light" aria-pressed="false">Light</button>
+      <button data-mode="light" aria-pressed="true">Light</button>
+      <button data-mode="dark" aria-pressed="false">Dark</button>
       <button data-mode="auto" aria-pressed="false">Auto</button>
     </div>
     <p class="muted">Auto follows your phone's setting.</p>
