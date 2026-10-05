@@ -11,10 +11,11 @@
 <meta name="apple-mobile-web-app-title" content="TP Notify">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script>
-  // Apply the saved theme before first paint so there is no flash. Default is light (cream).
+  // Apply the saved theme before first paint so there is no flash. Default is Auto (follows the phone), so the
+  // system status bar at the top of the screen, which always follows the phone, matches the app.
   (function () {
-    var mode = "light";
-    try { mode = localStorage.getItem("tp-theme") || "light"; } catch (e) {}
+    var mode = "auto";
+    try { mode = localStorage.getItem("tp-theme") || "auto"; } catch (e) {}
     var dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   })();
@@ -521,11 +522,11 @@
     <button class="secondary signout" type="button">Sign Out</button>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
-      <button data-mode="light" aria-pressed="true">Light</button>
+      <button data-mode="auto" aria-pressed="true">Auto</button>
+      <button data-mode="light" aria-pressed="false">Light</button>
       <button data-mode="dark" aria-pressed="false">Dark</button>
-      <button data-mode="auto" aria-pressed="false">Auto</button>
     </div>
-    <p class="muted">Auto follows your phone's setting.</p>
+    <p class="muted">Auto follows your phone's setting. It is the only choice where the bar at the very top of the screen matches the app.</p>
     <h2>Quiet Hours</h2>
     <p class="muted">Alerts that arrive during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
     <div class="group">

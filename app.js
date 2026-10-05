@@ -390,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 38;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 39;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -543,8 +543,8 @@ $("diagnose").onclick = async () => {
   $("diag-note").textContent = note;
 };
 
-// ---- Theme (Light / Dark / Auto; default Light) ----
-function savedMode() { try { return localStorage.getItem("tp-theme") || "light"; } catch { return "light"; } }
+// ---- Theme (Auto / Light / Dark; default Auto, because the iPhone status bar always follows the phone) ----
+function savedMode() { try { return localStorage.getItem("tp-theme") || "auto"; } catch { return "auto"; } }
 function applyTheme(mode) {
   const dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
