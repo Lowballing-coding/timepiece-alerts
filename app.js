@@ -2,7 +2,7 @@
 const VAPID_PUBLIC_KEY = "BCw69mMtS2gckHI0voqwM4uR0eupiXHxpfijl5sU0IrPSgD6SYNlcgKPKvkgH24NCACK8-TbzvuH6D1QHfVzGuI";
 
 const $ = (id) => document.getElementById(id);
-const LABELS = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
+const LABELS = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
 function openDb() {
@@ -61,6 +61,7 @@ async function fetchMissed(local) {
 const ICONS = {
   bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 };
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
 async function renderAlerts() {
@@ -113,19 +114,22 @@ async function renderAlerts() {
             <h3>${esc(a.name)}</h3>
             <p class="when">${esc(when)}</p>
             <p class="rec">Received ${esc(time)}</p>
+            <p class="rec">Listed as on sale. Check the tickets on FIXR.</p>
           </div>
         </div>
         ${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}
       </article>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
-      : `<div class="tile icon">${type === "test" ? ICONS.bell : ICONS.warn}</div>`;
+      : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
+    const url2 = type === "on_sale_soon" ? safeUrl(a.url) : "";
     return `${heading}<article class="${cls} row">
       ${tile}
       <div>
-        <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
+        <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" || type === "on_sale_soon" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
         <h3>${esc(a.name)}</h3>
         ${when ? `<p class="when">${esc(when)}</p>` : ""}
+        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" style="color:var(--brass)">Open FIXR</a>` : ""}</p>` : ""}
       </div>
       <time class="at">${esc(time)}</time>
     </article>`;
@@ -476,7 +480,7 @@ async function renderWatcher() {
 }
 
 // ---- Admin (the database refuses anyone who isn't the admin) ----
-const TYPE_NAMES = { on_sale: "Tickets on Sale", check: "Check Manually" };
+const TYPE_NAMES = { on_sale: "Tickets on Sale", check: "Check Manually and On Sale Soon" };
 let people = [], sheetPerson = null, sheetMode = "menu";
 const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 

@@ -1,6 +1,6 @@
-const CACHE = "timepiece-v28";
+const CACHE = "timepiece-v29";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const TITLES = { on_sale: "Tickets on Sale", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification", signup: "New Sign-Up Request" };
+const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification", signup: "New Sign-Up Request" };
 
 self.addEventListener("install", (e) => {
   // One missing file must never stop the service worker installing (push depends on it).
@@ -50,7 +50,7 @@ self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch { d = {}; }
   const type = TITLES[d.type] ? d.type : "check";
-  const body = [d.name, [d.day, d.date].filter(Boolean).join(" ")].filter(Boolean).join("\n");
+  const body = [d.name, [d.day, d.date].filter(Boolean).join(" "), type === "on_sale_soon" ? "Check it on FIXR." : type === "on_sale" ? "Listed as on sale. Check the tickets on FIXR." : ""].filter(Boolean).join("\n");
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
   e.waitUntil((async () => {
