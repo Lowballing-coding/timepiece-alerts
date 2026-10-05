@@ -390,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 36;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 37;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -702,12 +702,19 @@ function ago(iso) {
 async function renderWatcher() {
   try {
     const r = (await api("watcher_status?select=last_check_at,ok"))[0];
-    const stale = !r || !r.last_check_at || Date.now() - new Date(r.last_check_at) > 5 * 60e3;
-    const state = stale ? "problem" : r.ok ? "on" : "check";
-    const text = stale
-      ? (r && r.last_check_at ? `Watcher quiet since ${ago(r.last_check_at)}` : "Watcher hasn't checked in yet")
-      : r.ok ? `Watcher checked ${ago(r.last_check_at)}` : `Watcher had a problem ${ago(r.last_check_at)}`;
-    ["watcher-line", "watcher-admin"].forEach((id) => { const el = $(id); el.hidden = false; el.className = `health ${state}${id === "watcher-admin" ? " card" : ""}`; el.textContent = text; });
+    // Nothing is shown while the watcher is healthy. When it isn't, show when it last worked, in this phone's own time zone.
+    const when = r && r.last_check_at ? new Date(r.last_check_at) : null;
+    const bad = !when || Date.now() - when > 5 * 60e3 || !r.ok;
+    let text = "The watcher hasn't checked in yet.";
+    if (when) {
+      const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      text = `Last checked at ${time}${when.toDateString() === new Date().toDateString() ? "" : ` on ${when.toLocaleDateString([], { day: "numeric", month: "short" })}`}`;
+    }
+    ["watcher-line", "watcher-admin"].forEach((id) => {
+      const el = $(id);
+      el.hidden = !bad;
+      if (bad) { el.className = `health problem${id === "watcher-admin" ? " card" : ""}`; el.textContent = text; }
+    });
   } catch { /* offline: keep whatever is showing */ }
 }
 
