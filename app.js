@@ -187,14 +187,15 @@ function keyBytes(b64) {
   const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
-$("enable").onclick = async () => {
-  $("setup-msg").textContent = "";
+// Asks for permission and links this phone to the account. Must run from a tap. True when notifications are on.
+async function enableNotifications(msgEl) {
+  msgEl.textContent = "";
   try {
-    if (!supported()) return renderChecklist();
+    if (!supported()) return false;
     const perm = await Notification.requestPermission();
     if (perm !== "granted") {
-      $("setup-msg").textContent = "Notifications were not allowed. Allow them in the phone's Settings, then try again.";
-      return renderChecklist();
+      msgEl.textContent = "Notifications were not allowed. Allow them in the phone's Settings, then try again.";
+      return false;
     }
     const reg = await Promise.race([
       navigator.serviceWorker.ready,
@@ -204,12 +205,36 @@ $("enable").onclick = async () => {
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
     $("sub").value = JSON.stringify(sub.toJSON(), null, 2);
     await saveSubscription(sub);
-    $("setup-msg").textContent = "Done. This phone is linked to your account.";
+    msgEl.textContent = "Done. This phone is linked to your account.";
+    return true;
   } catch (e) {
-    $("setup-msg").textContent = "Couldn't finish setup. " + (e.message || e.name) + ".";
+    msgEl.textContent = "Couldn't finish setup. " + (e.message || e.name) + ".";
+    return false;
   }
-  renderChecklist();
+}
+$("enable").onclick = async () => { await enableNotifications($("setup-msg")); renderChecklist(); };
+
+// ---- Notification prompt: after approval, phones without notifications get a full-screen step until they turn them on ----
+let notifyLater = false;   // "Maybe Later" skips it for this launch only
+function notifyGate() {
+  const ua = navigator.userAgent, ios = /iPhone|iPad/.test(ua);
+  if (notifyLater || !(ios || /Android/.test(ua))) return null;   // phones only
+  if (ios && !standalone()) return "install";                    // iPhone push only works from the Home Screen app
+  if (!supported() || Notification.permission === "granted") return null;
+  return Notification.permission === "denied" ? "blocked" : "ask";
+}
+function showNotifyGate(kind) {
+  $("notify-ask").hidden = kind !== "ask";
+  $("notify-blocked").hidden = kind !== "blocked";
+  $("notify-install").hidden = kind !== "install";
+  showGate("gate-notify");
+}
+$("notify-go").onclick = async () => {
+  if (await enableNotifications($("notify-msg"))) showApp();
+  else if (Notification.permission === "denied") showNotifyGate("blocked");
 };
+$("notify-recheck").onclick = () => loadProfile();
+document.querySelectorAll(".later").forEach((b) => { b.onclick = () => { notifyLater = true; showApp(); }; });
 
 // Saves this phone's push subscription to the signed-in account (the watcher reads it from there).
 const deviceLabel = () => (/iPhone|iPad/.test(navigator.userAgent) ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "Computer");
@@ -244,6 +269,19 @@ $("test").onclick = async () => {
   const reg = await navigator.serviceWorker.ready;
   reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
 };
+
+// ---- Update notice: friends who never close the app still find out when a new version is ready ----
+const APP_VERSION = 30;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+async function checkForUpdate() {
+  try {
+    const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
+    if (m) $("update-bar").hidden = Number(m[1]) <= APP_VERSION;
+  } catch { /* offline: leave the notice as it is */ }
+}
+$("update-now").onclick = () => location.reload();
+checkForUpdate();
+setInterval(checkForUpdate, 15 * 60e3);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 
 // ---- Short-page fix: a Home Screen app whose page is a little shorter than the screen (seen on an iOS beta) ----
 function checkStrip() {
@@ -416,7 +454,7 @@ async function loadProfile() {
     profile = store.get("tp-profile");   // offline: use what we last knew
     if (!profile) { showGate("gate-auth"); $("auth-msg").textContent = e.message; $("auth-msg").className = "msg error"; return; }
   }
-  if (profile.status === "approved") showApp();
+  if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
   else showGate({ pending: "gate-pending", blocked: "gate-blocked" }[profile.status] || "gate-removed");
 }
 function signedOut() {
@@ -681,6 +719,7 @@ document.addEventListener("visibilitychange", () => {
   renderAlerts();
   if (session && profile && profile.status === "approved") renderWatcher();
   if (session && profile && profile.status !== "approved") loadProfile();   // pick up an approval
+  if (session && profile && document.querySelector("#gate-notify.active")) loadProfile();   // they may have just allowed notifications in Settings
 });
 renderAlerts();
 session = store.get("tp-session");

@@ -157,7 +157,7 @@
   .tile b { display: block; font: 700 20px/1.1 var(--sans); font-variant-numeric: tabular-nums; }
   .tile.icon { height: 48px; display: grid; place-items: center; padding: 0; }
   .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  .alert.check .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
+  .alert.check .tile.icon, .alert.on_sale_soon .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
 
   /* The on-sale alert is a ticket: stub on the left, perforation, notches cut into the edge. */
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
@@ -258,6 +258,7 @@
   /* Sign-in and waiting screens */
   .gate { padding-top: 24px; }
   .gate.center { text-align: center; padding-top: 48px; }
+  .gate.center ol.guide { text-align: left; }
   .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--brass); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -306,6 +307,13 @@
   button.item.danger { color: var(--problem); }
   button.danger-btn { background: var(--problem); color: #fff; }
 
+  /* ===== Update notice (stays above the content until the app is reloaded) ===== */
+  #update-bar { flex: none; width: 100%; max-width: 560px; margin: 4px auto 0; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
+    background: var(--surface-2); border: 1px solid var(--brass); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
+  #update-bar span { flex: 1; min-width: 0; }
+  #update-bar button { flex: none; width: auto; min-height: 40px; padding: 8px 14px; margin: 0; font-size: 15px; }
+  @media (max-width: 600px) { #update-bar { width: calc(100% - 40px); } }
+
   /* ===== Launch screen ===== */
   #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
   #splash.gone { opacity: 0; pointer-events: none; }
@@ -330,6 +338,10 @@
   </svg>
   <h1>TP Notify</h1>
 </header>
+<div id="update-bar" role="status" hidden>
+  <span>Your version is out of date. Tap Update Now, or close the app and reopen it.</span>
+  <button id="update-now" type="button">Update Now</button>
+</div>
 <main>
   <section id="alerts" class="screen active" aria-label="Alerts">
     <h2 class="title">Alerts</h2>
@@ -385,6 +397,31 @@
     </form>
     <button id="auth-toggle" type="button" class="secondary">Create an Account</button>
     <p id="auth-msg" class="msg" role="alert"></p>
+  </section>
+
+  <section id="gate-notify" class="screen gate center" aria-label="Turn On Notifications">
+    <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></div>
+    <h2>Turn On Notifications</h2>
+    <div id="notify-ask" hidden>
+      <p class="muted">TP Notify tells you the moment tickets go on sale. It can only do that with notifications turned on.</p>
+      <button id="notify-go" type="button">Turn On Notifications</button>
+      <p id="notify-msg" class="msg" role="status"></p>
+      <button class="secondary later" type="button">Maybe Later</button>
+    </div>
+    <div id="notify-blocked" hidden>
+      <p class="muted">Notifications are turned off for this app. In your phone's Settings, open Notifications, then TP Notify, and turn on Allow Notifications. Then come back here.</p>
+      <button id="notify-recheck" type="button">Check Again</button>
+      <button class="secondary later" type="button">Maybe Later</button>
+    </div>
+    <div id="notify-install" hidden>
+      <p class="muted">Alerts only work from the Home Screen app. Add it first, then open it from the new icon.</p>
+      <ol class="guide group">
+        <li>Tap the Share button in Safari.</li>
+        <li>Choose Add to Home Screen.</li>
+        <li>Open TP Notify from its new icon and sign in there.</li>
+      </ol>
+      <button class="secondary later" type="button">Maybe Later</button>
+    </div>
   </section>
 
   <section id="gate-pending" class="screen gate center" aria-label="Waiting for Approval">
