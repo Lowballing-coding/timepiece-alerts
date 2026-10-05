@@ -336,9 +336,9 @@ document.querySelectorAll(".sub").forEach((s) => {
 // ---- Notification prompt: after approval, phones without notifications get a full-screen step until they turn them on ----
 let notifyLater = false;   // "Maybe Later" skips it for this launch only
 function notifyGate() {
-  const ua = navigator.userAgent, ios = /iPhone|iPad/.test(ua);
-  if (notifyLater || !(ios || /Android/.test(ua))) return null;   // phones only
-  if (ios && !standalone()) return "install";                    // iPhone push only works from the Home Screen app
+  const { ios, android } = device();
+  if (notifyLater || !(ios || android)) return null;   // phones only
+  if (ios && !standalone()) return "install";          // iPhone push only works from the Home Screen app
   if (!supported() || Notification.permission === "granted") return null;
   return Notification.permission === "denied" ? "blocked" : "ask";
 }
@@ -356,7 +356,7 @@ $("notify-recheck").onclick = () => loadProfile();
 document.querySelectorAll(".later").forEach((b) => { b.onclick = () => { notifyLater = true; showApp(); }; });
 
 // Saves this phone's push subscription to the signed-in account (the watcher reads it from there).
-const deviceLabel = () => (/iPhone|iPad/.test(navigator.userAgent) ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "Computer");
+const deviceLabel = () => (device().ios ? "iPhone" : device().android ? "Android" : "Computer");
 async function saveSubscription(sub) {
   await api("subscriptions?on_conflict=endpoint", {
     method: "POST",
@@ -390,7 +390,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 40;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 41;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());

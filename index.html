@@ -160,7 +160,7 @@
   /* ===== Alerts ===== */
   .health { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
   .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .health.on::before { background: var(--on); } .health.check::before { background: var(--check); } .health.problem::before { background: var(--problem); }
+  .health.problem::before { background: var(--problem); }
   .health.card { background: var(--surface-2); border-radius: var(--r-m); padding: 12px 16px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
 
   .day { font: 500 13px/1 var(--sans); color: var(--muted); margin: 24px 0 6px; letter-spacing: 0; }
@@ -283,10 +283,6 @@
   ol.guide li:first-child { border-top: 0; }
   ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--seg-on); color: var(--accent);
     font: 500 14px/26px var(--sans); text-align: center; }
-  .tip { background: var(--surface); border: 1px solid var(--coral); border-radius: var(--r-m); padding: 14px 16px 4px; margin: 0 0 22px; }
-  .tip p { margin: 4px 0; }
-  .tip ol.guide { margin: 6px 0 0; }
-  .tip ol.guide li { padding: 10px 0; }
 
   /* Sign-in and waiting screens */
   .gate { padding-top: 24px; }
