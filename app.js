@@ -60,64 +60,73 @@ async function fetchMissed(local) {
   } catch { return []; }
 }
 
-// ---- Swipe an alert left to delete it, like an Apple notification ----
+// ---- Swipe a row left to delete it, like an Apple notification (the Alerts list and the Admin "Recent Alerts Sent" list) ----
 const REVEAL = 96;   // width of the red Delete area
-let swipe = null, swiped = false;
 function slide(s, x, animate) {
   const c = s.querySelector(".alert");
   c.classList.toggle("dragging", !animate);
   c.style.transform = x ? `translateX(${x}px)` : "";
-  const go = s.parentElement.querySelector(":scope > .go");   // the ticket's button fades as the ticket moves away
+  const go = s.parentElement.querySelector(":scope > .go");   // a ticket's button fades as the ticket moves away
   if (go) go.style.opacity = x ? String(1 - 0.6 * Math.min(1, Math.abs(x) / s.offsetWidth)) : "";
 }
-function closeSwipes(except) {
-  $("list").querySelectorAll(".swipe.open").forEach((s) => { if (s !== except) { slide(s, 0, true); s.classList.remove("open"); } });
+// box: the list holding `.swipe` rows. onDelete(row) forgets the data; onDone(group) runs after the row has left the screen.
+function makeSwipeable(box, onDelete, onDone) {
+  let swipe = null, swiped = false;
+  const closeOthers = (except) => box.querySelectorAll(".swipe.open").forEach((s) => { if (s !== except) { slide(s, 0, true); s.classList.remove("open"); } });
+  async function remove(s) {
+    const group = s.closest(".tgroup") || s;   // a ticket and its button leave together
+    slide(s, -s.offsetWidth, true);
+    const go = group.querySelector(":scope > .go");
+    if (go) go.classList.add("pop");   // the button pops like a bubble
+    await onDelete(s);
+    group.style.height = `${group.offsetHeight}px`; group.style.overflow = "hidden";
+    setTimeout(() => { group.style.transition = "height .2s, margin .2s"; group.style.height = "0"; group.style.margin = "0"; }, go ? 160 : 0);
+    setTimeout(() => onDone(group), go ? 400 : 240);
+  }
+  box.addEventListener("pointerdown", (e) => {
+    const s = e.target.closest(".swipe");
+    closeOthers(s);
+    if (!s || e.target.closest(".del")) return;
+    const x = s.classList.contains("open") ? -REVEAL : 0;
+    swipe = { s, id: e.pointerId, x0: e.clientX, y0: e.clientY, lock: null, base: x, x, w: s.offsetWidth, cap: false };
+  });
+  box.addEventListener("pointermove", (e) => {
+    if (!swipe || e.pointerId !== swipe.id) return;
+    const dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
+    if (!swipe.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) swipe.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (swipe.lock !== "x") return;
+    if (!swipe.cap) { try { swipe.s.setPointerCapture(e.pointerId); } catch {} swipe.cap = true; }
+    swipe.x = Math.min(0, Math.max(-swipe.w, swipe.base + dx));
+    slide(swipe.s, swipe.x, false);
+  });
+  const end = (e) => {
+    if (!swipe || e.pointerId !== swipe.id) return;
+    const { s, x, w, lock } = swipe; swipe = null;
+    if (lock !== "x") return;
+    swiped = true; setTimeout(() => { swiped = false; }, 60);   // a drag must not count as a tap on a link
+    if (x < -w * 0.55) return remove(s);
+    const open = x < -REVEAL / 2;
+    slide(s, open ? -REVEAL : 0, true); s.classList.toggle("open", open);
+  };
+  box.addEventListener("pointerup", end);
+  box.addEventListener("pointercancel", end);
+  box.addEventListener("click", (e) => {
+    if (swiped) { e.preventDefault(); e.stopPropagation(); return; }
+    const d = e.target.closest(".del");
+    if (d) remove(d.closest(".swipe"));
+  }, true);
 }
-async function removeAlert(s) {
-  const group = s.closest(".tgroup") || s;   // a ticket and its button leave together
-  slide(s, -s.offsetWidth, true);
-  const go = group.querySelector(":scope > .go");
-  if (go) go.classList.add("pop");   // the button pops like a bubble
-  const type = s.dataset.type, name = s.dataset.name, t = Number(s.dataset.t);
+makeSwipeable($("list"), async (s) => {
   // Remember it, so the server's copy doesn't come back as a "Missed" alert.
-  store.set("tp-dismissed", [...(store.get("tp-dismissed") || []), { type, name, t }].slice(-200));
+  store.set("tp-dismissed", [...(store.get("tp-dismissed") || []), { type: s.dataset.type, name: s.dataset.name, t: Number(s.dataset.t) }].slice(-200));
   if (s.dataset.id) { try { (await openDb()).transaction("alerts", "readwrite").objectStore("alerts").delete(Number(s.dataset.id)); } catch {} }
-  group.style.height = `${group.offsetHeight}px`; group.style.overflow = "hidden";
-  setTimeout(() => { group.style.transition = "height .2s, margin .2s"; group.style.height = "0"; group.style.margin = "0"; }, go ? 160 : 0);
-  setTimeout(renderAlerts, go ? 400 : 240);
-}
-$("list").addEventListener("pointerdown", (e) => {
-  const s = e.target.closest(".swipe");
-  closeSwipes(s);
-  if (!s || e.target.closest(".del")) return;
-  const x = s.classList.contains("open") ? -REVEAL : 0;
-  swipe = { s, id: e.pointerId, x0: e.clientX, y0: e.clientY, lock: null, base: x, x, w: s.offsetWidth, cap: false };
+}, () => renderAlerts());
+makeSwipeable($("alert-log"), (s) => {   // the admin's sent-alerts list: hidden on this device
+  store.set("tp-log-dismissed", [...(store.get("tp-log-dismissed") || []), s.dataset.id].slice(-200));
+}, (group) => {
+  group.remove();
+  if (!$("alert-log").children.length) $("alert-log").innerHTML = '<p class="muted">No alerts sent yet.</p>';
 });
-$("list").addEventListener("pointermove", (e) => {
-  if (!swipe || e.pointerId !== swipe.id) return;
-  const dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
-  if (!swipe.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) swipe.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-  if (swipe.lock !== "x") return;
-  if (!swipe.cap) { try { swipe.s.setPointerCapture(e.pointerId); } catch {} swipe.cap = true; }
-  swipe.x = Math.min(0, Math.max(-swipe.w, swipe.base + dx));
-  slide(swipe.s, swipe.x, false);
-});
-function endSwipe(e) {
-  if (!swipe || e.pointerId !== swipe.id) return;
-  const { s, x, w, lock } = swipe; swipe = null;
-  if (lock !== "x") return;
-  swiped = true; setTimeout(() => { swiped = false; }, 60);   // a drag must not count as a tap on a link
-  if (x < -w * 0.55) return removeAlert(s);
-  const open = x < -REVEAL / 2;
-  slide(s, open ? -REVEAL : 0, true); s.classList.toggle("open", open);
-}
-$("list").addEventListener("pointerup", endSwipe);
-$("list").addEventListener("pointercancel", endSwipe);
-$("list").addEventListener("click", (e) => {
-  if (swiped) { e.preventDefault(); e.stopPropagation(); return; }
-  const d = e.target.closest(".del");
-  if (d) removeAlert(d.closest(".swipe"));
-}, true);
 const ICONS = {
   bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
@@ -342,7 +351,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 34;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 35;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -637,9 +646,11 @@ function personRow(p) {
 }
 async function renderLog() {
   try {
-    const rows = await api("alert_log?select=created_at,type,event_name,recipients&order=created_at.desc&limit=8");
-    $("alert-log").innerHTML = rows.map((r) => `<div class="logrow"><div>${esc(LABELS[r.type] || r.type)}${r.event_name ? `: ${esc(r.event_name)}` : ""}</div>
-      <div class="meta">Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div>`).join("")
+    const hidden = store.get("tp-log-dismissed") || [];   // rows the admin swiped away on this device
+    const rows = (await api("alert_log?select=id,created_at,type,event_name,recipients&order=created_at.desc&limit=20")).filter((r) => !hidden.includes(String(r.id))).slice(0, 8);
+    $("alert-log").innerHTML = rows.map((r) => `<div class="swipe" data-id="${esc(r.id)}"><button class="del" type="button" aria-label="Delete this row">Delete</button>
+      <div class="alert logrow"><div>${esc(LABELS[r.type] || r.type)}${r.event_name ? `: ${esc(r.event_name)}` : ""}</div>
+      <div class="meta">Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div></div>`).join("")
       || '<p class="muted">No alerts sent yet.</p>';
   } catch { $("alert-log").innerHTML = ""; }
 }
