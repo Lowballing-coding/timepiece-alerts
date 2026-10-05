@@ -88,7 +88,8 @@
   }
 
   /* ===== Base ===== */
-  * { box-sizing: border-box; }
+  /* manipulation = scroll and pinch still work, but a double tap no longer zooms the page. */
+  * { box-sizing: border-box; touch-action: manipulation; }
   html { -webkit-text-size-adjust: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
     margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
@@ -112,17 +113,8 @@
   }
   header svg { width: 26px; height: 26px; flex: none; }
   h1 { margin: 0; font: 400 22px/1 var(--serif); letter-spacing: -.3px; }
-  /* #stage holds the tab pages (main) and the sub-pages that slide in over them. */
+  /* #stage holds the tab pages (main). */
   #stage { flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; position: relative; overflow: hidden; }
-  #stage > main { transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
-  #stage.pushed > main { transform: translateX(-26%); }
-  #stage.dragging > main { transition: none; }
-  .sub { position: absolute; inset: 0; z-index: 3; overflow-y: auto; overflow-x: hidden; padding: 4px 20px 28px; background: var(--bg);
-    border-left: 1px solid var(--line); touch-action: pan-y; overscroll-behavior: contain;
-    transform: translateX(100%); visibility: hidden; transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s .32s; }
-  .sub.open { transform: none; visibility: visible; transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
-  .sub.dragging, .sub.open.dragging { transition: none; }   /* while a finger is dragging it, follow the finger exactly */
-  @media (prefers-reduced-motion: reduce) { #stage > main, .sub, .sub.open { transition: none; } }
   main {
     height: 100%; width: 100%;
     overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
@@ -227,11 +219,6 @@
   }
   input:focus { outline: 0; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(204, 120, 92, .2); }
   input::placeholder { color: var(--muted); }
-  textarea {
-    width: 100%; min-height: 150px; background: var(--bg); color: var(--text);
-    border: 1px solid var(--line-strong); border-radius: var(--r-s); padding: 12px;
-    font: 13px/1.5 ui-monospace, "JetBrains Mono", Consolas, monospace; resize: none;
-  }
   .msg { min-height: 1.4em; margin-top: 10px; }
   .msg.error { color: var(--problem); }
   label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
@@ -290,14 +277,6 @@
   .gate.center ol.guide { text-align: left; }
   .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--accent); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-
-  /* A row that opens a sub-page, and the Back button on that page. */
-  button.linkrow { display: flex; align-items: center; justify-content: space-between; text-align: left; }
-  button.linkrow svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  button.back { display: flex; align-items: center; gap: 2px; width: auto; min-height: 44px; margin: 0 0 0 -6px; padding: 0 8px 0 0;
-    background: none; color: var(--accent); font-weight: 500; }
-  button.back:active { background: none; opacity: .6; }
-  button.back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== Tab bar ===== */
   nav {
@@ -410,12 +389,6 @@
     <ul class="steps" id="checklist"></ul>
     <button id="enable">Turn On Notifications</button>
     <p id="setup-msg" class="muted" role="status"></p>
-    <div id="manual-link" hidden>
-      <button id="manual-open" class="secondary linkrow" type="button">
-        <span>Manual Link (Admin)</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-    </div>
   </section>
 
   <section id="admin" class="screen" aria-label="Admin">
@@ -553,15 +526,6 @@
     </ol>
   </section>
 </main>
-<section id="manual" class="sub" aria-label="Manual Link" aria-hidden="true">
-  <button id="manual-back" class="back" type="button">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Setup
-  </button>
-  <h2 class="title">Manual Link</h2>
-  <p class="muted">Admin only. Your PC still reads <b>watcher_secrets.json</b> until the watcher is switched to accounts. Keep this private.</p>
-  <textarea id="sub" readonly placeholder="Appears after you turn on notifications"></textarea>
-  <button id="copy" class="secondary">Copy Subscription</button>
-</section>
 </div>
 <div id="install-arrow" class="arrow" hidden aria-hidden="true">
   <div class="bob"><span id="arrow-label"></span><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div>

@@ -223,7 +223,6 @@ async function markSeen(items) {
 // ---- Tabs ----
 document.querySelectorAll("nav button").forEach((b) => {
   b.onclick = () => {
-    closeSub(true);   // leaving the tab closes any sub-page straight away
     document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === b.dataset.tab));
     if (b.dataset.tab === "alerts") renderAlerts();
@@ -250,7 +249,6 @@ async function renderChecklist() {
     row(1, standalone(), "Open the app from its Home Screen icon") +
     row(2, perm === "granted", "Allow notifications") +
     row(3, !!sub && store.get("tp-linked") === sub.endpoint, "Link this phone to your account");
-  $("sub").value = sub ? JSON.stringify(sub.toJSON(), null, 2) : "";
   if (!supported()) {
     $("setup-msg").textContent = "Push isn't available here. On iPhone, add this app to the Home Screen first (iOS 16.4 or newer) and open it from there.";
   }
@@ -276,7 +274,6 @@ async function enableNotifications(msgEl) {
     ]);
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
-    $("sub").value = JSON.stringify(sub.toJSON(), null, 2);
     await saveSubscription(sub);
     msgEl.textContent = "Done. This phone is linked to your account.";
     return true;
@@ -286,52 +283,6 @@ async function enableNotifications(msgEl) {
   }
 }
 $("enable").onclick = async () => { await enableNotifications($("setup-msg")); renderChecklist(); };
-
-// ---- Sub-pages inside a tab (the tab bar stays; Back returns to the tab's main page) ----
-// They slide in from the right like Apple Settings; the page underneath shifts left. Tap Back or drag from the left edge to return.
-let subOpen = null;
-const stageMain = () => $("stage").firstElementChild;
-function openSub(id) {
-  subOpen = $(id);
-  subOpen.setAttribute("aria-hidden", "false"); subOpen.scrollTop = 0;
-  $("stage").classList.add("pushed"); subOpen.classList.add("open");
-}
-function closeSub(instant) {
-  const s = subOpen; if (!s) return;
-  subOpen = null; s.setAttribute("aria-hidden", "true");
-  if (instant) { s.classList.add("dragging"); $("stage").classList.add("dragging"); }
-  s.style.transform = ""; stageMain().style.transform = "";
-  s.classList.remove("open"); $("stage").classList.remove("pushed");
-  if (instant) requestAnimationFrame(() => requestAnimationFrame(() => { s.classList.remove("dragging"); $("stage").classList.remove("dragging"); }));
-}
-$("manual-open").onclick = () => openSub("manual");
-$("manual-back").onclick = () => closeSub();
-document.querySelectorAll(".sub").forEach((s) => {
-  let edge = null;
-  s.addEventListener("pointerdown", (e) => {
-    const r = s.getBoundingClientRect();
-    if (e.clientX - r.left < 28) edge = { id: e.pointerId, x0: e.clientX, y0: e.clientY, lock: null, w: r.width, dx: 0, cap: false };
-  });
-  s.addEventListener("pointermove", (e) => {
-    if (!edge || e.pointerId !== edge.id) return;
-    const dx = e.clientX - edge.x0, dy = e.clientY - edge.y0;
-    if (!edge.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) edge.lock = dx > 0 && Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    if (edge.lock !== "x") return;
-    if (!edge.cap) { try { s.setPointerCapture(e.pointerId); } catch {} edge.cap = true; s.classList.add("dragging"); $("stage").classList.add("dragging"); }
-    edge.dx = Math.max(0, Math.min(edge.w, dx));
-    s.style.transform = `translateX(${edge.dx}px)`;
-    stageMain().style.transform = `translateX(${-26 * (1 - edge.dx / edge.w)}%)`;
-  });
-  const done = (e) => {
-    if (!edge || e.pointerId !== edge.id) return;
-    const g = edge; edge = null;
-    if (g.lock !== "x") return;
-    s.classList.remove("dragging"); $("stage").classList.remove("dragging");
-    if (g.dx > g.w * 0.35) closeSub(); else { s.style.transform = ""; stageMain().style.transform = ""; }
-  };
-  s.addEventListener("pointerup", done);
-  s.addEventListener("pointercancel", done);
-});
 
 // ---- Notification prompt: after approval, phones without notifications get a full-screen step until they turn them on ----
 let notifyLater = false;   // "Maybe Later" skips it for this launch only
@@ -372,12 +323,6 @@ async function syncSubscription() {   // quietly keep the saved copy fresh on ea
     if (sub) await saveSubscription(sub);
   } catch {}
 }
-$("copy").onclick = async () => {
-  const text = $("sub").value;
-  if (!text) return;
-  try { await navigator.clipboard.writeText(text); $("setup-msg").textContent = "Copied."; }
-  catch { $("sub").select(); $("setup-msg").textContent = "Press and hold the text, then choose Copy."; }
-};
 
 // ---- Settings screen ----
 $("test").onclick = async () => {
@@ -390,7 +335,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 41;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 42;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -616,7 +561,6 @@ const hideSplash = () => $("splash").classList.add("gone");
 setTimeout(hideSplash, 4000);   // never leave the launch screen up if the network is slow
 function showGate(id) {
   hideSplash();
-  closeSub(true);
   $("install-arrow").hidden = true;
   $("tabs").hidden = true;
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
@@ -626,7 +570,6 @@ function showApp() {
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
-  $("manual-link").hidden = !(profile && profile.role === "admin");
   $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
