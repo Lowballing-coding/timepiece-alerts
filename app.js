@@ -2,6 +2,8 @@
 const VAPID_PUBLIC_KEY = "BCw69mMtS2gckHI0voqwM4uR0eupiXHxpfijl5sU0IrPSgD6SYNlcgKPKvkgH24NCACK8-TbzvuH6D1QHfVzGuI";
 
 const $ = (id) => document.getElementById(id);
+// Never run inside someone else's page (stops click-tricking; GitHub Pages can't send the header that does this).
+if (window.top !== window.self) { try { window.top.location = location.href; } catch { document.documentElement.hidden = true; } }
 const LABELS = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
@@ -187,7 +189,7 @@ async function renderAlerts() {
             <h3>${esc(a.name)}</h3>
             <p class="when">${esc(when)}</p>
             <p class="rec">Received ${esc(time)}</p>
-            <p class="rec">Listed as on sale. Check the tickets on FIXR.</p>
+            <p class="rec">${a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
       </article>`)}${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}</div>`;
@@ -335,7 +337,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 42;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 50;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -523,11 +525,19 @@ async function call(url, opts) {
   try { r = await fetch(url, opts); } catch { const e = new Error("No connection. Check your internet and try again."); e.network = true; throw e; }
   const j = r.status === 204 ? null : await r.json().catch(() => null);
   if (!r.ok) {
-    const text = (j && (j.msg || j.error_description || j.message)) || "Something went wrong.";
+    const text = friendlyError(r.status, j && (j.msg || j.error_description || j.message));
     const e = new Error(text.charAt(0).toUpperCase() + text.slice(1));
     e.status = r.status; throw e;
   }
   return j;
+}
+// Sign-in messages from Supabase are readable; database errors are not, so those become plain English.
+function friendlyError(status, raw) {
+  if (raw && !/violates|constraint|PGRST|JWT|relation|column|syntax|uuid|row-level|Not allowed/i.test(raw)) return raw;
+  if (status === 401 || status === 403 || /JWT|row-level|Not allowed/i.test(raw || "")) return "You're not allowed to do that, or you've been signed out. Try signing in again.";
+  if (status === 429) return "Too many tries in a row. Wait a minute, then try again.";
+  if (status >= 500) return "Our server is having a problem. Please try again in a minute.";
+  return "Something went wrong. Please try again, or email TPNotify@outlook.com if it keeps happening.";
 }
 const authCall = (path, body) => call(`${SB_URL}/auth/v1/${path}`, {
   method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -556,6 +566,59 @@ async function api(path, opts = {}) {
   });
 }
 
+// ---- Payments (Stripe) ----
+// PUBLIC links only (the same ones as the website's config.js). The Stripe secret key lives only in Supabase.
+// Empty = not set up yet; the buttons say so instead of breaking.
+const PAY_MONTHLY = "";          // Payment Link: £4.99 a month
+const PAY_QUARTERLY = "";        // Payment Link: £11.99 every 3 months
+const PROMO_MONTHLY = "";        // promotion code that makes the first month £3.99 (new customers only)
+const BILLING_PORTAL_URL = "";   // Stripe customer portal login link (Manage Subscription, update card, cancel)
+const PLAN_NAMES = { monthly: "Monthly", quarterly: "3 Months" };
+const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "");
+// A payment link tied to one account, so the Stripe webhook knows exactly who paid. intro = apply the first-month offer.
+function payLink(plan, who, intro) {
+  const base = plan === "quarterly" ? PAY_QUARTERLY : PAY_MONTHLY;
+  if (!base) return "";
+  const q = new URLSearchParams({ client_reference_id: who.id, prefilled_email: who.email });
+  if (intro && plan === "monthly" && PROMO_MONTHLY) q.set("prefilled_promo_code", PROMO_MONTHLY);
+  return `${base}${base.includes("?") ? "&" : "?"}${q}`;
+}
+// [pill class, label, detail] for someone's payment state. Colours only mean status and always come with words.
+function accessText(p) {
+  return {
+    paid: ["on", "Paid", p.paid_until ? `${PLAN_NAMES[p.plan] || "Paid"}, renews ${shortDate(p.paid_until)}` : ""],
+    comped: ["", "Exempt", !p.comped_until ? "" : new Date(p.comped_until) > new Date() ? `Free until ${shortDate(p.comped_until)}` : "Free period ended"],
+    free: ["", "Free Month", p.comped_until ? `Ends ${shortDate(p.comped_until)}. On-sale alerts 30 minutes late.` : "On-sale alerts 30 minutes late."],
+    lapsed: ["problem", "Lapsed", "Alerts stopped"],
+    none: ["", "Not Paid", ""],
+  }[p.access || "none"] || ["", String(p.access), ""];
+}
+function openBilling() {
+  if (!BILLING_PORTAL_URL) return;
+  window.open(`${BILLING_PORTAL_URL}${BILLING_PORTAL_URL.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(session.user.email)}`, "_blank", "noopener");
+}
+$("manage-sub").onclick = openBilling;
+$("ended-billing").onclick = openBilling;
+// How long the admin can make someone Exempt (free). null = indefinitely.
+const FREE_PERIODS = [["1 Week", { days: 7 }], ["2 Weeks", { days: 14 }], ["1 Month", { months: 1 }], ["2 Months", { months: 2 }],
+  ["3 Months", { months: 3 }], ["Indefinitely", null]];
+function freeUntil(period) {
+  if (!period) return null;
+  const d = new Date();
+  if (period.days) d.setDate(d.getDate() + period.days); else d.setMonth(d.getMonth() + period.months);
+  return d.toISOString();
+}
+const neverPaid = () => !profile.stripe_customer_id;   // the first-month offer is for new customers only
+// Opens the right payment page for the signed-in person, or says payments aren't set up yet.
+function payNow(plan, msgEl) {
+  const link = payLink(plan, { id: session.user.id, email: session.user.email }, neverPaid());
+  if (link) { window.open(link, "_blank", "noopener"); return; }
+  msgEl.className = "msg error"; msgEl.textContent = "Paying isn't set up yet. Email TPNotify@outlook.com.";
+}
+$("ended-renew").onclick = () => payNow(profile.plan || "monthly", $("ended-msg"));
+$("upgrade-monthly").onclick = () => payNow("monthly", $("upgrade-msg"));
+$("upgrade-quarterly").onclick = () => payNow("quarterly", $("upgrade-msg"));
+
 // ---- Which screen to show ----
 const hideSplash = () => $("splash").classList.add("gone");
 setTimeout(hideSplash, 4000);   // never leave the launch screen up if the network is slow
@@ -570,6 +633,16 @@ function showApp() {
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
+  const acc = profile && profile.access;
+  $("plan-row").hidden = !acc || acc === "none";
+  $("acct-plan").textContent = acc === "paid" ? accessText(profile)[2] || "Paid"
+    : acc === "comped" ? accessText(profile)[2] || "Free (Exempt)" : acc === "free" ? `Free Month. ${accessText(profile)[2]}`
+    : acc === "lapsed" ? "Ended" : "";
+  // Free-month users see what they're missing, and how to get instant alerts.
+  $("upgrade-card").hidden = acc !== "free";
+  if (acc === "free") $("upgrade-text").textContent = `Free month${profile.comped_until ? ` until ${shortDate(profile.comped_until)}` : ""}: `
+    + "Tickets on Sale alerts reach you 30 minutes late. Paid members get them the moment tickets go on sale.";
+  $("manage-sub").hidden = !(BILLING_PORTAL_URL && profile && profile.stripe_customer_id);
   $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
@@ -591,7 +664,15 @@ async function loadProfile() {
     profile = store.get("tp-profile");   // offline: use what we last knew
     if (!profile) { showGate("gate-auth"); $("auth-msg").textContent = e.message; $("auth-msg").className = "msg error"; return; }
   }
-  if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
+  if (profile.status === "approved" && profile.access === "lapsed") {   // their subscription ended: alerts are off until they renew
+    $("ended-billing").hidden = !(BILLING_PORTAL_URL && profile.stripe_customer_id);
+    const wasFree = !!profile.comped_until && !profile.stripe_subscription_id;   // a free period ran out (they never paid)
+    $("ended-title").textContent = wasFree ? "Free Access Ended" : "Subscription Ended";
+    $("ended-text").textContent = wasFree ? "Your free access has ended, so alerts have stopped. Subscribe to get them again, the moment tickets go on sale."
+      : "Your subscription has ended or a payment didn't go through, so alerts are paused. Renew to start them again.";
+    $("ended-renew").textContent = wasFree ? "Subscribe" : "Renew";
+    showGate("gate-ended");
+  } else if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
   else showGate({ pending: "gate-pending", blocked: "gate-blocked" }[profile.status] || "gate-removed");
 }
 function signedOut() {
@@ -601,38 +682,94 @@ function signedOut() {
 }
 
 // ---- Sign in / create account ----
+// Spam check: Cloudflare Turnstile SITE key (public; the secret lives only in Supabase's CAPTCHA setting). Empty = off.
+// Must match turnstileSiteKey in the website's config.js. Ship this before switching CAPTCHA on in Supabase.
+const TURNSTILE_SITE_KEY = "";
+let captchaToken = null, captchaWidget = null;
+window.tpTurnstileReady = () => {
+  captchaWidget = window.turnstile.render("#auth-captcha", {
+    sitekey: TURNSTILE_SITE_KEY, theme: "auto",
+    callback: (t) => { captchaToken = t; }, "expired-callback": () => { captchaToken = null; }, "error-callback": () => { captchaToken = null; },
+  });
+};
+if (TURNSTILE_SITE_KEY) {
+  const s = document.createElement("script");
+  s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=tpTurnstileReady"; s.async = true;
+  document.head.appendChild(s);
+}
+const resetCaptcha = () => { captchaToken = null; if (captchaWidget !== null && window.turnstile) window.turnstile.reset(captchaWidget); };
+
+// Password strength, 0 Too Short .. 4 Very Strong. Same rules as the website's sign-up page.
+const STRENGTH = ["Too Short", "Weak", "Okay", "Strong", "Very Strong"];
+function strength(pw) {
+  if (pw.length < 8) return 0;
+  if (/^(password|qwerty|letmein|welcome|iloveyou|12345678|abc123|11111111)/i.test(pw) || /(.)\1{3,}/.test(pw) || /^\d+$/.test(pw)) return 1;
+  return Math.min(4, 1 + (pw.length >= 12) + (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) + (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)));
+}
+$("auth-pass").addEventListener("input", () => {
+  if (!signUpMode) return;
+  const pw = $("auth-pass").value, s = strength(pw);
+  $("auth-meter").className = "meter" + (pw ? ` s${s}` : "");
+  $("auth-hint").textContent = pw ? `Password strength: ${STRENGTH[s]}.` : "At least 8 characters. Your first month is free.";
+});
+
 function setMode(signUp) {
   signUpMode = signUp;
   $("auth-title").textContent = signUp ? "Create Your Account" : "Sign In to TP Notify";
   $("auth-submit").textContent = signUp ? "Create Account" : "Sign In";
   $("auth-toggle").textContent = signUp ? "I Already Have an Account" : "Create an Account";
-  $("auth-hint").hidden = !signUp;
-  $("auth-name").hidden = !signUp; $("auth-name").required = signUp;   // the name is only asked for at sign-up
+  $("auth-signup-extra").hidden = !signUp;
+  $("auth-name-field").hidden = !signUp; $("auth-name").required = signUp;   // the name is only asked for at sign-up
+  document.querySelectorAll("#auth-form .field-error").forEach((e) => { e.textContent = ""; });
+  document.querySelectorAll("#auth-form [aria-invalid]").forEach((i) => i.removeAttribute("aria-invalid"));
   $("auth-pass").autocomplete = signUp ? "new-password" : "current-password";
   $("auth-msg").textContent = "";
 }
 $("auth-toggle").onclick = () => setMode(!signUpMode);
+// An error goes right under the field it's about, is announced to screen readers, and that field gets focus.
+function fieldError(input, text) {
+  let e = $(`${input.id}-error`);
+  if (!e) { e = document.createElement("p"); e.id = `${input.id}-error`; e.className = "field-error"; e.setAttribute("role", "alert"); input.after(e); }
+  e.textContent = text;
+  input.setAttribute("aria-invalid", "true"); input.setAttribute("aria-describedby", e.id);
+  input.focus();
+}
+$("auth-form").addEventListener("input", (ev) => {
+  const e = $(`${ev.target.id}-error`);
+  if (e) e.textContent = "";
+  ev.target.removeAttribute("aria-invalid");
+});
 $("auth-form").onsubmit = async (ev) => {
   ev.preventDefault();
   const msg = $("auth-msg"), btn = $("auth-submit");
-  msg.className = "msg"; msg.textContent = ""; btn.disabled = true;
+  const fail = (text) => { msg.className = "msg error"; msg.textContent = text; };
+  msg.className = "msg"; msg.textContent = "";
+  if (signUpMode && !$("auth-name").value.trim()) return fieldError($("auth-name"), "Please enter your name.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($("auth-email").value.trim())) return fieldError($("auth-email"), "Please enter a valid email address, like name@example.com.");
+  if (!$("auth-pass").value) return fieldError($("auth-pass"), "Please enter your password.");
+  if (signUpMode && strength($("auth-pass").value) < 2) return fieldError($("auth-pass"), "Please choose a stronger password: at least 8 characters, and not a common one.");
+  if (signUpMode && $("auth-pass").value !== $("auth-confirm").value) return fieldError($("auth-confirm"), "The two passwords don't match.");
+  if (TURNSTILE_SITE_KEY && !captchaToken) return fail("Please complete the check above the button.");
+  btn.disabled = true; btn.textContent = signUpMode ? "Creating Your Account..." : "Signing In...";
   try {
     const body = { email: $("auth-email").value.trim(), password: $("auth-pass").value };
+    if (captchaToken) body.gotrue_meta_security = { captcha_token: captchaToken };
     const name = $("auth-name").value.trim();
     if (signUpMode) body.data = { name };
     const j = await authCall(signUpMode ? "signup" : "token?grant_type=password", body);
     if (!j.access_token) throw new Error("Account created, but sign-in didn't finish. Try signing in.");
     session = toSession(j); store.set("tp-session", session);
     if (signUpMode && name) { try { await patchProfile(session.user.id, { display_name: name }); } catch { /* the name can be added later in Settings */ } }
-    $("auth-pass").value = "";
+    $("auth-pass").value = ""; $("auth-confirm").value = "";
     await loadProfile();
   } catch (e) {
-    msg.className = "msg error";
-    msg.textContent = /invalid login/i.test(e.message) ? "Email or password is wrong."
-      : /already registered/i.test(e.message) ? "That email already has an account. Sign in instead."
-      : e.message;
+    if (/already registered/i.test(e.message)) fieldError($("auth-email"), "That email already has an account. Sign in instead.");
+    else fail(/invalid login/i.test(e.message) ? "Email or password is wrong."
+      : /captcha/i.test(e.message) ? "The spam check failed. Please try it again."
+      : e.message);
   }
-  btn.disabled = false;
+  btn.disabled = false; btn.textContent = signUpMode ? "Create Account" : "Sign In";
+  resetCaptcha();   // a check can only be used once
 };
 document.querySelectorAll(".signout").forEach((b) => { b.onclick = signedOut; });
 $("pending-check").onclick = loadProfile;
@@ -677,6 +814,7 @@ function personRow(p) {
   const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No Alerts";
   const initials = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
   const statePill = { approved: ["on", "Approved"], pending: ["check", "Waiting"], blocked: ["problem", "Blocked"] }[p.status] || ["", p.status];
+  const [accCls, accLabel, accDetail] = accessText(p);
   return `<div class="person ${esc(p.status)}">
     <div class="avatar" aria-hidden="true">${esc(initials)}</div>
     <div>
@@ -684,15 +822,18 @@ function personRow(p) {
       ${p.nickname && p.display_name ? `<div class="meta">${esc(p.display_name)}</div>` : ""}
       ${name !== p.email ? `<div class="meta">${esc(p.email)}</div>` : ""}
       <div class="chips">
-        <span class="pill ${statePill[0]}">${statePill[1]}</span>
+        <span class="pill ${statePill[0]}">${esc(statePill[1])}</span>
+        <span class="pill ${accCls}">${esc(accLabel)}</span>
         ${p.paused ? '<span class="pill">Paused</span>' : ""}
         <span class="meta">${esc(devices)}</span>
       </div>
+      ${accDetail ? `<div class="meta">${esc(accDetail)}</div>` : ""}
       <div class="meta" style="margin-top:6px">${esc(types)}</div>
       ${p.keywords && p.keywords.length ? `<div class="meta">Keywords: ${esc(p.keywords.join(", "))}</div>` : ""}
     </div>
     <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
-    ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve" data-id="${esc(p.id)}">Approve</button></div>` : ""}
+    ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve-pick" data-id="${esc(p.id)}">Approve (Exempt)</button>
+      <button class="secondary" data-act="paylink" data-id="${esc(p.id)}">Send Payment Link</button></div>` : ""}
   </div>`;
 }
 async function renderLog() {
@@ -701,7 +842,7 @@ async function renderLog() {
     const rows = (await api("alert_log?select=id,created_at,type,event_name,recipients&order=created_at.desc&limit=20")).filter((r) => !hidden.includes(String(r.id))).slice(0, 8);
     $("alert-log").innerHTML = rows.map((r) => `<div class="swipe" data-id="${esc(r.id)}"><button class="del" type="button" aria-label="Delete this row">Delete</button>
       <div class="alert logrow"><div>${esc(LABELS[r.type] || r.type)}${r.event_name ? `: ${esc(r.event_name)}` : ""}</div>
-      <div class="meta">Sent to ${r.recipients} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div></div>`).join("")
+      <div class="meta">Sent to ${esc(r.recipients)} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div></div>`).join("")
       || '<p class="muted">No alerts sent yet.</p>';
   } catch { $("alert-log").innerHTML = ""; }
 }
@@ -723,7 +864,7 @@ $("people-filter").onclick = (ev) => {
 };
 $("invite").onclick = async () => {
   const link = new URL("./", location.href).href;
-  const text = `Join TP Notify for Timepiece ticket alerts.\n1. Open this link in Safari: ${link}\n2. Tap Share, then Add to Home Screen.\n3. Open TP Notify from its new icon, create an account and turn on notifications.\nI'll approve you once you've signed up.`;
+  const text = `Join TP Notify for Timepiece ticket alerts.\n1. Open this link in Safari: ${link}\n2. Tap Share, then Add to Home Screen.\n3. Open TP Notify from its new icon, create an account and turn on notifications.\nYour first month is free.`;
   try { await navigator.clipboard.writeText(text); say("Invite message copied. Paste it into a chat."); }
   catch { say("Couldn't copy. Send them this link: " + link, true); }
 };
@@ -775,15 +916,36 @@ function drawSheet() {
   } else if (sheetMode === "remove") {
     html = `<h3>Remove ${name}?</h3><p class="muted">This deletes their devices and nickname. They can ask to rejoin, and you would approve them again.</p>
       <button class="danger-btn" data-act="confirm-remove">Remove</button><button class="secondary" data-act="back">Cancel</button>`;
+  } else if (sheetMode === "pay") {
+    html = `<h3>Payment Link for ${name}</h3>
+      <p class="muted">Copies a personal link to send them. It's tied to their account, so they switch to Paying automatically once they pay.${p.access === "comped" ? " They keep free access until then." : ""}</p>
+      ${PAY_MONTHLY || PAY_QUARTERLY
+        ? `${PAY_MONTHLY ? '<button data-act="copy-pay" data-plan="monthly">Copy Monthly Link</button>' : ""}
+           ${PAY_QUARTERLY ? `<button ${PAY_MONTHLY ? 'class="secondary" ' : ""}data-act="copy-pay" data-plan="quarterly">Copy 3 Months Link</button>` : ""}`
+        : '<p class="msg error">Payment links aren\'t set up yet.</p>'}
+      <button class="secondary" data-act="back">Cancel</button>`;
+  } else if (sheetMode === "exempt") {
+    html = `<h3>${p.access === "comped" ? "Change Free Period" : p.status === "pending" ? `Approve ${name}` : `Make ${name} Exempt`}</h3>
+      <p class="muted">How long should their free access last? When it ends, their alerts stop until they pay.${p.access === "paid" ? " This doesn't cancel their Stripe subscription. Cancel it in your Stripe dashboard too, or they'll keep being charged." : ""}</p>
+      ${FREE_PERIODS.map(([label], i) => `<button class="item" data-act="exempt-for" data-i="${i}">${label}</button>`).join("")}
+      <button class="secondary" data-act="back">Cancel</button>`;
   } else {
+    const [accCls, accLabel, accDetail] = accessText(p);
+    const payItem = me ? "" : p.access === "paid" ? '<button class="item" data-act="exempt">Make Exempt (Free)</button>'
+      : p.access === "lapsed" || p.access === "free" ? '<button class="item" data-act="pay">Send Payment Link</button><button class="item" data-act="exempt">Make Exempt (Free)</button>'
+      : p.access === "comped" ? '<button class="item" data-act="pay">Make Paying</button><button class="item" data-act="exempt">Change Free Period</button>'
+      : '<button class="item" data-act="pay">Send Payment Link</button>';
     html = `<h3>${name}</h3>
+      <div class="access-row"><span class="pill ${accCls}">${esc(accLabel)}</span>${accDetail ? `<span class="meta">${esc(accDetail)}</span>` : ""}</div>
+      ${payItem}
       <button class="item" data-act="nickname">${p.nickname ? "Edit Nickname" : "Add Nickname"}</button>
       <button class="item" data-act="types">Alert Types</button>
       <button class="item" data-act="keywords">Keywords</button>
       ${p.active_devices > 0 ? '<button class="item" data-act="test">Send Test Notification</button>' : ""}
       <button class="item" data-act="pause">${p.paused ? "Resume Alerts" : "Pause Alerts"}</button>
-      ${me ? "" : (p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
-        : `<button class="item" data-act="approve">${p.status === "blocked" ? "Unblock" : "Approve"}</button>`)}
+      ${me ? "" : p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
+        : p.status === "blocked" ? '<button class="item" data-act="approve">Unblock</button>'
+        : '<button class="item" data-act="exempt">Approve (Exempt)</button>'}
       ${me ? "" : '<button class="item danger" data-act="remove">Remove</button>'}
       <button class="item" data-close>Close</button>`;
   }
@@ -800,19 +962,16 @@ const closeSheet = () => { $("sheet").hidden = true; };
 $("people").onclick = async (ev) => {
   const menu = ev.target.closest("[data-menu]");
   if (menu) return openSheet(menu.dataset.menu);
-  const b = ev.target.closest('button[data-act="approve"]');
-  if (!b) return;
-  b.disabled = true;
-  try { await patchProfile(b.dataset.id, { status: "approved" }); say("Approved."); }
-  catch (e) { say(e.message, true); }
-  renderAdmin();
+  // The row's quick buttons open the matching page of that person's menu.
+  const quick = ev.target.closest('button[data-act="paylink"], button[data-act="approve-pick"]');
+  if (quick) { openSheet(quick.dataset.id); sheetMode = quick.dataset.act === "paylink" ? "pay" : "exempt"; drawSheet(); }
 };
 $("sheet").onclick = async (ev) => {
   if (ev.target.matches(".backdrop") || ev.target.closest("[data-close]")) return closeSheet();
   const b = ev.target.closest("[data-act]");
   if (!b) return;
   const act = b.dataset.act, p = sheetPerson;
-  if (["nickname", "types", "keywords", "remove"].includes(act)) { sheetMode = act; return drawSheet(); }
+  if (["nickname", "types", "keywords", "remove", "pay", "exempt"].includes(act)) { sheetMode = act; return drawSheet(); }
   if (act === "back") { sheetMode = "menu"; return drawSheet(); }
   b.disabled = true;
   try {
@@ -840,6 +999,14 @@ $("sheet").onclick = async (ev) => {
       await patchProfile(p.id, { status: "blocked" }); say("Blocked.");
     } else if (act === "approve") {
       await patchProfile(p.id, { status: "approved" }); say("Approved.");
+    } else if (act === "copy-pay") {
+      const plan = b.dataset.plan, link = payLink(plan, p, p.access !== "lapsed");
+      await navigator.clipboard.writeText(`Here's your TP Notify payment link (${PLAN_NAMES[plan]}): ${link}`);
+      say("Payment link copied. Paste it into a chat with them.");
+    } else if (act === "exempt-for") {
+      const until = freeUntil(FREE_PERIODS[Number(b.dataset.i)][1]);
+      await patchProfile(p.id, { access: "comped", comped_until: until, ...(p.status === "pending" ? { status: "approved" } : {}) });
+      say(until ? `Free until ${shortDate(until)}.` : "Free indefinitely.");
     } else if (act === "confirm-remove") {
       await api(`profiles?id=eq.${encodeURIComponent(p.id)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
       say("Removed.");
@@ -869,7 +1036,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
   renderAlerts();
   if (session && profile && profile.status === "approved") renderWatcher();
-  if (session && profile && profile.status !== "approved") loadProfile();   // pick up an approval
+  if (session && profile && (profile.status !== "approved" || profile.access === "lapsed")) loadProfile();   // pick up an approval or a renewal
   if (session && profile && document.querySelector("#gate-notify.active")) loadProfile();   // they may have just allowed notifications in Settings
 });
 renderAlerts();
