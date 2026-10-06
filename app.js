@@ -337,7 +337,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 51;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 52;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -569,10 +569,11 @@ async function api(path, opts = {}) {
 // ---- Payments (Stripe) ----
 // PUBLIC links only (the same ones as the website's config.js). The Stripe secret key lives only in Supabase.
 // Empty = not set up yet; the buttons say so instead of breaking.
-const PAY_MONTHLY = "";          // Payment Link: £4.99 a month
-const PAY_QUARTERLY = "";        // Payment Link: £11.99 every 3 months
-const PROMO_MONTHLY = "";        // promotion code that makes the first month £3.99 (new customers only)
-const BILLING_PORTAL_URL = "";   // Stripe customer portal login link (Manage Subscription, update card, cancel)
+// TEST (sandbox) links for now; swap all four for the live ones when going live.
+const PAY_MONTHLY = "https://buy.stripe.com/test_8x28wPgav2Ur5GA1O7g7e00";          // Payment Link: £4.99 a month
+const PAY_QUARTERLY = "https://buy.stripe.com/test_cNifZh1fB9iP3ys0K3g7e01";        // Payment Link: £11.99 every 3 months
+const PROMO_MONTHLY = "FIRSTMONTH";        // promotion code that makes the first month £3.99 (new customers only)
+const BILLING_PORTAL_URL = "https://billing.stripe.com/p/login/test_8x28wPgav2Ur5GA1O7g7e00";   // Stripe customer portal login link (Manage Subscription, update card, cancel)
 const PLAN_NAMES = { monthly: "Monthly", quarterly: "3 Months" };
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "");
 // A payment link tied to one account, so the Stripe webhook knows exactly who paid. intro = apply the first-month offer.
