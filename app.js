@@ -148,7 +148,7 @@ async function eventStatuses(items) {
 }
 // "Did you get a ticket?" answers, per event, on this phone.
 // MyNightOut is only linked, never checked automatically (their terms forbid scraping). Empty = mention it without a link.
-const MYNIGHTOUT_URL = "";
+const MYNIGHTOUT_URL = "https://mynightout.app/events";
 function gotItHtml(url) {
   const ans = (store.get("tp-got") || {})[url];
   if (ans === "yes") return "";
@@ -367,7 +367,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 53;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 54;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
