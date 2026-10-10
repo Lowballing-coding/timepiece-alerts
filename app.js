@@ -134,10 +134,39 @@ const ICONS = {
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
   clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 };
+// Each event's latest status from the watcher ("on", "soon", "off" = sold out), so old on-sale cards don't stay "On Sale Now".
+async function eventStatuses(items) {
+  const urls = [...new Set(items.filter((a) => a.type === "on_sale" && safeUrl(a.url)).map((a) => a.url))];
+  if (!urls.length || !session) return {};
+  try {
+    const rows = await Promise.race([
+      api(`event_status?select=url,status&url=in.(${urls.map((u) => encodeURIComponent(`"${u}"`)).join(",")})`),
+      new Promise((r) => setTimeout(() => r([]), 1500)),
+    ]);
+    return Object.fromEntries(rows.map((r) => [r.url, r.status]));
+  } catch { return {}; }
+}
+// "Did you get a ticket?" answers, per event, on this phone.
+// MyNightOut is only linked, never checked automatically (their terms forbid scraping). Empty = mention it without a link.
+const MYNIGHTOUT_URL = "";
+function gotItHtml(url) {
+  const ans = (store.get("tp-got") || {})[url];
+  if (ans === "yes") return "";
+  if (ans === "no") return `<div class="gotit"><span>No luck? Check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span></div>`;
+  return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket?</span>
+    <button class="secondary" type="button" data-got="yes">Yes</button><button class="secondary" type="button" data-got="no">No</button></div>`;
+}
+$("list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-got]");
+  if (!b) return;
+  store.set("tp-got", { ...(store.get("tp-got") || {}), [b.closest(".gotit").dataset.url]: b.dataset.got });
+  renderAlerts();
+});
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
 async function renderAlerts() {
   const stored = await allAlerts();
   const items = [...stored, ...(await fetchMissed(stored))].sort((a, b) => b.received - a.received);
+  const statuses = await eventStatuses(items);
   const fresh = new Set(knownIds ? items.filter((a) => a.id && !knownIds.has(a.id)).map((a) => a.id) : []);
   knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
   $("clear").style.display = items.length ? "block" : "none";
@@ -175,7 +204,8 @@ async function renderAlerts() {
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
     const when = [a.day, a.date].filter(Boolean).join(" ");
     const tag = a.missed ? '<span class="new missed">Missed</span>' : a.seen === false ? '<span class="new">New</span>' : "";
-    const cls = `alert ${type}${fresh.has(a.id) ? " arrive" : ""}`;
+    const status = statuses[a.url];
+    const cls = `alert ${type}${status === "off" && type === "on_sale" ? " sold" : ""}${fresh.has(a.id) ? " arrive" : ""}`;
     // Every alert sits in a swipe holder: drag it left to reveal Delete, or all the way to delete it.
     const wrap = (extra, inner) => `<div class="swipe${extra}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
     if (type === "on_sale") {   // the one memorable element: a ticket stub
@@ -185,14 +215,14 @@ async function renderAlerts() {
         <div class="ticket">
           <div class="stub">${stub}</div>
           <div class="tbody">
-            <div class="line1"><span class="pill on">On Sale Now</span>${tag}</div>
+            <div class="line1">${status === "off" ? '<span class="pill problem">Now Sold Out</span>' : status === "soon" ? '<span class="pill check">On Sale Soon</span>' : '<span class="pill on">On Sale Now</span>'}${tag}</div>
             <h3>${esc(a.name)}</h3>
             <p class="when">${esc(when)}</p>
             <p class="rec">Received ${esc(time)}</p>
-            <p class="rec">${a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
+            <p class="rec">${status === "off" ? "FIXR now lists this event as sold out." : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
-      </article>`)}${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}</div>`;
+      </article>`)}${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}${url && status !== "soon" ? gotItHtml(url) : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -337,7 +367,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 52;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 53;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -514,7 +544,7 @@ applyTheme(savedMode());
 // ---- Accounts (Supabase; the publishable key is public by design, the database rules do the locking) ----
 const SB_URL = "https://ddeapflekaecxqetayil.supabase.co";
 const SB_KEY = "sb_publishable_3Y_Na0OOoVnveCA6iBgwtg_3xnII6fu";
-let session = null, profile = null, signUpMode = false;
+let session = null, profile = null, signUpMode = false, codeMode = false, codeSent = false;
 
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -725,8 +755,39 @@ function setMode(signUp) {
   document.querySelectorAll("#auth-form [aria-invalid]").forEach((i) => i.removeAttribute("aria-invalid"));
   $("auth-pass").autocomplete = signUp ? "new-password" : "current-password";
   $("auth-msg").textContent = "";
+  setCodeMode(false);
+  $("auth-code-toggle").hidden = signUp;   // codes are for signing in; new accounts still choose a password
 }
 $("auth-toggle").onclick = () => setMode(!signUpMode);
+// Sign in with a code emailed by Supabase instead of a password (also the way back in after a forgotten password).
+function setCodeMode(on) {
+  codeMode = on; codeSent = false;
+  $("auth-pass-field").hidden = on; $("auth-pass").required = !on;
+  $("auth-code-field").hidden = true; $("auth-code").value = "";
+  $("auth-submit").textContent = on ? "Email Me a Code" : signUpMode ? "Create Account" : "Sign In";
+  $("auth-code-toggle").textContent = on ? "Use My Password Instead" : "Email Me a Code Instead";
+  $("auth-msg").textContent = "";
+}
+$("auth-code-toggle").onclick = () => setCodeMode(!codeMode);
+async function codeSubmit(email, msg, btn) {
+  if (codeSent) {
+    const code = $("auth-code").value.replace(/\s/g, "");
+    if (!/^\d{6,10}$/.test(code)) return fieldError($("auth-code"), "Enter the code from the email.");
+    btn.disabled = true; btn.textContent = "Signing In...";
+    const j = await authCall("verify", { type: "email", email, token: code });
+    session = toSession(j); store.set("tp-session", session);
+    await loadProfile();
+    return;
+  }
+  if (TURNSTILE_SITE_KEY && !captchaToken) throw new Error("Please complete the check above the button.");
+  btn.disabled = true; btn.textContent = "Sending...";
+  const body = { email, create_user: false };   // only existing accounts; new people sign up with a password
+  if (captchaToken) body.gotrue_meta_security = { captcha_token: captchaToken };
+  await authCall("otp", body);
+  codeSent = true;
+  $("auth-code-field").hidden = false; $("auth-code").focus();
+  msg.className = "msg"; msg.textContent = `We've emailed a code to ${email}. Enter it above.`;
+}
 // An error goes right under the field it's about, is announced to screen readers, and that field gets focus.
 function fieldError(input, text) {
   let e = $(`${input.id}-error`);
@@ -745,6 +806,20 @@ $("auth-form").onsubmit = async (ev) => {
   const msg = $("auth-msg"), btn = $("auth-submit");
   const fail = (text) => { msg.className = "msg error"; msg.textContent = text; };
   msg.className = "msg"; msg.textContent = "";
+  if (codeMode) {
+    const email = $("auth-email").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fieldError($("auth-email"), "Please enter a valid email address, like name@example.com.");
+    try { await codeSubmit(email, msg, btn); }
+    catch (e) {
+      fail(/signups not allowed|not found/i.test(e.message) ? "No account uses that email. Create an account first."
+        : /expired|invalid/i.test(e.message) ? "That code is wrong or has expired. Check the email, or tap Email Me a Code again."
+        : /captcha/i.test(e.message) ? "The spam check failed. Please try it again." : e.message);
+      if (/expired|invalid/i.test(e.message)) codeSent = false;
+    }
+    btn.disabled = false; btn.textContent = codeSent ? "Sign In" : "Email Me a Code";
+    resetCaptcha();
+    return;
+  }
   if (signUpMode && !$("auth-name").value.trim()) return fieldError($("auth-name"), "Please enter your name.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($("auth-email").value.trim())) return fieldError($("auth-email"), "Please enter a valid email address, like name@example.com.");
   if (!$("auth-pass").value) return fieldError($("auth-pass"), "Please enter your password.");
