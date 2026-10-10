@@ -555,9 +555,10 @@ async function call(url, opts) {
   try { r = await fetch(url, opts); } catch { const e = new Error("No connection. Check your internet and try again."); e.network = true; throw e; }
   const j = r.status === 204 ? null : await r.json().catch(() => null);
   if (!r.ok) {
-    const text = friendlyError(r.status, j && (j.msg || j.error_description || j.message));
+    const raw = (j && (j.msg || j.error_description || j.message)) || "";
+    const text = friendlyError(r.status, raw);
     const e = new Error(text.charAt(0).toUpperCase() + text.slice(1));
-    e.status = r.status; throw e;
+    e.status = r.status; e.raw = raw; throw e;
   }
   return j;
 }
@@ -770,12 +771,13 @@ function setCodeMode(on) {
 }
 $("auth-code-toggle").onclick = () => setCodeMode(!codeMode);
 async function codeSubmit(email, msg, btn) {
-  if (codeSent) {
-    const code = $("auth-code").value.replace(/\s/g, "");
+  const code = $("auth-code").value.replace(/\s/g, "");
+  if (codeSent && code) {   // an empty code box asks for a new code instead
     if (!/^\d{6,10}$/.test(code)) return fieldError($("auth-code"), "Enter the code from the email.");
     btn.disabled = true; btn.textContent = "Signing In...";
     const j = await authCall("verify", { type: "email", email, token: code });
     session = toSession(j); store.set("tp-session", session);
+    setCodeMode(false);   // back to the normal form, so signing out later doesn't reuse this code
     await loadProfile();
     return;
   }
@@ -785,7 +787,7 @@ async function codeSubmit(email, msg, btn) {
   if (captchaToken) body.gotrue_meta_security = { captcha_token: captchaToken };
   await authCall("otp", body);
   codeSent = true;
-  $("auth-code-field").hidden = false; $("auth-code").focus();
+  $("auth-code-field").hidden = false; $("auth-code").value = ""; $("auth-code").focus();
   msg.className = "msg"; msg.textContent = `We've emailed a code to ${email}. Enter it above.`;
 }
 // An error goes right under the field it's about, is announced to screen readers, and that field gets focus.
@@ -809,14 +811,16 @@ $("auth-form").onsubmit = async (ev) => {
   if (codeMode) {
     const email = $("auth-email").value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fieldError($("auth-email"), "Please enter a valid email address, like name@example.com.");
+    const verifying = codeSent && !!$("auth-code").value.trim();
     try { await codeSubmit(email, msg, btn); }
     catch (e) {
-      fail(/signups not allowed|not found/i.test(e.message) ? "No account uses that email. Create an account first."
-        : /expired|invalid/i.test(e.message) ? "That code is wrong or has expired. Check the email, or tap Email Me a Code again."
-        : /captcha/i.test(e.message) ? "The spam check failed. Please try it again." : e.message);
-      if (/expired|invalid/i.test(e.message)) codeSent = false;
+      const raw = e.raw || "";   // Supabase's own words (friendlyError rewrites "not allowed" messages)
+      fail(/captcha/i.test(raw) ? "The spam check failed. Please try it again."
+        : /signups not allowed/i.test(raw) ? "No account uses that email. Create an account first."
+        : verifying && /expired|invalid/i.test(raw) ? "That code is wrong or has expired. Check it and try again, or clear the box and tap Sign In for a new code."
+        : e.message);
     }
-    btn.disabled = false; btn.textContent = codeSent ? "Sign In" : "Email Me a Code";
+    btn.disabled = false; btn.textContent = codeMode && !codeSent ? "Email Me a Code" : "Sign In";
     resetCaptcha();
     return;
   }

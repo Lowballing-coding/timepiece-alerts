@@ -219,6 +219,7 @@
   .ticket .new { background: var(--ticket-new-bg); color: var(--ticket-new-fg); }
   /* Sold out: the coral stub turns grey and the ticket fades, with a red "Now Sold Out" tag (colour always comes with words). */
   .alert.sold .stub { background: var(--muted); }
+  :root[data-theme="dark"] .alert.sold .stub { background: #5f5c56; }   /* --muted is too light for white text in dark */
   .alert.sold .tbody h3 { color: var(--ink-muted); }
   /* "Did you get a ticket?" under an on-sale ticket. */
   .gotit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; color: var(--muted); }
