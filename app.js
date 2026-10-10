@@ -169,8 +169,11 @@ function eventOver(a, now = Date.now()) {
   const mon = m ? "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(m[2].toLowerCase()) : -1;
   if (mon < 0 || mon % 3) return false;
   const got = new Date(a.received || now);
-  let end = new Date(got.getFullYear(), mon / 3, +m[1] + 1, 6);
-  if (end < got - 60 * 864e5) end.setFullYear(got.getFullYear() + 1);   // a January event announced in December
+  let end;
+  for (let y = got.getFullYear() - 1; y <= got.getFullYear() + 1; y++) {   // the first year that isn't over before the alert came
+    end = new Date(y, mon / 3, +m[1] + 1, 6);
+    if (end >= got - 7 * 864e5) break;
+  }
   return now >= end;
 }
 async function renderAlerts() {
