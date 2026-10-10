@@ -217,6 +217,15 @@
   .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
   .ticket .pill.on { background: var(--ticket-pill-bg); color: var(--ticket-pill-fg); }
   .ticket .new { background: var(--ticket-new-bg); color: var(--ticket-new-fg); }
+  /* Sold out: the coral stub turns grey and the ticket fades, with a red "Now Sold Out" tag (colour always comes with words). */
+  .alert.sold .stub { background: var(--muted); }
+  :root[data-theme="dark"] .alert.sold .stub { background: #5f5c56; }   /* --muted is too light for white text in dark */
+  .alert.sold .tbody h3 { color: var(--ink-muted); }
+  /* "Did you get a ticket?" under an on-sale ticket. */
+  .gotit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+  .gotit span { flex: 1 1 100%; }
+  .gotit button { width: auto; min-height: 44px; padding: 8px 18px; margin: 0; font-size: 15px; }
+  .gotit a { color: var(--accent); }
   .alert.arrive { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
   @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
@@ -475,8 +484,14 @@
       </div>
       <label class="field-label" for="auth-email">Email</label>
       <input id="auth-email" type="email" autocomplete="email" required>
-      <label class="field-label" for="auth-pass">Password</label>
-      <input id="auth-pass" type="password" autocomplete="current-password" required>
+      <div id="auth-pass-field">
+        <label class="field-label" for="auth-pass">Password</label>
+        <input id="auth-pass" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="auth-code-field" hidden>
+        <label class="field-label" for="auth-code">Code From Your Email</label>
+        <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
+      </div>
       <div id="auth-signup-extra" hidden>
         <div class="meter" id="auth-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <p id="auth-hint" class="meta" aria-live="polite">At least 8 characters. Your first month is free.</p>
@@ -486,6 +501,7 @@
       <div id="auth-captcha" class="captcha"></div>
       <button id="auth-submit" type="submit">Sign In</button>
     </form>
+    <button id="auth-code-toggle" type="button" class="secondary">Email Me a Code Instead</button>
     <button id="auth-toggle" type="button" class="secondary">Create an Account</button>
     <p id="auth-msg" class="msg" role="alert"></p>
   </section>
