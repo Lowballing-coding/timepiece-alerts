@@ -163,9 +163,27 @@ $("list").addEventListener("click", (e) => {
   renderAlerts();
 });
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
+// An event is over at 6am the morning after its date ("12 October"; nights run past midnight). Alerts with no date stay.
+function eventOver(a, now = Date.now()) {
+  const m = /^(\d{1,2})\S*\s+([A-Za-z]{3})/.exec(a.date || "");
+  const mon = m ? "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(m[2].toLowerCase()) : -1;
+  if (mon < 0 || mon % 3) return false;
+  const got = new Date(a.received || now);
+  let end;
+  for (let y = got.getFullYear() - 1; y <= got.getFullYear() + 1; y++) {   // the first year that isn't over before the alert came
+    end = new Date(y, mon / 3, +m[1] + 1, 6);
+    if (end >= got - 7 * 864e5) break;
+  }
+  return now >= end;
+}
 async function renderAlerts() {
   const stored = await allAlerts();
-  const items = [...stored, ...(await fetchMissed(stored))].sort((a, b) => b.received - a.received);
+  const all = [...stored, ...(await fetchMissed(stored))];
+  const over = all.filter((a) => eventOver(a));
+  if (over.some((a) => a.id)) {   // finished events clear themselves (and stop counting in the icon badge)
+    try { const os = (await openDb()).transaction("alerts", "readwrite").objectStore("alerts"); over.forEach((a) => a.id && os.delete(a.id)); } catch {}
+  }
+  const items = all.filter((a) => !over.includes(a)).sort((a, b) => b.received - a.received);
   const statuses = await eventStatuses(items);
   const fresh = new Set(knownIds ? items.filter((a) => a.id && !knownIds.has(a.id)).map((a) => a.id) : []);
   knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
@@ -367,7 +385,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 55;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 56;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
