@@ -171,6 +171,7 @@
   .health { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
   .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
   .health.problem::before { background: var(--problem); }
+  .health.live::before { background: var(--on); }
   .health.card { background: var(--surface-2); border-radius: var(--r-m); padding: 12px 16px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
 
   .day { font: 500 13px/1 var(--sans); color: var(--muted); margin: 24px 0 6px; letter-spacing: 0; }
@@ -196,10 +197,15 @@
   .tgroup { margin: 14px 0 18px; }
   .tgroup > .swipe.tk { border-radius: var(--r-l); }
   .tgroup .alert.on_sale { margin: 0; }
-  .tgroup > .go { margin-top: 10px; transition: opacity .2s; }
-  .tgroup > .go.pop { animation: pop .22s ease-in forwards; pointer-events: none; }
+  .tgroup > .acts { transition: opacity .2s; }
+  .tgroup > .acts.pop { animation: pop .22s ease-in forwards; pointer-events: none; }
   @keyframes pop { to { transform: scale(.55); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } .tgroup > .go.pop { animation: none; opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .swipe > .alert { transition: none; } .tgroup > .acts.pop { animation: none; opacity: 0; } }
+  /* Open on FIXR, with Share beside it. */
+  .acts { display: flex; gap: 8px; margin-top: 10px; }
+  .acts .go { flex: 1; margin: 0; }
+  .acts .share { flex: none; width: auto; margin: 0; padding: 14px 18px; }
+  .event .acts .go, .event .acts .share { min-height: 44px; padding-block: 10px; font-size: 15px; }
 
   /* The on-sale alert is a ticket: a coral stub on the left, perforation, notches cut into the edge. */
   .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
@@ -226,6 +232,8 @@
   .gotit span { flex: 1 1 100%; }
   .gotit button { width: auto; min-height: 44px; padding: 8px 18px; margin: 0; font-size: 15px; }
   .gotit a { color: var(--accent); }
+  .gotit .pillbtn { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; border: 1px solid var(--line-strong);
+    border-radius: var(--r-s); color: var(--text); text-decoration: none; font-weight: 500; }
   .alert.arrive { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
   @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
@@ -234,6 +242,7 @@
   .empty { text-align: center; padding: 40px 12px 24px; }
   .empty svg { width: 150px; height: 150px; }
   .empty h2 { margin-top: 18px; }
+  .empty-line { padding: 16px 0; border-top: 1px solid var(--line); }
   .sweep { transform-origin: 60px 60px; animation: sweep 60s linear infinite; }
   @keyframes sweep { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .sweep { animation: none; } }
@@ -294,6 +303,8 @@
   .seg button:active { background: var(--seg-on); }
   .seg button[aria-pressed="true"] { background: var(--seg-on); color: var(--text); font-weight: 600; }
   .seg.filter button { font-size: 13px; padding: 8px 2px; }
+  .seg.nights { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }   /* two rows keep every day 44px+ wide */
+  .seg.nights button { min-height: 44px; }
 
   /* ===== Setup steps and guides ===== */
   ul.steps { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
@@ -359,6 +370,19 @@
   .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
   #people-search { margin-top: 10px; }
   #admin-msg:empty { display: none; }
+  /* The owner's overview: a figure and its label in each cell. */
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: var(--r-m); overflow: hidden; margin-top: 12px; }
+  .stats > div { background: var(--surface); padding: 12px 14px; }
+  .stats b { display: block; font: 400 24px/1.2 var(--serif); font-variant-numeric: tabular-nums; }
+  .stats span { display: block; font-size: 13px; color: var(--muted); }
+  .stats:empty { display: none; }
+  /* Invite link: shown in full so it can be checked, but it wraps rather than scrolling sideways. */
+  .linkbox { margin-top: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-s);
+    font-size: 15px; word-break: break-all; user-select: all; -webkit-user-select: all; }
+  /* A short note at the bottom of the screen (Copied, Couldn't share). */
+  #toast { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 92px);
+    max-width: calc(100% - 40px); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: var(--r-m); font-size: 15px; }
   #admin-msg { margin-bottom: 4px; }
 
   /* ===== Bottom sheet ===== */
@@ -439,6 +463,12 @@
     <button id="clear" class="secondary">Clear All</button>
   </section>
 
+  <section id="events" class="screen" aria-label="Events">
+    <h2 class="title">Events</h2>
+    <p class="muted">Every Timepiece event FIXR lists right now, with its ticket status. It updates about once a minute.</p>
+    <div id="event-list"></div>
+  </section>
+
   <section id="setup" class="screen" aria-label="Setup">
     <h2 class="title">Setup</h2>
     <p class="muted">Three steps to get alerts on this phone.</p>
@@ -450,6 +480,8 @@
   <section id="admin" class="screen" aria-label="Admin">
     <h2 class="title">Admin</h2>
     <p id="watcher-admin" class="health" hidden></p>
+    <div id="stats" class="stats"></div>
+    <p id="stats-note" class="meta"></p>
     <button id="invite">Copy Invite Message</button>
     <div class="seg filter" id="people-filter" role="group" aria-label="Show people">
       <button data-filter="all" aria-pressed="true">All</button>
@@ -460,6 +492,8 @@
     <input id="people-search" type="search" placeholder="Search People" hidden>
     <p id="admin-msg" class="msg muted" role="status"></p>
     <div id="people"></div>
+    <h2>How Recent Alerts Did</h2>
+    <div id="stats-events"></div>
     <h2>Recent Alerts Sent</h2>
     <div id="alert-log"></div>
   </section>
@@ -579,6 +613,25 @@
     <button id="save-name" class="secondary" type="button">Save Name</button>
     <p id="name-msg" class="msg muted" role="status"></p>
     <button class="secondary signout" type="button">Sign Out</button>
+    <h2>Your Alerts</h2>
+    <div class="group" id="my-types">
+      <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>
+      <label class="rowline"><span>On Sale Soon and Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
+    </div>
+    <p class="muted" style="margin-top:14px">Pick nights, words or both. You get alerts for events that match any of them. Leave both empty to hear about every event.</p>
+    <div class="seg nights" id="my-nights" role="group" aria-label="Your nights"></div>
+    <label class="field-label" for="my-words">Words to Look For</label>
+    <input id="my-words" type="text" maxlength="200" autocapitalize="none" placeholder="For example: sketch, boujee">
+    <p class="meta">Separate words with commas.</p>
+    <button id="save-alerts" class="secondary" type="button">Save Your Alerts</button>
+    <p id="alerts-msg" class="msg muted" role="status"></p>
+    <div id="invite-box" hidden>
+      <h2>Invite Friends</h2>
+      <p class="muted" id="invite-text"></p>
+      <div class="linkbox" id="invite-link"></div>
+      <button id="invite-share" class="secondary" type="button">Share Your Link</button>
+      <p class="meta" id="invite-count"></p>
+    </div>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
       <button data-mode="auto" aria-pressed="true">Auto</button>
@@ -620,6 +673,7 @@
 <div id="install-arrow" class="arrow" hidden aria-hidden="true">
   <div class="bob"><span id="arrow-label"></span><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div>
 </div>
+<p id="toast" role="status" hidden></p>
 <div id="sheet" hidden>
   <div class="backdrop"></div>
   <div class="panel" id="sheet-panel" role="dialog" aria-modal="true"></div>
@@ -627,6 +681,9 @@
 <nav id="tabs" hidden>
   <button data-tab="alerts" class="active">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>Alerts
+  </button>
+  <button data-tab="events">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Events
   </button>
   <button data-tab="setup">
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>Setup
