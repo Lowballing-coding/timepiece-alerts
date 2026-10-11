@@ -1,6 +1,11 @@
-const CACHE = "timepiece-v56";
+const CACHE = "timepiece-v57";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification", signup: "New Sign-Up Request" };
+const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
+  signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon" };
+const NOT_ALERTS = ["signup", "free_ending"];   // about the account, not an event: not saved in the alert history
+// Public values (same as app.js): used only to count taps on a notification for the owner's dashboard, never who tapped.
+const SB_URL = "https://ddeapflekaecxqetayil.supabase.co";
+const SB_KEY = "sb_publishable_3Y_Na0OOoVnveCA6iBgwtg_3xnII6fu";
 
 self.addEventListener("install", (e) => {
   // One missing file must never stop the service worker installing (push depends on it).
@@ -56,13 +61,13 @@ self.addEventListener("push", (e) => {
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
   e.waitUntil((async () => {
-    if (type !== "signup") {   // sign-up requests are for the Admin tab, not the alert history
+    if (!NOT_ALERTS.includes(type)) {   // sign-up requests are for the Admin tab, reminders for the Alerts tab: not the alert history
       const unseen = await saveAlert({ type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", late, received: Date.now(), seen: false });
       try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
     }
     await self.registration.showNotification(TITLES[type], {
       body: body || "Open the app for details.",
-      tag: d.url || (type === "signup" ? d.name : "timepiece"),
+      tag: d.url || (NOT_ALERTS.includes(type) ? type + (d.name || "") : "timepiece"),
       renotify: true,
       requireInteraction: type === "on_sale",
       icon: "icon-192.png",
@@ -77,13 +82,16 @@ self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const url = e.notification.data && e.notification.data.url;
   const tab = (e.notification.data && e.notification.data.tab) || "";
-  e.waitUntil(
-    url && /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(url)
+  const fixr = url && /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(url);
+  const tap = fixr ? fetch(`${SB_URL}/rest/v1/rpc/tap`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ u: url }) }).catch(() => {}) : null;
+  e.waitUntil(Promise.all([tap,
+    fixr
       ? self.clients.openWindow(url)
       : self.clients.matchAll({ type: "window" }).then((wins) => {
           if (!wins[0]) return self.clients.openWindow(tab ? `./?tab=${tab}` : "./");
           if (tab) wins[0].postMessage({ tab });   // already open: switch it to the Admin tab
           return wins[0].focus();
-        })
-  );
+        }),
+  ]));
 });

@@ -68,7 +68,7 @@ function slide(s, x, animate) {
   const c = s.querySelector(".alert");
   c.classList.toggle("dragging", !animate);
   c.style.transform = x ? `translateX(${x}px)` : "";
-  const go = s.parentElement.querySelector(":scope > .go");   // a ticket's button fades as the ticket moves away
+  const go = s.parentElement.querySelector(":scope > .acts");   // a ticket's buttons fade as the ticket moves away
   if (go) go.style.opacity = x ? String(1 - 0.6 * Math.min(1, Math.abs(x) / s.offsetWidth)) : "";
 }
 // box: the list holding `.swipe` rows. onDelete(row) forgets the data; onDone(group) runs after the row has left the screen.
@@ -76,10 +76,10 @@ function makeSwipeable(box, onDelete, onDone) {
   let swipe = null, swiped = false;
   const closeOthers = (except) => box.querySelectorAll(".swipe.open").forEach((s) => { if (s !== except) { slide(s, 0, true); s.classList.remove("open"); } });
   async function remove(s) {
-    const group = s.closest(".tgroup") || s;   // a ticket and its button leave together
+    const group = s.closest(".tgroup") || s;   // a ticket and its buttons leave together
     slide(s, -s.offsetWidth, true);
-    const go = group.querySelector(":scope > .go");
-    if (go) go.classList.add("pop");   // the button pops like a bubble
+    const go = group.querySelector(":scope > .acts");
+    if (go) go.classList.add("pop");   // the buttons pop like a bubble
     await onDelete(s);
     group.style.height = `${group.offsetHeight}px`; group.style.overflow = "hidden";
     setTimeout(() => { group.style.transition = "height .2s, margin .2s"; group.style.height = "0"; group.style.margin = "0"; }, go ? 160 : 0);
@@ -134,47 +134,110 @@ const ICONS = {
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
   clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 };
-// Each event's latest status from the watcher ("on", "soon", "off" = sold out), so old on-sale cards don't stay "On Sale Now".
+// Each event's latest status from the watcher ("on", "soon", "off" = sold out), so old on-sale cards don't stay "On Sale Now",
+// plus when it went on sale and sold out (for "Sold out 14 minutes after going on sale").
 async function eventStatuses(items) {
   const urls = [...new Set(items.filter((a) => a.type === "on_sale" && safeUrl(a.url)).map((a) => a.url))];
   if (!urls.length || !session) return {};
   try {
     const rows = await Promise.race([
-      api(`event_status?select=url,status&url=in.(${urls.map((u) => encodeURIComponent(`"${u}"`)).join(",")})`),
+      api(`event_status?select=url,status,on_sale_at,sold_out_at&url=in.(${urls.map((u) => encodeURIComponent(`"${u}"`)).join(",")})`),
       new Promise((r) => setTimeout(() => r([]), 1500)),
     ]);
-    return Object.fromEntries(rows.map((r) => [r.url, r.status]));
+    return Object.fromEntries(rows.map((r) => [r.url, r]));
   } catch { return {}; }
 }
-// "Did you get a ticket?" answers, per event, on this phone.
+// "Sold out 14 minutes after going on sale", or "" when the watcher didn't see both moments.
+function soldOutIn(e) {
+  const mins = e && e.on_sale_at && e.sold_out_at ? (Date.parse(e.sold_out_at) - Date.parse(e.on_sale_at)) / 60e3 : -1;
+  if (!(mins > 0)) return "";
+  const n = (v, w) => `${v} ${w}${v === 1 ? "" : "s"}`;
+  return `Sold out ${mins < 1 ? "in under a minute" : mins < 90 ? `${n(Math.round(mins), "minute")} after going on sale`
+    : mins < 48 * 60 ? `${n(Math.round(mins / 60), "hour")} after going on sale` : `${n(Math.round(mins / 1440), "day")} after going on sale`}.`;
+}
+// "Did you get a ticket?" answers, per event, on this phone. A yes offers Add to Calendar for the night.
 // MyNightOut is only linked, never checked automatically (their terms forbid scraping). Empty = mention it without a link.
 const MYNIGHTOUT_URL = "https://mynightout.app/events/in/exeter";   // event pages end in a random MyNightOut id, so the Exeter list is the closest link without scraping
-function gotItHtml(url) {
+function gotItHtml(a, url) {
   const ans = (store.get("tp-got") || {})[url];
-  if (ans === "yes") return "";
+  if (ans === "yes") {
+    const cal = calendarUrl(a, url);
+    return cal ? `<div class="gotit"><span>Nice one. Have a great night.</span><a class="pillbtn" href="${esc(cal)}" target="_blank" rel="noopener">Add to Calendar</a></div>` : "";
+  }
   if (ans === "no") return `<div class="gotit"><span>No luck? Check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span></div>`;
   return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket?</span>
     <button class="secondary" type="button" data-got="yes">Yes</button><button class="secondary" type="button" data-got="no">No</button></div>`;
 }
+// Add to Calendar: an all-day event for the night, made by a small Supabase function (iPhone opens it straight in Calendar).
+function calendarUrl(a, url) {
+  const d = eventDate(a);
+  if (!d) return "";
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  return `${SB_URL}/functions/v1/calendar?${new URLSearchParams({ d: ymd, n: a.name || "Timepiece", u: url })}`;
+}
+// Counts a tap on "Open on FIXR" for the owner's dashboard: one number per event, never who tapped. Fire and forget.
+function countTap(url) {
+  if (!safeUrl(url)) return;
+  fetch(`${SB_URL}/rest/v1/rpc/tap`, { method: "POST", keepalive: true, headers: { apikey: SB_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ u: url }) }).catch(() => {});
+}
+// Share an event to a group chat, with this person's invite link (a friend who signs up with it gets an extra free week).
+function inviteLink() {
+  return profile && profile.ref_code ? `${SITE_URL}?ref=${encodeURIComponent(profile.ref_code)}` : SITE_URL;
+}
+async function shareEvent(ev) {
+  const when = [ev.day, ev.date].filter(Boolean).join(" ");
+  const what = ev.status === "soon" ? "goes on sale soon" : "is listed as on sale";
+  const text = `${ev.name}${when ? ` (${when})` : ""} ${what} on FIXR: ${ev.url}\n\nI get Timepiece ticket alerts from TP Notify. Try it free: ${inviteLink()}`;
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+    await navigator.clipboard.writeText(text);
+    toast("Copied. Paste it into a chat.");
+  } catch (e) { if (e && e.name !== "AbortError") toast("Couldn't share. Try again."); }
+}
+let toastTimer = 0;
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4000);
+}
+// Share and Open on FIXR, on alert cards and on the Events tab.
+function eventActions(ev, opts = {}) {
+  const url = safeUrl(ev.url);
+  if (!url) return "";
+  const share = opts.share ? `<button class="secondary share" type="button" data-share="${esc(JSON.stringify({ name: ev.name, day: ev.day, date: ev.date, url, status: ev.status }))}">Share</button>` : "";
+  return `<div class="acts"><a class="go" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on FIXR</a>${share}</div>`;
+}
+function onEventClick(e) {
+  const t = e.target.closest("[data-tap]");
+  if (t) countTap(t.dataset.tap);
+  const s = e.target.closest("[data-share]");
+  if (s) { try { shareEvent(JSON.parse(s.dataset.share)); } catch {} }
+}
 $("list").addEventListener("click", (e) => {
+  onEventClick(e);
   const b = e.target.closest("[data-got]");
   if (!b) return;
   store.set("tp-got", { ...(store.get("tp-got") || {}), [b.closest(".gotit").dataset.url]: b.dataset.got });
   renderAlerts();
 });
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
-// An event is over at 6am the morning after its date ("12 October"; nights run past midnight). Alerts with no date stay.
-function eventOver(a, now = Date.now()) {
+// The night an alert's event is on ("12 October" -> that day, in the right year), or null when it has no readable date.
+function eventDate(a, now = Date.now()) {
   const m = /^(\d{1,2})\S*\s+([A-Za-z]{3})/.exec(a.date || "");
   const mon = m ? "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(m[2].toLowerCase()) : -1;
-  if (mon < 0 || mon % 3) return false;
+  if (mon < 0 || mon % 3) return null;
   const got = new Date(a.received || now);
-  let end;
-  for (let y = got.getFullYear() - 1; y <= got.getFullYear() + 1; y++) {   // the first year that isn't over before the alert came
-    end = new Date(y, mon / 3, +m[1] + 1, 6);
-    if (end >= got - 7 * 864e5) break;
+  let y = got.getFullYear() - 1;
+  for (; y <= got.getFullYear() + 1; y++) {   // the first year whose night isn't over before the alert came
+    if (new Date(y, mon / 3, +m[1] + 1, 6) >= got - 7 * 864e5) break;
   }
-  return now >= end;
+  return new Date(Math.min(y, got.getFullYear() + 1), mon / 3, +m[1]);
+}
+// An event is over at 6am the morning after its date (nights run past midnight). Alerts with no date stay.
+function eventOver(a, now = Date.now()) {
+  const d = eventDate(a, now);
+  return !!d && now >= new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 6);
 }
 async function renderAlerts() {
   const stored = await allAlerts();
@@ -222,7 +285,7 @@ async function renderAlerts() {
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
     const when = [a.day, a.date].filter(Boolean).join(" ");
     const tag = a.missed ? '<span class="new missed">Missed</span>' : a.seen === false ? '<span class="new">New</span>' : "";
-    const status = statuses[a.url];
+    const st = statuses[a.url] || {}, status = st.status;
     const cls = `alert ${type}${status === "off" && type === "on_sale" ? " sold" : ""}${fresh.has(a.id) ? " arrive" : ""}`;
     // Every alert sits in a swipe holder: drag it left to reveal Delete, or all the way to delete it.
     const wrap = (extra, inner) => `<div class="swipe${extra}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
@@ -237,10 +300,10 @@ async function renderAlerts() {
             <h3>${esc(a.name)}</h3>
             <p class="when">${esc(when)}</p>
             <p class="rec">Received ${esc(time)}</p>
-            <p class="rec">${status === "off" ? "FIXR now lists this event as sold out." : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
+            <p class="rec">${status === "off" ? `FIXR now lists this event as sold out.${soldOutIn(st) ? ` ${esc(soldOutIn(st))}` : ""}` : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
-      </article>`)}${url ? `<a class="go" href="${esc(url)}" target="_blank" rel="noopener">Open on FIXR</a>` : ""}${url && status !== "soon" ? gotItHtml(url) : ""}</div>`;
+      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url && status !== "soon" ? gotItHtml(a, url) : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -251,7 +314,7 @@ async function renderAlerts() {
         <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" || type === "on_sale_soon" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
         <h3>${esc(a.name)}</h3>
         ${when ? `<p class="when">${esc(when)}</p>` : ""}
-        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" style="color:var(--accent)">Open FIXR</a>` : ""}</p>` : ""}
+        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" data-tap="${esc(url2)}" style="color:var(--accent)">Open FIXR</a>` : ""}</p>` : ""}
       </div>
       <time class="at">${esc(time)}</time>
     </article>`);
@@ -276,11 +339,49 @@ document.querySelectorAll("nav button").forEach((b) => {
     document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === b.dataset.tab));
     if (b.dataset.tab === "alerts") renderAlerts();
+    if (b.dataset.tab === "events") renderEvents();
     if (b.dataset.tab === "setup") renderChecklist();
     if (b.dataset.tab === "admin") renderAdmin();
   };
 });
 $("clear").onclick = async () => { await clearAlerts(); store.set("tp-since", Date.now()); renderAlerts(); };
+
+// ---- Events: every Timepiece event FIXR lists right now, with its live ticket status (saved by the watcher on every check) ----
+const EVENT_PILLS = { on: ["on", "On Sale Now"], soon: ["check", "On Sale Soon"], off: ["problem", "Sold Out"], unknown: ["", "Check FIXR"] };
+async function renderEvents() {
+  const box = $("event-list");
+  if (!session) return;
+  let rows;
+  try {
+    // Listed = seen on FIXR in the last 30 minutes (the watcher checks about once a minute; this rides out a short outage).
+    rows = await api(`event_status?select=url,status,name,day,date,seen_at,on_sale_at,sold_out_at&name=not.is.null`
+      + `&seen_at=gte.${encodeURIComponent(new Date(Date.now() - 30 * 60e3).toISOString())}`);
+  } catch (e) { if (!box.children.length) box.innerHTML = `<p class="msg error">${esc(e.message)}</p>`; return; }
+  const list = rows.map((r) => ({ ...r, when: eventDate({ date: r.date, received: Date.parse(r.seen_at) }) }))
+    .filter((r) => safeUrl(r.url) && !eventOver({ date: r.date, received: Date.parse(r.seen_at) }))
+    .sort((x, y) => (x.when ? +x.when : Infinity) - (y.when ? +y.when : Infinity) || x.name.localeCompare(y.name));
+  if (!list.length) {
+    box.innerHTML = '<p class="muted empty-line">No events are listed on FIXR right now. New ones show up here within a minute or two.</p>';
+    return;
+  }
+  box.innerHTML = list.map((r) => {
+    const [cls, label] = EVENT_PILLS[r.status] || EVENT_PILLS.unknown;
+    const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(r.date || "");
+    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>` : `<div class="tile icon">${ICONS.clock}</div>`;
+    const sold = r.status === "off" ? soldOutIn(r) : "";
+    return `<article class="alert row event">
+      ${tile}
+      <div>
+        <div class="line1"><span class="pill ${cls}">${label}</span></div>
+        <h3>${esc(r.name)}</h3>
+        <p class="when">${esc([r.day, r.date].filter(Boolean).join(" "))}</p>
+        ${sold ? `<p class="meta">${esc(sold)}</p>` : ""}
+        ${eventActions(r, { share: r.status === "on" || r.status === "soon" })}
+      </div>
+    </article>`;
+  }).join("");
+}
+$("event-list").addEventListener("click", onEventClick);
 
 // ---- Setup screen ----
 const standalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -385,7 +486,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 56;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 57;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -441,6 +542,60 @@ $("quiet-save").onclick = async () => {
     msg.textContent = on ? "Quiet hours saved." : "Quiet hours are off.";
   } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
   setTimeout(() => { msg.textContent = ""; }, 6000);
+};
+
+// ---- Your Alerts: which alert types, which nights and which words (the watcher matches the words to each event's
+// name, day and date, so a night is just its day name as a keyword) ----
+const NIGHTS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+function fillMyAlerts() {
+  if (!profile || !profile.alert_types) return;
+  const kw = (profile.keywords || []).map((k) => k.toLowerCase());
+  document.querySelectorAll("#my-types input").forEach((i) => { i.checked = profile.alert_types.includes(i.dataset.type); });
+  $("my-nights").innerHTML = NIGHTS.map((n) => `<button type="button" data-night="${n.toLowerCase()}" aria-label="${n}" aria-pressed="${kw.includes(n.toLowerCase())}">${n.slice(0, 3)}</button>`).join("");
+  $("my-words").value = (profile.keywords || []).filter((k) => !NIGHTS.some((n) => n.toLowerCase() === k.toLowerCase())).join(", ");
+}
+$("my-nights").onclick = (e) => {
+  const b = e.target.closest("button[data-night]");
+  if (b) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+};
+$("save-alerts").onclick = async () => {
+  const msg = $("alerts-msg");
+  const types = [...document.querySelectorAll("#my-types input")].filter((i) => i.checked).map((i) => i.dataset.type);
+  const nights = [...document.querySelectorAll("#my-nights button[aria-pressed=true]")].map((b) => b.dataset.night);
+  const words = $("my-words").value.split(",").map((w) => w.trim().toLowerCase().slice(0, 30)).filter(Boolean);
+  const keywords = [...new Set([...nights, ...words])];
+  msg.className = "msg muted";
+  if (keywords.length > 10) { msg.className = "msg error"; msg.textContent = "Use 10 nights and words at most."; return; }
+  try {
+    await patchProfile(session.user.id, { alert_types: types, keywords });
+    Object.assign(profile, { alert_types: types, keywords }); store.set("tp-profile", profile);
+    msg.textContent = !types.length ? "Saved. You won't get any alerts until you turn one back on."
+      : keywords.length ? "Saved. You'll only hear about events that match." : "Saved. You'll hear about every event.";
+  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
+  setTimeout(() => { msg.textContent = ""; }, 6000);
+};
+
+// ---- Invite friends: a friend who signs up with your link gets an extra free week, and so do you while you're on free time ----
+function fillInvite() {
+  const code = profile && profile.ref_code;
+  $("invite-box").hidden = !code;
+  if (!code) return;
+  const rewarded = profile.access === "free" || profile.access === "lapsed" || (profile.access === "comped" && profile.comped_until);
+  $("invite-text").textContent = profile.access === "lapsed"
+    ? "Send your link to friends. When one signs up with it, they get an extra free week, and you get a free week of alerts (up to 5 weeks)."
+    : rewarded
+    ? "Send your link to friends. When one signs up with it, you both get an extra free week (up to 5 weeks for you)."
+    : "Send your link to friends. When one signs up with it, they get an extra free week on top of their free month.";
+  $("invite-link").textContent = inviteLink();
+  const n = profile.referrals || 0;
+  $("invite-count").textContent = n ? `${n} ${n === 1 ? "friend has" : "friends have"} joined with your link.` : "";
+}
+$("invite-share").onclick = async () => {
+  const text = `I get Timepiece ticket alerts from TP Notify. Sign up with my link and your free month gets an extra week: ${inviteLink()}`;
+  try {
+    if (navigator.share) await navigator.share({ text });
+    else { await navigator.clipboard.writeText(text); toast("Invite copied. Paste it into a chat."); }
+  } catch (e) { if (e && e.name !== "AbortError") toast("Couldn't share. Try again."); }
 };
 
 // ---- Install gate: on a phone, nobody reaches the sign-in page until the app is on their Home Screen ----
@@ -527,7 +682,7 @@ $("diagnose").onclick = async () => {
     add(p && p.status === "approved", "Account approved", "Ask the admin to approve you.");
     if (p && p.quiet_start && p.quiet_end) add(!inQuiet(p.quiet_start, p.quiet_end), "Outside your quiet hours", "Alerts sent during quiet hours are skipped. Change them in Settings.");
     add(p && !p.paused, "Alerts not paused", "Ask the admin to resume your alerts.");
-    add(p && p.alert_types.length > 0, "At least one alert type is on", "Ask the admin to turn on an alert type.");
+    add(p && p.alert_types.length > 0, "At least one alert type is on", "Turn one on in Settings, under Your Alerts.");
     if (sub) {
       const d = (await api(`subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=active,last_ok_at`))[0];
       add(d && d.active, "Phone linked to your account", "Tap Turn On Notifications on the Setup screen to link it again.");
@@ -562,6 +717,7 @@ applyTheme(savedMode());
 // ---- Accounts (Supabase; the publishable key is public by design, the database rules do the locking) ----
 const SB_URL = "https://ddeapflekaecxqetayil.supabase.co";
 const SB_KEY = "sb_publishable_3Y_Na0OOoVnveCA6iBgwtg_3xnII6fu";
+const SITE_URL = "https://lowballing-coding.github.io/tp-notify-site/";   // the website: invite links send friends to its sign-up
 let session = null, profile = null, signUpMode = false, codeMode = false, codeSent = false;
 
 const store = {
@@ -680,6 +836,7 @@ function showGate(id) {
 }
 function showApp() {
   hideSplash();
+  $("alerts-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
@@ -690,12 +847,19 @@ function showApp() {
     : acc === "lapsed" ? "Ended" : "";
   // Free-month users see what they're missing, and how to get instant alerts.
   $("upgrade-card").hidden = acc !== "free";
-  if (acc === "free") $("upgrade-text").textContent = `Free month${profile.comped_until ? ` until ${shortDate(profile.comped_until)}` : ""}: `
-    + "Tickets on Sale alerts reach you 30 minutes late. Paid members get them the moment tickets go on sale.";
+  if (acc === "free") {
+    const days = profile.comped_until ? Math.ceil((Date.parse(profile.comped_until) - Date.now()) / 864e5) : 99;
+    $("upgrade-text").textContent = (days <= 3
+      ? `Your free month ends ${days <= 1 ? "within a day" : `in ${days} days`} (${shortDate(profile.comped_until)}). After that, alerts stop until you choose a plan. `
+      : `Free month${profile.comped_until ? ` until ${shortDate(profile.comped_until)}` : ""}: `)
+      + "Tickets on Sale alerts reach you 30 minutes late. Paid members get them the moment tickets go on sale.";
+  }
   $("manage-sub").hidden = !(BILLING_PORTAL_URL && profile && profile.stripe_customer_id);
   $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
+  fillMyAlerts();
+  fillInvite();
   syncSubscription();
   renderWatcher();
   let tab = document.querySelector("#tabs button.active");
@@ -721,6 +885,7 @@ async function loadProfile() {
     $("ended-text").textContent = wasFree ? "Your free access has ended, so alerts have stopped. Subscribe to get them again, the moment tickets go on sale."
       : "Your subscription has ended or a payment didn't go through, so alerts are paused. Renew to start them again.";
     $("ended-renew").textContent = wasFree ? "Subscribe" : "Renew";
+    $("ended-msg").before($("invite-box")); fillInvite();   // inviting a friend brings back a free week
     showGate("gate-ended");
   } else if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
   else showGate({ pending: "gate-pending", blocked: "gate-blocked" }[profile.status] || "gate-removed");
@@ -853,8 +1018,10 @@ $("auth-form").onsubmit = async (ev) => {
     const body = { email: $("auth-email").value.trim(), password: $("auth-pass").value };
     if (captchaToken) body.gotrue_meta_security = { captcha_token: captchaToken };
     const name = $("auth-name").value.trim();
-    if (signUpMode) body.data = { name };
+    const ref = store.get("tp-ref");   // a friend's invite code, saved by the website (same web address) from an invite link
+    if (signUpMode) body.data = /^[0-9A-F]{6}$/.test(ref || "") ? { name, ref } : { name };
     const j = await authCall(signUpMode ? "signup" : "token?grant_type=password", body);
+    if (signUpMode) store.set("tp-ref", null);   // the invite is used up
     if (!j.access_token) throw new Error("Account created, but sign-in didn't finish. Try signing in.");
     session = toSession(j); store.set("tp-session", session);
     if (signUpMode && name) { try { await patchProfile(session.user.id, { display_name: name }); } catch { /* the name can be added later in Settings */ } }
@@ -881,24 +1048,39 @@ function ago(iso) {
   if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
   return `${Math.round(s / 86400)} days ago`;
 }
+// Everyone sees a live line on Alerts ("Live: checked 40 seconds ago"). When the watcher is down, it says when it last
+// worked, in this phone's own time zone; the admin also gets that as a card on the Admin tab.
+let watcherAt = null, watcherOk = true;
 async function renderWatcher() {
   try {
     const r = (await api("watcher_status?select=last_check_at,ok"))[0];
-    // Nothing is shown while the watcher is healthy. When it isn't, show when it last worked, in this phone's own time zone.
-    const when = r && r.last_check_at ? new Date(r.last_check_at) : null;
-    const bad = !when || Date.now() - when > 5 * 60e3 || !r.ok;
-    let text = "The watcher hasn't checked in yet.";
-    if (when) {
-      const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-      text = `Last checked at ${time}${when.toDateString() === new Date().toDateString() ? "" : ` on ${when.toLocaleDateString([], { day: "numeric", month: "short" })}`}`;
-    }
-    ["watcher-line", "watcher-admin"].forEach((id) => {
-      const el = $(id);
-      el.hidden = !bad;
-      if (bad) { el.className = `health problem${id === "watcher-admin" ? " card" : ""}`; el.textContent = text; }
-    });
-  } catch { /* offline: keep whatever is showing */ }
+    watcherAt = r && r.last_check_at ? new Date(r.last_check_at) : null; watcherOk = !!(r && r.ok);
+  } catch { if (!watcherAt) return; /* offline before the first answer: show nothing */ }
+  drawWatcher();
 }
+function drawWatcher() {
+  const when = watcherAt, bad = !when || Date.now() - when > 5 * 60e3 || !watcherOk;
+  let text = "The watcher hasn't checked in yet.";
+  if (when && bad) {
+    const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    text = `Last checked at ${time}${when.toDateString() === new Date().toDateString() ? "" : ` on ${when.toLocaleDateString([], { day: "numeric", month: "short" })}`}`;
+  } else if (when) {
+    const s = Math.max(0, Math.round((Date.now() - when) / 1000));
+    text = `Live: checked ${s < 10 ? "just now" : s < 60 ? `${s} seconds ago` : s < 120 ? "1 minute ago" : `${Math.floor(s / 60)} minutes ago`}`;
+  }
+  const line = $("watcher-line");
+  line.hidden = false; line.className = `health ${bad ? "problem" : "live"}`; line.textContent = text;
+  const admin = $("watcher-admin");
+  admin.hidden = !bad;
+  if (bad) { admin.className = "health problem card"; admin.textContent = text; }
+}
+// Keep the live line ticking while the app is open: redraw every 10 seconds, ask the server again every 30.
+let watcherTick = 0;
+setInterval(() => {
+  if (document.hidden || !session || !profile || $("tabs").hidden) return;
+  if (++watcherTick % 3 === 0) { renderWatcher(); if ($("events").classList.contains("active")) renderEvents(); }
+  else if (watcherAt) drawWatcher();
+}, 10e3);
 
 // ---- Admin (the database refuses anyone who isn't the admin) ----
 const TYPE_NAMES = { on_sale: "Tickets on Sale", check: "Check Manually and On Sale Soon" };
@@ -986,6 +1168,42 @@ async function renderAdmin() {
     msg.className = "msg error"; msg.textContent = e.message;
   }
   renderLog();
+  renderStats();
+}
+// ---- Owner's overview: members, money, invites, and how each recent on-sale alert did ----
+const PRICES = { monthly: 4.99, quarterly: 11.99 / 3 };   // full price per month (the £3.99 first month isn't counted)
+async function renderStats() {
+  try {
+    const [ps, log] = await Promise.all([
+      api("profiles?select=status,access,plan,created_at,referred_by"),
+      api("alert_log?select=url,event_name,recipients,created_at&type=eq.on_sale&order=created_at.desc&limit=300"),
+    ]);
+    const live = ps.filter((p) => p.status === "approved"), count = (a) => live.filter((p) => p.access === a).length;
+    const paid = live.filter((p) => p.access === "paid"), lapsed = count("lapsed");
+    const income = paid.reduce((t, p) => t + (PRICES[p.plan] || PRICES.monthly), 0);
+    const cells = [
+      [live.length, "Members"], [paid.length, "Paying"], [count("free"), "On a Free Month"], [lapsed, "Lapsed"],
+      [ps.filter((p) => Date.now() - Date.parse(p.created_at) < 7 * 864e5).length, "New This Week"],
+      [ps.filter((p) => p.referred_by).length, "Joined via a Friend"],
+      [`£${income.toFixed(2)}`, "Income a Month"],
+      [paid.length + lapsed ? `${Math.round((100 * paid.length) / (paid.length + lapsed))}%` : "None Yet", "Paying Rate"],
+    ];
+    $("stats").innerHTML = cells.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
+    $("stats-note").textContent = "Income is at full price. Paying Rate is paying members out of everyone whose free time or plan has ended.";
+    // Each recent on-sale alert: phones it reached (repeats and free-month copies included), taps on Open on FIXR, sell-out time.
+    const byUrl = new Map();
+    log.forEach((r) => {
+      const e = byUrl.get(r.url) || { url: r.url, name: r.event_name, sent: 0 };
+      e.sent += r.recipients || 0; byUrl.set(r.url, e);
+    });
+    const recent = [...byUrl.values()].filter((e) => safeUrl(e.url)).slice(0, 6);
+    const st = recent.length ? Object.fromEntries((await api(`event_status?select=url,taps,on_sale_at,sold_out_at&url=in.(${recent.map((e) => encodeURIComponent(`"${e.url}"`)).join(",")})`)).map((r) => [r.url, r])) : {};
+    $("stats-events").innerHTML = recent.map((e) => {
+      const s = st[e.url] || {}, taps = s.taps || 0;
+      const bits = [`Sent to ${e.sent} ${e.sent === 1 ? "phone" : "phones"}`, `${taps} ${taps === 1 ? "tap" : "taps"} on Open on FIXR`, soldOutIn(s).replace(/\.$/, "")].filter(Boolean);
+      return `<div class="logrow"><div>${esc(e.name || "Event")}</div><div class="meta">${esc(bits.join(". "))}.</div></div>`;
+    }).join("") || '<p class="muted">No on-sale alerts yet.</p>';
+  } catch (e) { $("stats").innerHTML = ""; $("stats-events").innerHTML = `<p class="msg error">${esc(e.message)}</p>`; }
 }
 function say(text, error) {
   const m = $("admin-msg"); m.className = "msg" + (error ? " error" : " muted"); m.textContent = text;
@@ -1134,6 +1352,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
   renderAlerts();
   if (session && profile && profile.status === "approved") renderWatcher();
+  if ($("events").classList.contains("active")) renderEvents();
   if (session && profile && (profile.status !== "approved" || profile.access === "lapsed")) loadProfile();   // pick up an approval or a renewal
   if (session && profile && document.querySelector("#gate-notify.active")) loadProfile();   // they may have just allowed notifications in Settings
 });
