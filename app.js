@@ -487,7 +487,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 59;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 60;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -615,10 +615,10 @@ addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault(); installPrompt = e;
   if ($("gate-install").classList.contains("active")) showInstallGate();
   const { ios, android } = device();
-  if (!ios && !android) $("install-pc").hidden = false;   // a computer (Chrome or Edge) can install the app too
+  if (!ios && !android) pcButtons(false);   // a computer (Chrome or Edge) can install the app too
 });
 addEventListener("appinstalled", () => {
-  installPrompt = null; $("install-pc").hidden = true;
+  installPrompt = null; pcButtons(true);
   $("install-msg").className = "msg"; $("install-msg").textContent = "Added. Now open TP Notify from your Home Screen.";
   $("install-go").hidden = true;
 });
@@ -668,12 +668,13 @@ $("install-go").onclick = async () => {
   if (choice.outcome !== "accepted") { $("install-msg").className = "msg"; $("install-msg").textContent = "No problem. Tap Add to Home Screen when you're ready."; }
   installPrompt = null; $("install-go").hidden = true;
 };
-$("install-pc").onclick = async () => {
+const pcButtons = (hide) => document.querySelectorAll(".install-pc").forEach((b) => { b.hidden = hide; });
+document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
-  installPrompt = null; $("install-pc").hidden = true;
-};
+  installPrompt = null; pcButtons(true);
+});
 $("install-copy").onclick = async () => {
   try { await navigator.clipboard.writeText(new URL("./", location.href).href); $("install-msg").className = "msg"; $("install-msg").textContent = "Link copied. Paste it into Safari."; }
   catch { $("install-msg").className = "msg error"; $("install-msg").textContent = "Couldn't copy. Open this page in Safari instead."; }
