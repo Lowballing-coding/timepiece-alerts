@@ -486,7 +486,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 57;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 58;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -785,7 +785,7 @@ const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString([], { day: "n
 function payLink(plan, who, intro) {
   const base = plan === "quarterly" ? PAY_QUARTERLY : PAY_MONTHLY;
   if (!base) return "";
-  const q = new URLSearchParams({ client_reference_id: who.id, prefilled_email: who.email });
+  const q = new URLSearchParams({ client_reference_id: who.id, locked_prefilled_email: who.email });
   if (intro && plan === "monthly" && PROMO_MONTHLY) q.set("prefilled_promo_code", PROMO_MONTHLY);
   return `${base}${base.includes("?") ? "&" : "?"}${q}`;
 }
