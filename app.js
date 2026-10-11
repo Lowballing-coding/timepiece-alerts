@@ -396,10 +396,11 @@ async function renderChecklist() {
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   const sub = await currentSub();
   const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (Done)" : ""}</span></li>`;
+  const { ios, android } = device(), phone = ios || android;
   $("checklist").innerHTML =
-    row(1, standalone(), "Open the app from its Home Screen icon") +
+    row(1, standalone(), phone ? "Open the app from its Home Screen icon" : "Install the app on this computer (optional)") +
     row(2, perm === "granted", "Allow notifications") +
-    row(3, !!sub && store.get("tp-linked") === sub.endpoint, "Link this phone to your account");
+    row(3, !!sub && store.get("tp-linked") === sub.endpoint, `Link this ${phone ? "phone" : "computer"} to your account`);
   if (!supported()) {
     $("setup-msg").textContent = "Push isn't available here. On iPhone, add this app to the Home Screen first (iOS 16.4 or newer) and open it from there.";
   }
@@ -486,7 +487,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 58;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 59;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -610,9 +611,14 @@ const device = () => {
   };
 };
 let installPrompt = null;   // Android Chrome can add the app with one tap
-addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if ($("gate-install").classList.contains("active")) showInstallGate(); });
+addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault(); installPrompt = e;
+  if ($("gate-install").classList.contains("active")) showInstallGate();
+  const { ios, android } = device();
+  if (!ios && !android) $("install-pc").hidden = false;   // a computer (Chrome or Edge) can install the app too
+});
 addEventListener("appinstalled", () => {
-  installPrompt = null;
+  installPrompt = null; $("install-pc").hidden = true;
   $("install-msg").className = "msg"; $("install-msg").textContent = "Added. Now open TP Notify from your Home Screen.";
   $("install-go").hidden = true;
 });
@@ -661,6 +667,12 @@ $("install-go").onclick = async () => {
   const choice = await installPrompt.userChoice;
   if (choice.outcome !== "accepted") { $("install-msg").className = "msg"; $("install-msg").textContent = "No problem. Tap Add to Home Screen when you're ready."; }
   installPrompt = null; $("install-go").hidden = true;
+};
+$("install-pc").onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null; $("install-pc").hidden = true;
 };
 $("install-copy").onclick = async () => {
   try { await navigator.clipboard.writeText(new URL("./", location.href).href); $("install-msg").className = "msg"; $("install-msg").textContent = "Link copied. Paste it into Safari."; }
