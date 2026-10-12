@@ -173,9 +173,20 @@ function gotItHtml(a, url) {
 // Add to Calendar: an all-day event for the night, made by a small Supabase function (iPhone opens it straight in Calendar).
 function saveGot(url, ans) {
   store.set("tp-got", { ...(store.get("tp-got") || {}), [url]: ans });
-  if (session && safeUrl(url)) api("ticket_answers?on_conflict=user_id,url", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ user_id: session.user.id, url, got: ans === "yes", updated_at: new Date().toISOString() }) }).catch(() => {});
+  store.set("tp-got-pending", { ...(store.get("tp-got-pending") || {}), [url]: ans });
+  sendGot();
 }
+// The watcher reads answers from Supabase, so each one waits here until it's saved (no signal, signed out, or from before v62).
+function sendGot() {
+  if (!session) return;
+  Object.entries(store.get("tp-got-pending") || {}).forEach(([url, ans]) => {
+    const done = () => { const p = store.get("tp-got-pending") || {}; if (p[url] === ans) { delete p[url]; store.set("tp-got-pending", p); } };
+    if (!/^https:\/\/fixr\.co\//.test(url) || url.length > 500) return done();   // Supabase only accepts FIXR event links
+    api("ticket_answers?on_conflict=user_id,url", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ user_id: session.user.id, url, got: ans === "yes", updated_at: new Date().toISOString() }) }).then(done, () => {});
+  });
+}
+window.addEventListener("online", sendGot);
 function calendarUrl(a, url) {
   const d = eventDate(a);
   if (!d) return "";
@@ -310,7 +321,7 @@ async function renderAlerts() {
             <p class="rec">${status === "off" ? `FIXR now lists this event as sold out.${soldOutIn(st) ? ` ${esc(soldOutIn(st))}` : ""}` : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
-      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url && status !== "soon" ? gotItHtml(a, url) : ""}</div>`;
+      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url ? gotItHtml(a, url) : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -863,7 +874,8 @@ function showGate(id) {
 }
 function showApp() {
   hideSplash();
-  if (!store.get("tp-got-sent")) { Object.entries(store.get("tp-got") || {}).forEach(([u, a]) => saveGot(u, a)); store.set("tp-got-sent", 1); }   // answers from before v62 lived only on the phone
+  if (store.get("tp-got-pending") === null) store.set("tp-got-pending", store.get("tp-got") || {});   // answers from before v62 lived only on the phone
+  sendGot();
   $("alerts-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
