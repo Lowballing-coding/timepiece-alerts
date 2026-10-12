@@ -27,7 +27,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TP Notify">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
   // Apply the saved theme before first paint so there is no flash. Default is Auto (follows the phone), so the
   // system status bar at the top of the screen, which always follows the phone, matches the app.
@@ -618,7 +618,8 @@
     <h2>Your Alerts</h2>
     <div class="group" id="my-types">
       <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>
-      <label class="rowline"><span>On Sale Soon and Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
+      <label class="rowline"><span>On Sale Soon</span><input class="switch" type="checkbox" data-type="on_sale_soon"></label>
+      <label class="rowline"><span>Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
     </div>
     <p class="muted" style="margin-top:14px">Pick nights, words or both. You get alerts for events that match any of them. Leave both empty to hear about every event.</p>
     <div class="seg nights" id="my-nights" role="group" aria-label="Your nights"></div>

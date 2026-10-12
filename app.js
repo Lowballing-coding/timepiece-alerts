@@ -155,7 +155,8 @@ function soldOutIn(e) {
   return `Sold out ${mins < 1 ? "in under a minute" : mins < 90 ? `${n(Math.round(mins), "minute")} after going on sale`
     : mins < 48 * 60 ? `${n(Math.round(mins / 60), "hour")} after going on sale` : `${n(Math.round(mins / 1440), "day")} after going on sale`}.`;
 }
-// "Did you get a ticket?" answers, per event, on this phone. A yes offers Add to Calendar for the night.
+// "Did you get a ticket?" answers, per event. A yes offers Add to Calendar for the night. The answer is also saved to
+// Supabase: the watcher sends each person one ping per event, and keeps pinging only people who answered No.
 // MyNightOut is only linked, never checked automatically (their terms forbid scraping). Empty = mention it without a link.
 const MYNIGHTOUT_URL = "https://mynightout.app/events/in/exeter";   // event pages end in a random MyNightOut id, so the Exeter list is the closest link without scraping
 function gotItHtml(a, url) {
@@ -164,11 +165,28 @@ function gotItHtml(a, url) {
     const cal = calendarUrl(a, url);
     return cal ? `<div class="gotit"><span>Nice one. Have a great night.</span><a class="pillbtn" href="${esc(cal)}" target="_blank" rel="noopener">Add to Calendar</a></div>` : "";
   }
-  if (ans === "no") return `<div class="gotit"><span>No luck? Check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span></div>`;
-  return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket?</span>
+  if (ans === "no") return `<div class="gotit" data-url="${esc(url)}"><span>No luck? We'll ping you if it's listed as on sale again. Or check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span>
+    <button class="secondary" type="button" data-got="yes">I Got One</button></div>`;
+  return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket? If not, tap No and we'll ping you if it's back on sale.</span>
     <button class="secondary" type="button" data-got="yes">Yes</button><button class="secondary" type="button" data-got="no">No</button></div>`;
 }
 // Add to Calendar: an all-day event for the night, made by a small Supabase function (iPhone opens it straight in Calendar).
+function saveGot(url, ans) {
+  store.set("tp-got", { ...(store.get("tp-got") || {}), [url]: ans });
+  store.set("tp-got-pending", { ...(store.get("tp-got-pending") || {}), [url]: ans });
+  sendGot();
+}
+// The watcher reads answers from Supabase, so each one waits here until it's saved (no signal, signed out, or from before v62).
+function sendGot() {
+  if (!session) return;
+  Object.entries(store.get("tp-got-pending") || {}).forEach(([url, ans]) => {
+    const done = () => { const p = store.get("tp-got-pending") || {}; if (p[url] === ans) { delete p[url]; store.set("tp-got-pending", p); } };
+    if (!/^https:\/\/fixr\.co\//.test(url) || url.length > 500) return done();   // Supabase only accepts FIXR event links
+    api("ticket_answers?on_conflict=user_id,url", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ user_id: session.user.id, url, got: ans === "yes", updated_at: new Date().toISOString() }) }).then(done, () => {});
+  });
+}
+window.addEventListener("online", sendGot);
 function calendarUrl(a, url) {
   const d = eventDate(a);
   if (!d) return "";
@@ -218,7 +236,7 @@ $("list").addEventListener("click", (e) => {
   onEventClick(e);
   const b = e.target.closest("[data-got]");
   if (!b) return;
-  store.set("tp-got", { ...(store.get("tp-got") || {}), [b.closest(".gotit").dataset.url]: b.dataset.got });
+  saveGot(b.closest(".gotit").dataset.url, b.dataset.got);
   renderAlerts();
 });
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
@@ -303,7 +321,7 @@ async function renderAlerts() {
             <p class="rec">${status === "off" ? `FIXR now lists this event as sold out.${soldOutIn(st) ? ` ${esc(soldOutIn(st))}` : ""}` : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
-      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url && status !== "soon" ? gotItHtml(a, url) : ""}</div>`;
+      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url ? gotItHtml(a, url) : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -488,7 +506,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 61;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 62;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -856,6 +874,8 @@ function showGate(id) {
 }
 function showApp() {
   hideSplash();
+  if (store.get("tp-got-pending") === null) store.set("tp-got-pending", store.get("tp-got") || {});   // answers from before v62 lived only on the phone
+  sendGot();
   $("alerts-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
@@ -1103,7 +1123,7 @@ setInterval(() => {
 }, 10e3);
 
 // ---- Admin (the database refuses anyone who isn't the admin) ----
-const TYPE_NAMES = { on_sale: "Tickets on Sale", check: "Check Manually and On Sale Soon" };
+const TYPE_NAMES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually" };
 let people = [], sheetPerson = null, sheetMode = "menu";
 const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 
@@ -1111,7 +1131,7 @@ function personRow(p) {
   const me = p.id === session.user.id;
   const name = p.nickname || p.display_name || p.email;   // your nickname wins, then the name they gave, then their email
   const devices = p.active_devices === 1 ? "1 Device" : `${p.active_devices} Devices`;
-  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(" and ") : "No Alerts";
+  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(", ") : "No Alerts";
   const initials = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
   const statePill = { approved: ["on", "Approved"], pending: ["check", "Waiting"], blocked: ["problem", "Blocked"] }[p.status] || ["", p.status];
   const [accCls, accLabel, accDetail] = accessText(p);
