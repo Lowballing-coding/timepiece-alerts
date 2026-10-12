@@ -397,6 +397,7 @@ async function renderChecklist() {
   const sub = await currentSub();
   const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (Done)" : ""}</span></li>`;
   const { ios, android } = device(), phone = ios || android;
+  $("download-pc").hidden = phone || standalone();   // laptops always see the download button until it's installed
   $("checklist").innerHTML =
     row(1, standalone(), phone ? "Open the app from its Home Screen icon" : "Install the app on this computer (optional)") +
     row(2, perm === "granted", "Allow notifications") +
@@ -487,7 +488,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 60;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 61;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -670,7 +671,13 @@ $("install-go").onclick = async () => {
 };
 const pcButtons = (hide) => document.querySelectorAll(".install-pc").forEach((b) => { b.hidden = hide; });
 document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => {
-  if (!installPrompt) return;
+  if (!installPrompt) {   // the browser hasn't offered one-click install: say how to do it by hand
+    const ua = navigator.userAgent, edge = /Edg\//.test(ua);
+    $("setup-msg").textContent = /Firefox\//.test(ua) ? "Firefox can't install apps. Open TP Notify in Chrome or Edge, then click Download again."
+      : /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua) ? "In Safari's menu bar, choose File, then Add to Dock."
+      : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your desktop or Start menu.`;
+    return;
+  }
   installPrompt.prompt();
   await installPrompt.userChoice;
   installPrompt = null; pcButtons(true);
