@@ -4,7 +4,8 @@ const VAPID_PUBLIC_KEY = "BCw69mMtS2gckHI0voqwM4uR0eupiXHxpfijl5sU0IrPSgD6SYNlcg
 const $ = (id) => document.getElementById(id);
 // Never run inside someone else's page (stops click-tricking; GitHub Pages can't send the header that does this).
 if (window.top !== window.self) { try { window.top.location = location.href; } catch { document.documentElement.hidden = true; } }
-const LABELS = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification" };
+const LABELS = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
+  back_on_sale: "Returned Tickets", too_late: "Sold Out First" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
 function openDb() {
@@ -51,11 +52,11 @@ async function fetchMissed(local) {
   try {
     const since = new Date(Math.max(store.get("tp-since") || 0, Date.now() - 864e5)).toISOString();
     const rows = await Promise.race([
-      api(`alert_log?select=created_at,type,event_name,event_day,event_date,url&user_ids=cs.{${session.user.id}}&type=neq.test`
+      api(`alert_log?select=created_at,type,event_name,event_day,event_date,url&user_ids=cs.{${session.user.id}}&type=in.(on_sale,on_sale_soon,check,problem,back_on_sale)`
         + `&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=20`),
       new Promise((r) => setTimeout(() => r([]), 1500)),
     ]);
-    return rows.map((r) => ({ type: r.type, name: r.event_name || "", day: r.event_day || "", date: r.event_date || "", url: r.url || "",
+    return rows.map((r) => ({ type: r.type === "back_on_sale" ? "on_sale" : r.type, name: r.event_name || "", day: r.event_day || "", date: r.event_date || "", url: r.url || "",
       received: Date.parse(r.created_at), missed: true }))
       .filter((m) => !local.some((a) => a.type === m.type && a.name === m.name && Math.abs(a.received - m.received) < 15 * 60e3))
       .filter((m) => !(store.get("tp-dismissed") || []).some((d) => d.type === m.type && d.name === m.name && Math.abs(d.t - m.received) < 15 * 60e3));
@@ -137,30 +138,35 @@ const ICONS = {
   clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 };
 // Each event's latest status from the watcher ("on", "soon", "off" = sold out), so old on-sale cards don't stay "On Sale Now",
-// plus when it went on sale and sold out (for "Sold out 14 minutes after going on sale").
+// plus when it went on sale and sold out (for "Sold out within 14 minutes of going on sale").
 async function eventStatuses(items) {
   const urls = [...new Set(items.filter((a) => a.type === "on_sale" && safeUrl(a.url)).map((a) => a.url))];
   if (!urls.length || !session) return {};
   try {
     const rows = await Promise.race([
-      api(`event_status?select=url,status,on_sale_at,sold_out_at&url=in.(${urls.map((u) => encodeURIComponent(`"${u}"`)).join(",")})`),
+      api(`event_status?select=url,status,on_sale_at,sold_out_at,first_sold_out_at&url=in.(${urls.map((u) => encodeURIComponent(`"${u}"`)).join(",")})`),
       new Promise((r) => setTimeout(() => r([]), 1500)),
     ]);
     return Object.fromEntries(rows.map((r) => [r.url, r]));
   } catch { return {}; }
 }
-// "Sold out 14 minutes after going on sale", or "" when the watcher didn't see both moments.
+// "Sold out within 14 minutes of going on sale", or "" when the watcher didn't see both moments.
 // How long tickets lasted, short enough for a table cell ("58 min"), or a dash while they haven't sold out.
+// The first sell-out counts: returned tickets can put a night back on sale for a minute later on.
+function soldMins(e) {
+  const out = e && (e.first_sold_out_at || e.sold_out_at);
+  return e && e.on_sale_at && out ? (Date.parse(out) - Date.parse(e.on_sale_at)) / 60e3 : -1;
+}
 function lastedFor(e) {
-  const mins = e && e.on_sale_at && e.sold_out_at ? (Date.parse(e.sold_out_at) - Date.parse(e.on_sale_at)) / 60e3 : -1;
+  const mins = soldMins(e);
   return !(mins > 0) ? "–" : mins < 1 ? "<1 min" : mins < 90 ? `${Math.round(mins)} min` : mins < 48 * 60 ? `${Math.round(mins / 60)} h` : `${Math.round(mins / 1440)} d`;
 }
 function soldOutIn(e) {
-  const mins = e && e.on_sale_at && e.sold_out_at ? (Date.parse(e.sold_out_at) - Date.parse(e.on_sale_at)) / 60e3 : -1;
+  const mins = soldMins(e);
   if (!(mins > 0)) return "";
   const n = (v, w) => `${v} ${w}${v === 1 ? "" : "s"}`;
-  return `Sold out ${mins < 1 ? "in under a minute" : mins < 90 ? `${n(Math.round(mins), "minute")} after going on sale`
-    : mins < 48 * 60 ? `${n(Math.round(mins / 60), "hour")} after going on sale` : `${n(Math.round(mins / 1440), "day")} after going on sale`}.`;
+  return `Sold out ${mins < 1 ? "in under a minute" : `within ${mins < 90 ? n(Math.ceil(mins), "minute")
+    : mins < 48 * 60 ? n(Math.round(mins / 60), "hour") : n(Math.round(mins / 1440), "day")} of going on sale`}.`;
 }
 // "Did you get a ticket?" answers, per event. A yes offers Add to Calendar for the night. The answer is also saved to
 // Supabase: the watcher sends each person one ping per event, and keeps pinging only people who answered No.
@@ -170,7 +176,8 @@ function gotItHtml(a, url) {
   const ans = (store.get("tp-got") || {})[url];
   if (ans === "yes") {
     const cal = calendarUrl(a, url);
-    return cal ? `<div class="gotit"><span>Nice one. Have a great night.</span><a class="pillbtn" href="${esc(cal)}" target="_blank" rel="noopener">Add to Calendar</a></div>` : "";
+    const share = `<button class="secondary" type="button" data-share="${esc(JSON.stringify({ name: a.name, day: a.day, date: a.date, url, status: "got" }))}">Share</button>`;
+    return `<div class="gotit"><span>Nice one. Have a great night.</span>${cal ? `<a class="pillbtn" href="${esc(cal)}" target="_blank" rel="noopener">Add to Calendar</a>` : ""}${share}</div>`;
   }
   if (ans === "no") return `<div class="gotit" data-url="${esc(url)}"><span>No luck? We'll ping you if it's listed as on sale again. Or check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span>
     <button class="secondary" type="button" data-got="yes">I Got One</button></div>`;
@@ -212,8 +219,11 @@ function inviteLink() {
 }
 async function shareEvent(ev) {
   const when = [ev.day, ev.date].filter(Boolean).join(" ");
-  const what = ev.status === "soon" ? "goes on sale soon" : "is listed as on sale";
-  const text = `${ev.name}${when ? ` (${when})` : ""} ${what} on FIXR: ${ev.url}\n\nI get Timepiece ticket alerts from TP Notify. Try it free: ${inviteLink()}`;
+  const name = `${ev.name}${when ? ` (${when})` : ""}`;
+  // A sold-out night or a ticket you got is the best advert: say so, and skip the FIXR link nobody can use.
+  const text = ev.status === "got" ? `Got my ticket for ${name} thanks to TP Notify. It pings me the second Timepiece tickets go on sale.\n\nFirst month free: ${inviteLink()}`
+    : ev.status === "off" ? `${name} ${ev.out ? ev.out.replace(/^Sold/, "sold").replace(/\.$/, "") : "sold out"}. TP Notify pinged me the second it went on sale.\n\nFirst month free: ${inviteLink()}`
+    : `${name} ${ev.status === "soon" ? "goes on sale soon" : "is listed as on sale"} on FIXR: ${ev.url}\n\nI get Timepiece ticket alerts from TP Notify. Try it free: ${inviteLink()}`;
   try {
     if (navigator.share) { await navigator.share({ text }); return; }
     await navigator.clipboard.writeText(text);
@@ -230,7 +240,7 @@ function toast(text) {
 function eventActions(ev, opts = {}) {
   const url = safeUrl(ev.url);
   if (!url) return "";
-  const share = opts.share ? `<button class="secondary share" type="button" data-share="${esc(JSON.stringify({ name: ev.name, day: ev.day, date: ev.date, url, status: ev.status }))}">Share</button>` : "";
+  const share = opts.share ? `<button class="secondary share" type="button" data-share="${esc(JSON.stringify({ name: ev.name, day: ev.day, date: ev.date, url, status: ev.status, out: ev.out || "" }))}">Share</button>` : "";
   return `<div class="acts"><a class="go" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on FIXR</a>${share}</div>`;
 }
 function onEventClick(e) {
@@ -328,7 +338,7 @@ async function renderAlerts() {
             <p class="rec">${status === "off" ? `FIXR now lists this event as sold out.${soldOutIn(st) ? ` ${esc(soldOutIn(st))}` : ""}` : status === "soon" ? "FIXR now lists this as not on sale yet." : a.late ? `Sent ${esc(a.late)} minutes after it went on sale (free month). Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."}</p>
           </div>
         </div>
-      </article>`)}${eventActions({ ...a, status }, { share: status !== "off" })}${url ? gotItHtml(a, url) : ""}</div>`;
+      </article>`)}${eventActions({ ...a, status, out: status === "off" ? soldOutIn(st) : "" }, { share: true })}${url ? gotItHtml(a, url) : ""}</div>`;
     }
     const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
       : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
@@ -379,7 +389,7 @@ async function renderEvents() {
   let rows;
   try {
     // Listed = seen on FIXR in the last 30 minutes (the watcher checks about once a minute; this rides out a short outage).
-    rows = await api(`event_status?select=url,status,name,day,date,seen_at,on_sale_at,sold_out_at&name=not.is.null`
+    rows = await api(`event_status?select=url,status,name,day,date,seen_at,on_sale_at,sold_out_at,first_sold_out_at&name=not.is.null`
       + `&seen_at=gte.${encodeURIComponent(new Date(Date.now() - 30 * 60e3).toISOString())}`);
   } catch (e) { if (!box.children.length) box.innerHTML = `<p class="msg error">${esc(e.message)}</p>`; return; }
   const list = rows.map((r) => ({ ...r, when: eventDate({ date: r.date, received: Date.parse(r.seen_at) }) }))
@@ -525,7 +535,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 67;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 68;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -593,6 +603,8 @@ function fillMyAlerts() {
   if (!profile || !profile.alert_types) return;
   const kw = (profile.keywords || []).map((k) => k.toLowerCase());
   document.querySelectorAll("#my-types input").forEach((i) => { i.checked = profile.alert_types.includes(i.dataset.type); });
+  $("my-back").checked = !!profile.back_on_sale;
+  $("back-group").hidden = !["paid", "comped"].includes(profile.access);   // the watcher only sends these to instant members
   $("my-nights").innerHTML = NIGHTS.map((n) => `<button type="button" data-night="${n.toLowerCase()}" aria-label="${n}" aria-pressed="${kw.includes(n.toLowerCase())}">${n.slice(0, 3)}</button>`).join("");
   $("my-words").value = (profile.keywords || []).filter((k) => !NIGHTS.some((n) => n.toLowerCase() === k.toLowerCase())).join(", ");
 }
@@ -601,6 +613,7 @@ $("my-nights").onclick = (e) => {
   if (b) { b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); saveAlertsSoon(); }
 };
 $("my-types").onchange = () => saveAlertsSoon();
+$("my-back").onchange = () => saveAlertsSoon();
 $("my-words").onchange = () => saveAlertsSoon();
 let alertsTimer = 0;   // a few quick taps on the nights become one save
 const saveAlertsSoon = () => { clearTimeout(alertsTimer); alertsTimer = setTimeout(saveAlerts, 600); };
@@ -613,10 +626,11 @@ const saveAlerts = async () => {
   const keywords = [...new Set([...nights, ...words])];
   msg.className = "msg muted foot";
   if (keywords.length > 10) { msg.className = "msg error foot"; msg.textContent = "Use 10 nights and words at most."; return; }
+  const fields = { alert_types: types, keywords, back_on_sale: $("my-back").checked };
   try {
-    await patchProfile(session.user.id, { alert_types: types, keywords });
+    await patchProfile(session.user.id, fields);
     if (!profile) return;
-    Object.assign(profile, { alert_types: types, keywords }); store.set("tp-profile", profile);
+    Object.assign(profile, fields); store.set("tp-profile", profile);
     msg.textContent = !types.length ? "Saved. You won't get any alerts until you turn one back on."
       : keywords.length ? "Saved. You'll only hear about events that match." : "Saved. You'll hear about every event.";
   } catch (e) { msg.className = "msg error foot"; msg.textContent = e.message; fillMyAlerts(); }   // show what is really saved
@@ -911,7 +925,7 @@ function accessText(p) {
   return {
     paid: ["on", "Paid", p.paid_until ? `${PLAN_NAMES[p.plan] || "Paid"}, renews ${shortDate(p.paid_until)}` : ""],
     comped: ["", "Exempt", !p.comped_until ? "" : new Date(p.comped_until) > new Date() ? `Free until ${shortDate(p.comped_until)}` : "Free period ended"],
-    free: ["", "Free Month", p.comped_until ? `Ends ${shortDate(p.comped_until)}. On-sale alerts 30 minutes late.` : "On-sale alerts 30 minutes late."],
+    free: ["", "Free Month", p.comped_until ? `Ends ${shortDate(p.comped_until)}. After the first, on-sale alerts come 30 minutes late.` : "After the first, on-sale alerts come 30 minutes late."],
     lapsed: ["problem", "Lapsed", "Alerts stopped"],
     none: ["", "Not Paid", ""],
   }[p.access || "none"] || ["", String(p.access), ""];
@@ -971,7 +985,12 @@ function showApp() {
     $("upgrade-text").textContent = (days <= 3
       ? `Your free month ends ${days <= 1 ? "within a day" : `in ${days} days`} (${shortDate(profile.comped_until)}). After that, alerts stop until you choose a plan. `
       : `Free month${profile.comped_until ? ` until ${shortDate(profile.comped_until)}` : ""}: `)
-      + "Tickets on Sale alerts reach you 30 minutes late. Paid members get them the moment tickets go on sale.";
+      + "Your first Tickets on Sale alert comes instantly; after that they reach you 30 minutes late. Paid members get every one the moment tickets go on sale.";
+    // Nights that sold out before this person's late alert was due (the watcher sends a short note instead of the alert).
+    const base = $("upgrade-text").textContent;
+    api(`alert_log?select=id&type=eq.too_late&user_ids=cs.{${session.user.id}}`).then((rows) => {
+      if (rows.length && profile && profile.access === "free") $("upgrade-text").textContent = `${base} Since you joined, ${rows.length} ${rows.length === 1 ? "night" : "nights"} sold out before your free alert arrived.`;
+    }, () => {});
   }
   $("manage-sub").hidden = !(BILLING_PORTAL_URL && profile && profile.stripe_customer_id);
   $("my-name").value = (profile && profile.display_name) || "";
@@ -1256,8 +1275,8 @@ $("people-filter").onclick = (ev) => {
   showPeople();
 };
 $("invite").onclick = async () => {
-  const link = new URL("./", location.href).href;
-  const text = `Join TP Notify for Timepiece ticket alerts.\n1. Open this link in Safari: ${link}\n2. Tap Share, then Add to Home Screen.\n3. Open TP Notify from its new icon, create an account and turn on notifications.\nYour first month is free.`;
+  const link = inviteLink();   // the website with your invite code: it walks them through installing, and credits you
+  const text = `Join TP Notify for Timepiece ticket alerts. It pings you the second tickets go on sale.\nFirst month free, no card: ${link}`;
   try { await navigator.clipboard.writeText(text); say("Invite message copied. Paste it into a chat."); }
   catch { say("Couldn't copy. Send them this link: " + link, true); }
 };
@@ -1319,7 +1338,7 @@ async function renderStats() {
       e.sent += r.recipients || 0; byUrl.set(r.url, e);
     });
     const recent = [...byUrl.values()].filter((e) => safeUrl(e.url)).slice(0, 6);
-    const st = recent.length ? Object.fromEntries((await api(`event_status?select=url,taps,on_sale_at,sold_out_at&url=in.(${recent.map((e) => encodeURIComponent(`"${e.url}"`)).join(",")})`)).map((r) => [r.url, r])) : {};
+    const st = recent.length ? Object.fromEntries((await api(`event_status?select=url,taps,on_sale_at,sold_out_at,first_sold_out_at&url=in.(${recent.map((e) => encodeURIComponent(`"${e.url}"`)).join(",")})`)).map((r) => [r.url, r])) : {};
     $("stats-events").innerHTML = recent.length ? '<div class="trow head"><span>Event</span><span>Phones</span><span>Taps</span><span>Sold Out</span></div>'
       + recent.map((e) => {
         const s = st[e.url] || {};
