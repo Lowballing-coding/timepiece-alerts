@@ -319,9 +319,14 @@
   .block .seg { margin-top: 8px; background: var(--bg); }
   .block input { margin-top: 8px; }
   .group .linkbox { margin: 0; padding: 0; border: 0; background: none; font-size: 15px; }
-  .group .guide { margin: 0; border-top: 1px solid var(--line); }
-  .guide-intro { margin: 0; padding: 12px 16px 2px; border-top: 1px solid var(--line); }
-  .guide-intro + .guide { border-top: 0; }
+  /* A page opened from a Settings row, with Back at the top. */
+  button.back { display: inline-flex; align-items: center; gap: 6px; width: auto; min-height: 44px; margin: 0 0 2px -2px; padding: 0 2px;
+    background: none; border: 0; color: var(--accent); font: 500 17px/1 var(--sans); }
+  button.back::before { content: ""; width: 9px; height: 9px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
+  .screen.sub.active { animation: subin .25s ease-out; }
+  .group > ol.guide { margin: 0; }
+  @keyframes subin { from { transform: translateX(24px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .screen.sub.active { animation: none; } }
   .signout-group { margin-top: 28px; }
   .group .row2 { padding: 0 16px 16px; }
   .group .row2 label { margin-top: 4px; }
@@ -730,21 +735,24 @@
     <div class="group">
       <button id="test" class="rowbtn chev" type="button">Send a Test Notification</button>
       <button id="diagnose" class="rowbtn chev" type="button">Check Why Alerts Aren't Arriving</button>
-      <details>
-        <summary class="rowbtn chev">Make Alerts Loud on iPhone</summary>
-        <p class="muted guide-intro">A web app can't override silent mode by itself. Set this up once:</p>
-        <ol class="guide">
-          <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
-          <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
-          <li>If you see Time Sensitive Notifications, turn it on.</li>
-          <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow this app.</li>
-          <li>Leave the ringer switch on if you want sound.</li>
-        </ol>
-      </details>
+      <button id="loud-open" class="rowbtn chev" type="button">Make Alerts Loud on iPhone</button>
     </div>
     <ul class="steps" id="diag"></ul>
     <p class="muted" id="diag-note"></p>
     <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
+  </section>
+
+  <section id="loud" class="screen sub" aria-label="Make Alerts Loud on iPhone">
+    <button id="loud-back" class="back" type="button">Settings</button>
+    <h2 class="title">Make Alerts Loud</h2>
+    <p class="muted">A web app can't override silent mode by itself. Set this up once on your iPhone:</p>
+    <div class="group"><ol class="guide">
+      <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
+      <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
+      <li>If you see Time Sensitive Notifications, turn it on.</li>
+      <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow this app.</li>
+      <li>Leave the ringer switch on if you want sound.</li>
+    </ol></div>
   </section>
 </main>
 </div>
