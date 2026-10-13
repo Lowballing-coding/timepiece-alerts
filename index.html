@@ -481,6 +481,8 @@
   <section id="admin" class="screen" aria-label="Admin">
     <h2 class="title">Admin</h2>
     <p id="watcher-admin" class="health" hidden></p>
+    <div class="group"><label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label></div>
+    <p class="meta">A copy of every alert in the Telegram group. When off, only the app sends alerts (Telegram still steps in if Supabase is down).</p>
     <div id="stats" class="stats"></div>
     <p id="stats-note" class="meta"></p>
     <button id="invite">Copy Invite Message</button>
