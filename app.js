@@ -417,16 +417,28 @@ async function currentSub() {
   const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(r, 3000))]);
   return reg ? reg.pushManager.getSubscription() : null;
 }
+// The three setup steps on this device. Installing is optional on a computer.
+async function setupSteps() {
+  const sub = await currentSub(), { ios, android } = device(), phone = ios || android;
+  const steps = [standalone(), "Notification" in window && Notification.permission === "granted", !!sub && store.get("tp-linked") === sub.endpoint];
+  return { phone, steps, done: (steps[0] || !phone) && steps[1] && steps[2] };
+}
+// The Setup tab hides itself once every step is done, and comes back if notifications stop working (it stays put while open).
+async function checkSetupTab() {
+  if (!session) return;
+  const done = (await setupSteps()).done, tab = document.querySelector('#tabs [data-tab="setup"]');
+  store.set("tp-setup-done", done);
+  if (!done || !tab.classList.contains("active")) tab.hidden = done;
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkSetupTab(); });
 async function renderChecklist() {
-  const perm = "Notification" in window ? Notification.permission : "unsupported";
-  const sub = await currentSub();
+  const { phone, steps } = await setupSteps();
   const row = (n, ok, text) => `<li class="${ok ? "done" : ""}"><span class="mark">${ok ? "\u2713" : n}</span><span>${text}${ok ? " (Done)" : ""}</span></li>`;
-  const { ios, android } = device(), phone = ios || android;
   $("download-pc").hidden = phone || standalone();   // laptops always see the download button until it's installed
   $("checklist").innerHTML =
-    row(1, standalone(), phone ? "Open the app from its Home Screen icon" : "Install the app on this computer (optional)") +
-    row(2, perm === "granted", "Allow notifications") +
-    row(3, !!sub && store.get("tp-linked") === sub.endpoint, `Link this ${phone ? "phone" : "computer"} to your account`);
+    row(1, steps[0], phone ? "Open the app from its Home Screen icon" : "Install the app on this computer (optional)") +
+    row(2, steps[1], "Allow notifications") +
+    row(3, steps[2], `Link this ${phone ? "phone" : "computer"} to your account`);
   if (!supported()) {
     $("setup-msg").textContent = "Push isn't available here. On iPhone, add this app to the Home Screen first (iOS 16.4 or newer) and open it from there.";
   }
@@ -513,7 +525,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 64;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 65;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -743,6 +755,7 @@ $("diagnose").onclick = async () => {
     if (sub) {
       const d = (await api(`subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=active,last_ok_at`))[0];
       add(d && d.active, "Phone linked to your account", "Tap Turn On Notifications on the Setup screen to link it again.");
+      if (!(d && d.active)) { store.set("tp-linked", null); checkSetupTab(); }   // brings the Setup tab back to fix it
       note = d && d.last_ok_at ? `The last alert reached this phone ${ago(d.last_ok_at)}.` : "No alert has reached this phone yet.";
     }
     const w = (await api("watcher_status?select=last_check_at"))[0];
@@ -919,7 +932,8 @@ function showApp() {
   fillQuiet();
   fillMyAlerts();
   fillInvite();
-  syncSubscription();
+  document.querySelector('#tabs [data-tab="setup"]').hidden = store.get("tp-setup-done") === true;   // last known, checked again just below
+  syncSubscription().then(checkSetupTab);
   renderWatcher();
   let tab = document.querySelector("#tabs button.active");
   const wanted = new URLSearchParams(location.search).get("tab");   // a notification can open straight on the Admin tab
