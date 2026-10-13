@@ -506,7 +506,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 62;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 63;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1192,6 +1192,7 @@ async function renderAdmin() {
   const msg = $("admin-msg");
   if (!msg.textContent) { msg.className = "msg muted"; msg.textContent = "Loading..."; }
   renderWatcher();
+  api("watcher_status?select=telegram").then((r) => { $("telegram-on").checked = !!(r[0] && r[0].telegram); }).catch(() => {});
   try {
     people = await api("rpc/admin_people", { method: "POST", body: "{}" });
     if (msg.textContent === "Loading...") msg.textContent = "";
@@ -1210,6 +1211,14 @@ async function renderAdmin() {
   renderLog();
   renderStats();
 }
+// Telegram copies of every alert: the watcher checks this switch before each message (supabase_step16.sql).
+$("telegram-on").addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  try {
+    const r = await api("watcher_status?id=eq.1&select=telegram", { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ telegram: on }) });
+    if (!r || !r.length) throw new Error(friendlyError(403, ""));   // not the admin: the database changed nothing
+  } catch (err) { e.target.checked = !on; say(err.message, true); }
+});
 // ---- Owner's overview: members, money, invites, and how each recent on-sale alert did ----
 const PRICES = { monthly: 4.99, quarterly: 11.99 / 3 };   // full price per month (the £3.99 first month isn't counted)
 async function renderStats() {
