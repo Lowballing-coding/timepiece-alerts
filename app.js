@@ -525,7 +525,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 65;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 66;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -766,6 +766,14 @@ $("diagnose").onclick = async () => {
     <span>${esc(r.label)}${r.ok ? "" : `<span class="fix">${esc(r.fix)}</span>`}</span></li>`).join("");
   $("diag-note").textContent = note;
 };
+
+// ---- Make Alerts Loud: its own page, opened from Settings (the Settings tab stays lit) ----
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+  document.querySelector("main").scrollTop = 0;
+}
+$("loud-open").onclick = () => showScreen("loud");
+$("loud-back").onclick = () => showScreen("settings");
 
 // ---- Theme (Auto / Light / Dark; default Auto, because the iPhone status bar always follows the phone) ----
 function savedMode() { try { return localStorage.getItem("tp-theme") || "auto"; } catch { return "auto"; } }
