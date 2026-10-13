@@ -127,7 +127,9 @@ makeSwipeable($("alert-log"), (s) => {   // the admin's sent-alerts list: hidden
   store.set("tp-log-dismissed", [...(store.get("tp-log-dismissed") || []), s.dataset.id].slice(-200));
 }, (group) => {
   group.remove();
-  if (!$("alert-log").children.length) $("alert-log").innerHTML = '<p class="muted">No alerts sent yet.</p>';
+  const left = $("alert-log").querySelectorAll(".swipe").length;
+  $("log-count").textContent = left ? `Last ${left}` : "";
+  if (!left) $("alert-log").innerHTML = '<p class="muted empty">No alerts sent yet.</p>';
 });
 const ICONS = {
   bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
@@ -148,6 +150,11 @@ async function eventStatuses(items) {
   } catch { return {}; }
 }
 // "Sold out 14 minutes after going on sale", or "" when the watcher didn't see both moments.
+// How long tickets lasted, short enough for a table cell ("58 min"), or a dash while they haven't sold out.
+function lastedFor(e) {
+  const mins = e && e.on_sale_at && e.sold_out_at ? (Date.parse(e.sold_out_at) - Date.parse(e.on_sale_at)) / 60e3 : -1;
+  return !(mins > 0) ? "–" : mins < 1 ? "<1 min" : mins < 90 ? `${Math.round(mins)} min` : mins < 48 * 60 ? `${Math.round(mins / 60)} h` : `${Math.round(mins / 1440)} d`;
+}
 function soldOutIn(e) {
   const mins = e && e.on_sale_at && e.sold_out_at ? (Date.parse(e.sold_out_at) - Date.parse(e.on_sale_at)) / 60e3 : -1;
   if (!(mins > 0)) return "";
@@ -506,14 +513,14 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 63;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 64;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
     if (m) $("update-bar").hidden = Number(m[1]) <= APP_VERSION;
   } catch { /* offline: leave the notice as it is */ }
 }
-$("update-now").onclick = () => location.reload();
+$("update-now").onclick = () => { flushSaves(); location.reload(); };
 checkForUpdate();
 setInterval(checkForUpdate, 15 * 60e3);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
@@ -527,16 +534,16 @@ checkStrip();
 addEventListener("resize", checkStrip);
 addEventListener("orientationchange", checkStrip);
 
-// ---- Your name (shown to the admin in place of your email) ----
-$("save-name").onclick = async () => {
+// ---- Your name (shown to the admin in place of your email). Settings save themselves as you change them. ----
+$("my-name").onchange = async () => {
   const msg = $("name-msg"), name = $("my-name").value.trim();
-  msg.className = "msg muted";
+  msg.className = "msg muted foot";
   try {
     await patchProfile(session.user.id, { display_name: name || null });
+    if (!profile) return;   // signed out meanwhile
     profile.display_name = name || null; store.set("tp-profile", profile);
     msg.textContent = name ? "Name saved." : "Name removed.";
-  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
-  setTimeout(() => { msg.textContent = ""; }, 6000);
+  } catch (e) { msg.className = "msg error foot"; msg.textContent = e.message; if (profile) $("my-name").value = profile.display_name || ""; }
 };
 
 // ---- Quiet hours (each person's own; the watcher skips alerts in this window, using their time zone) ----
@@ -549,20 +556,21 @@ const inQuiet = (start, end) => {
   const t = new Date().toTimeString().slice(0, 5);
   return start <= end ? start <= t && t < end : t >= start || t < end;
 };
-$("quiet-save").onclick = async () => {
+const saveQuiet = async () => {
   const msg = $("quiet-msg"), on = $("quiet-on").checked;
   const fields = on
     ? { quiet_start: $("quiet-start").value, quiet_end: $("quiet-end").value, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }
     : { quiet_start: null, quiet_end: null };
-  msg.className = "msg muted";
-  if (on && (!fields.quiet_start || !fields.quiet_end)) { msg.className = "msg error"; msg.textContent = "Choose both times."; return; }
+  msg.className = "msg muted foot";
+  if (on && (!fields.quiet_start || !fields.quiet_end)) { msg.className = "msg error foot"; msg.textContent = "Choose both times."; return; }
   try {
     await patchProfile(session.user.id, fields);
+    if (!profile) return;
     Object.assign(profile, fields); store.set("tp-profile", profile);
     msg.textContent = on ? "Quiet hours saved." : "Quiet hours are off.";
-  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
-  setTimeout(() => { msg.textContent = ""; }, 6000);
+  } catch (e) { msg.className = "msg error foot"; msg.textContent = e.message; if (profile) fillQuiet(); }
 };
+["quiet-on", "quiet-start", "quiet-end"].forEach((id) => { $(id).onchange = saveQuiet; });
 
 // ---- Your Alerts: which alert types, which nights and which words (the watcher matches the words to each event's
 // name, day and date, so a night is just its day name as a keyword) ----
@@ -576,24 +584,35 @@ function fillMyAlerts() {
 }
 $("my-nights").onclick = (e) => {
   const b = e.target.closest("button[data-night]");
-  if (b) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+  if (b) { b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); saveAlertsSoon(); }
 };
-$("save-alerts").onclick = async () => {
+$("my-types").onchange = () => saveAlertsSoon();
+$("my-words").onchange = () => saveAlertsSoon();
+let alertsTimer = 0;   // a few quick taps on the nights become one save
+const saveAlertsSoon = () => { clearTimeout(alertsTimer); alertsTimer = setTimeout(saveAlerts, 600); };
+const saveAlerts = async () => {
+  alertsTimer = 0;
   const msg = $("alerts-msg");
   const types = [...document.querySelectorAll("#my-types input")].filter((i) => i.checked).map((i) => i.dataset.type);
   const nights = [...document.querySelectorAll("#my-nights button[aria-pressed=true]")].map((b) => b.dataset.night);
   const words = $("my-words").value.split(",").map((w) => w.trim().toLowerCase().slice(0, 30)).filter(Boolean);
   const keywords = [...new Set([...nights, ...words])];
-  msg.className = "msg muted";
-  if (keywords.length > 10) { msg.className = "msg error"; msg.textContent = "Use 10 nights and words at most."; return; }
+  msg.className = "msg muted foot";
+  if (keywords.length > 10) { msg.className = "msg error foot"; msg.textContent = "Use 10 nights and words at most."; return; }
   try {
     await patchProfile(session.user.id, { alert_types: types, keywords });
+    if (!profile) return;
     Object.assign(profile, { alert_types: types, keywords }); store.set("tp-profile", profile);
     msg.textContent = !types.length ? "Saved. You won't get any alerts until you turn one back on."
       : keywords.length ? "Saved. You'll only hear about events that match." : "Saved. You'll hear about every event.";
-  } catch (e) { msg.className = "msg error"; msg.textContent = e.message; }
-  setTimeout(() => { msg.textContent = ""; }, 6000);
+  } catch (e) { msg.className = "msg error foot"; msg.textContent = e.message; fillMyAlerts(); }   // show what is really saved
 };
+// Leaving the app, updating or signing out: save anything still waiting (a box saves its text when it loses focus).
+function flushSaves() {
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (alertsTimer) { clearTimeout(alertsTimer); saveAlerts(); }
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) flushSaves(); });
 
 // ---- Invite friends: a friend who signs up with your link gets an extra free week, and so do you while you're on free time ----
 function fillInvite() {
@@ -876,7 +895,7 @@ function showApp() {
   hideSplash();
   if (store.get("tp-got-pending") === null) store.set("tp-got-pending", store.get("tp-got") || {});   // answers from before v62 lived only on the phone
   sendGot();
-  $("alerts-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
+  $("quiet-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
@@ -931,6 +950,8 @@ async function loadProfile() {
   else showGate({ pending: "gate-pending", blocked: "gate-blocked" }[profile.status] || "gate-removed");
 }
 function signedOut() {
+  flushSaves();
+  ["name-msg", "alerts-msg", "quiet-msg"].forEach((id) => { $(id).textContent = ""; });
   session = null; profile = null;
   store.set("tp-session", null); store.set("tp-profile", null);
   showGate("gate-auth");
@@ -1111,8 +1132,7 @@ function drawWatcher() {
   const line = $("watcher-line");
   line.hidden = false; line.className = `health ${bad ? "problem" : "live"}`; line.textContent = text;
   const admin = $("watcher-admin");
-  admin.hidden = !bad;
-  if (bad) { admin.className = "health problem card"; admin.textContent = text; }
+  admin.className = `health ${bad ? "problem" : "live"}`; admin.textContent = when && !bad ? text.replace(/^Live: c/, "C") : text;
 }
 // Keep the live line ticking while the app is open: redraw every 10 seconds, ask the server again every 30.
 let watcherTick = 0;
@@ -1130,41 +1150,32 @@ const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12"
 function personRow(p) {
   const me = p.id === session.user.id;
   const name = p.nickname || p.display_name || p.email;   // your nickname wins, then the name they gave, then their email
-  const devices = p.active_devices === 1 ? "1 Device" : `${p.active_devices} Devices`;
-  const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(", ") : "No Alerts";
   const initials = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
-  const statePill = { approved: ["on", "Approved"], pending: ["check", "Waiting"], blocked: ["problem", "Blocked"] }[p.status] || ["", p.status];
-  const [accCls, accLabel, accDetail] = accessText(p);
-  return `<div class="person ${esc(p.status)}">
+  const [, accLabel, accDetail] = accessText(p);
+  const flag = { pending: ["check", "Waiting"], blocked: ["problem", "Blocked"] }[p.status] || (p.paused ? ["", "Paused"] : null);
+  const line = [accLabel, accDetail.split(". ")[0].replace(/\.$/, ""), p.active_devices === 1 ? "1 device" : `${p.active_devices} devices`].filter(Boolean)
+    .map((t, i, all) => `<span>${esc(t)}${i < all.length - 1 ? " ·" : ""}</span>`).join(" ");   // wraps only after a dot
+  return `<div class="person ${esc(p.status)}" data-menu="${esc(p.id)}">
     <div class="avatar" aria-hidden="true">${esc(initials)}</div>
-    <div>
-      <div class="who">${esc(name)}${me ? " (You)" : ""}</div>
-      ${p.nickname && p.display_name ? `<div class="meta">${esc(p.display_name)}</div>` : ""}
-      ${name !== p.email ? `<div class="meta">${esc(p.email)}</div>` : ""}
-      <div class="chips">
-        <span class="pill ${statePill[0]}">${esc(statePill[1])}</span>
-        <span class="pill ${accCls}">${esc(accLabel)}</span>
-        ${p.paused ? '<span class="pill">Paused</span>' : ""}
-        <span class="meta">${esc(devices)}</span>
-      </div>
-      ${accDetail ? `<div class="meta">${esc(accDetail)}</div>` : ""}
-      <div class="meta" style="margin-top:6px">${esc(types)}</div>
-      ${p.keywords && p.keywords.length ? `<div class="meta">Keywords: ${esc(p.keywords.join(", "))}</div>` : ""}
+    <div class="pmain">
+      <div class="who">${esc(name)}${me ? " (You)" : ""}${flag ? ` <span class="pill ${flag[0]}">${flag[1]}</span>` : ""}</div>
+      <div class="meta">${line}</div>
     </div>
     <button class="dots secondary" data-menu="${esc(p.id)}" aria-label="Actions for ${esc(name)}">${DOTS}</button>
-    ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve-pick" data-id="${esc(p.id)}">Approve (Exempt)</button>
-      <button class="secondary" data-act="paylink" data-id="${esc(p.id)}">Send Payment Link</button></div>` : ""}
+    ${p.status === "pending" ? `<div class="row-actions"><button data-act="approve-pick" data-id="${esc(p.id)}">Approve</button>
+      <button class="secondary" data-act="paylink" data-id="${esc(p.id)}">Payment Link</button></div>` : ""}
   </div>`;
 }
 async function renderLog() {
   try {
     const hidden = store.get("tp-log-dismissed") || [];   // rows the admin swiped away on this device
     const rows = (await api("alert_log?select=id,created_at,type,event_name,recipients&order=created_at.desc&limit=20")).filter((r) => !hidden.includes(String(r.id))).slice(0, 8);
+    $("log-count").textContent = rows.length ? `Last ${rows.length}` : "";
     $("alert-log").innerHTML = rows.map((r) => `<div class="swipe" data-id="${esc(r.id)}"><button class="del" type="button" aria-label="Delete this row">Delete</button>
-      <div class="alert logrow"><div>${esc(LABELS[r.type] || r.type)}${r.event_name ? `: ${esc(r.event_name)}` : ""}</div>
-      <div class="meta">Sent to ${esc(r.recipients)} ${r.recipients === 1 ? "device" : "devices"}, ${esc(ago(r.created_at))}</div></div></div>`).join("")
-      || '<p class="muted">No alerts sent yet.</p>';
-  } catch { $("alert-log").innerHTML = ""; }
+      <div class="alert logrow"><div>${esc(r.event_name || LABELS[r.type] || r.type)}</div>
+      <div class="meta">${esc(LABELS[r.type] || r.type)} · ${esc(r.recipients)} ${r.recipients === 1 ? "device" : "devices"} · ${esc(ago(r.created_at))}</div></div></div>`).join("")
+      || '<p class="muted empty">No alerts sent yet.</p>';
+  } catch { $("alert-log").innerHTML = ""; $("log-count").textContent = ""; }
 }
 // People waiting for approval come first; the search box (shown once there are more than 5 people) narrows the list.
 let peopleFilter = "all";
@@ -1172,7 +1183,7 @@ function showPeople() {
   const q = $("people-search").value.trim().toLowerCase(), order = { pending: 0, approved: 1, blocked: 2 };
   const list = people.filter((p) => (peopleFilter === "all" || p.status === peopleFilter) && (!q || `${p.nickname} ${p.display_name || ""} ${p.email}`.toLowerCase().includes(q)))
     .sort((a, b) => order[a.status] - order[b.status]);
-  $("people").innerHTML = list.map(personRow).join("") || `<p class="muted">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
+  $("people").innerHTML = list.map(personRow).join("") || `<p class="muted empty">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
 }
 $("people-search").oninput = showPeople;
 $("people-filter").onclick = (ev) => {
@@ -1247,11 +1258,11 @@ async function renderStats() {
     });
     const recent = [...byUrl.values()].filter((e) => safeUrl(e.url)).slice(0, 6);
     const st = recent.length ? Object.fromEntries((await api(`event_status?select=url,taps,on_sale_at,sold_out_at&url=in.(${recent.map((e) => encodeURIComponent(`"${e.url}"`)).join(",")})`)).map((r) => [r.url, r])) : {};
-    $("stats-events").innerHTML = recent.map((e) => {
-      const s = st[e.url] || {}, taps = s.taps || 0;
-      const bits = [`Sent to ${e.sent} ${e.sent === 1 ? "phone" : "phones"}`, `${taps} ${taps === 1 ? "tap" : "taps"} on Open on FIXR`, soldOutIn(s).replace(/\.$/, "")].filter(Boolean);
-      return `<div class="logrow"><div>${esc(e.name || "Event")}</div><div class="meta">${esc(bits.join(". "))}.</div></div>`;
-    }).join("") || '<p class="muted">No on-sale alerts yet.</p>';
+    $("stats-events").innerHTML = recent.length ? '<div class="trow head"><span>Event</span><span>Phones</span><span>Taps</span><span>Sold Out</span></div>'
+      + recent.map((e) => {
+        const s = st[e.url] || {};
+        return `<div class="trow"><span>${esc(e.name || "Event")}</span><b>${e.sent}</b><b>${s.taps || 0}</b><b>${esc(lastedFor(s))}</b></div>`;
+      }).join("") : '<p class="muted empty">No on-sale alerts yet.</p>';
   } catch (e) { $("stats").innerHTML = ""; $("stats-events").innerHTML = `<p class="msg error">${esc(e.message)}</p>`; }
 }
 function say(text, error) {
@@ -1259,7 +1270,7 @@ function say(text, error) {
   setTimeout(() => { if (m.textContent === text) m.textContent = ""; }, 6000);
 }
 const patchProfile = (id, fields) => api(`profiles?id=eq.${encodeURIComponent(id)}`, {
-  method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fields),
+  method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fields), keepalive: true,   // finishes even if the app is closing
 });
 
 // ---- Triple-dot menu (a bottom sheet) ----
@@ -1300,12 +1311,14 @@ function drawSheet() {
       : p.access === "lapsed" || p.access === "free" ? '<button class="item" data-act="pay">Send Payment Link</button><button class="item" data-act="exempt">Make Exempt (Free)</button>'
       : p.access === "comped" ? '<button class="item" data-act="pay">Make Paying</button><button class="item" data-act="exempt">Change Free Period</button>'
       : '<button class="item" data-act="pay">Send Payment Link</button>';
+    const types = p.alert_types.length ? p.alert_types.map((t) => TYPE_NAMES[t] || t).join(", ") : "None";
     html = `<h3>${name}</h3>
+      <p class="meta">${[p.nickname && p.display_name, (p.nickname || p.display_name) && p.email].filter(Boolean).map(esc).join(" · ")}</p>
       <div class="access-row"><span class="pill ${accCls}">${esc(accLabel)}</span>${accDetail ? `<span class="meta">${esc(accDetail)}</span>` : ""}</div>
       ${payItem}
       <button class="item" data-act="nickname">${p.nickname ? "Edit Nickname" : "Add Nickname"}</button>
-      <button class="item" data-act="types">Alert Types</button>
-      <button class="item" data-act="keywords">Keywords</button>
+      <button class="item" data-act="types">Alert Types<span class="val">${esc(types)}</span></button>
+      <button class="item" data-act="keywords">Keywords<span class="val">${esc((p.keywords || []).join(", ") || "Every Event")}</span></button>
       ${p.active_devices > 0 ? '<button class="item" data-act="test">Send Test Notification</button>' : ""}
       <button class="item" data-act="pause">${p.paused ? "Resume Alerts" : "Pause Alerts"}</button>
       ${me ? "" : p.status === "approved" ? '<button class="item" data-act="block">Block</button>'
@@ -1325,11 +1338,11 @@ function openSheet(id) {
 const closeSheet = () => { $("sheet").hidden = true; };
 
 $("people").onclick = async (ev) => {
-  const menu = ev.target.closest("[data-menu]");
-  if (menu) return openSheet(menu.dataset.menu);
-  // The row's quick buttons open the matching page of that person's menu.
+  // The row's quick buttons open the matching page of that person's menu; anywhere else on the row opens the menu.
   const quick = ev.target.closest('button[data-act="paylink"], button[data-act="approve-pick"]');
-  if (quick) { openSheet(quick.dataset.id); sheetMode = quick.dataset.act === "paylink" ? "pay" : "exempt"; drawSheet(); }
+  if (quick) { openSheet(quick.dataset.id); sheetMode = quick.dataset.act === "paylink" ? "pay" : "exempt"; return drawSheet(); }
+  const menu = ev.target.closest("[data-menu]");
+  if (menu) openSheet(menu.dataset.menu);
 };
 $("sheet").onclick = async (ev) => {
   if (ev.target.matches(".backdrop") || ev.target.closest("[data-close]")) return closeSheet();

@@ -284,9 +284,45 @@
   @media (prefers-reduced-motion: reduce) { input.switch, input.switch::before { transition: none; } }
   /* Grouped rows: a quiet container with hairlines between rows (Settings, Setup, results). */
   .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; margin-top: 10px; }
+  .group:empty { display: none; }
+  .group :focus-visible { outline-offset: -2px; }   /* inside the card, which clips anything outside */
+  .group > .msg { margin: 0; padding: 14px 16px; }
   .rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; min-height: 52px; border-top: 1px solid var(--line); }
   .group > .rowline:first-child { border-top: 0; }
   .rowline .val { color: var(--muted); font-size: 15px; text-align: right; word-break: break-all; }
+  /* A short note under a card. */
+  .foot { margin: 8px 4px 0; }
+  .msg.foot:empty { display: none; }
+  /* A whole row that is a button (Manage Subscription, Help, Sign Out). */
+  .rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; margin: 0; padding: 14px 16px;
+    border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--text); font: 400 17px/1.3 var(--sans);
+    text-align: left; cursor: pointer; }
+  .group > .rowbtn:first-child, .group > details:first-child > .rowbtn { border-top: 0; }
+  .rowbtn:active { background: var(--surface-2); }
+  .rowbtn.accent { color: var(--accent); font-weight: 500; }
+  .rowbtn.danger { color: var(--problem); justify-content: center; font-weight: 500; }
+  .chev::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); margin-right: 4px; }
+  details > summary.chev::after { transform: rotate(45deg); margin-top: -4px; }
+  details[open] > summary.chev::after { transform: rotate(-135deg); margin-top: 4px; }
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  details > summary.rowline { cursor: pointer; }
+  details > summary.rowline .val { margin-left: auto; }
+  /* Typing straight into a row (Your Name). */
+  .rowline input.inrow { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; text-align: right; font-size: 17px; }
+  .rowline input.inrow:focus { box-shadow: none; }
+  .rowline:has(.inrow:focus) { box-shadow: inset 0 0 0 2px var(--coral); }
+  /* A label with its control underneath, inside a card (Nights, Words). */
+  .group .block { display: block; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+  .group > .block:first-child { border-top: 0; }
+  .blabel { display: block; font-size: 15px; font-weight: 500; }
+  .block .seg { margin-top: 8px; background: var(--bg); }
+  .block input { margin-top: 8px; }
+  .group .linkbox { margin: 0; padding: 0; border: 0; background: none; font-size: 15px; }
+  .group .guide { margin: 0; border-top: 1px solid var(--line); }
+  .guide-intro { margin: 0; padding: 12px 16px 2px; border-top: 1px solid var(--line); }
+  .guide-intro + .guide { border-top: 0; }
+  .signout-group { margin-top: 28px; }
   .group .row2 { padding: 0 16px 16px; }
   .group .row2 label { margin-top: 4px; }
   .row2 { display: flex; gap: 10px; }
@@ -307,6 +343,7 @@
   .seg.nights button { min-height: 44px; }
 
   /* ===== Setup steps and guides ===== */
+  ul.steps:empty { display: none; }
   ul.steps { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
   .steps li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--line); }
   .steps li:first-child { border-top: 0; }
@@ -329,6 +366,7 @@
   .gate { padding-top: 24px; }
   .gate.center { text-align: center; padding-top: 48px; }
   .gate.center ol.guide { text-align: left; }
+  .gate .rowbtn.accent { justify-content: center; }   /* Share Your Link, when the ended screen borrows the invite card */
   .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--accent); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -350,14 +388,42 @@
   html.strip nav { padding-bottom: 0; }
 
   /* ===== Admin ===== */
-  .person { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 16px 0; border-top: 1px solid var(--line); }
-  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 500 15px/1 var(--sans); }
+  /* People: one short row each inside a card; tap a row (or its dots) for everything else. */
+  .person { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px 10px 14px;
+    border-top: 1px solid var(--line); cursor: pointer; }
+  .group > .person:first-child { border-top: 0; }
+  .person:active { background: var(--surface-2); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 500 14px/1 var(--sans); }
   .person.pending .avatar { box-shadow: 0 0 0 2px var(--coral); }
-  .person .who { font: 500 17px/1.3 var(--sans); word-break: break-word; }
-  .person .meta { margin-top: 2px; word-break: break-all; }
-  .person .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
-  .person .row-actions { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .person .who { font: 500 16px/1.3 var(--sans); word-break: break-word; }
+  .person .who .pill { padding: 2px 9px; margin-left: 4px; vertical-align: 1px; }
+  .person .meta { margin-top: 2px; }
+  .person .meta span { white-space: nowrap; }
+  .person .row-actions { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 8px; padding-right: 6px; }
   .row-actions button { width: auto; min-height: 44px; padding: 8px 16px; margin: 0; font-size: 15px; }
+  .group .empty { margin: 0; padding: 14px 16px; }
+  .person .dots { border: 0; background: none; color: var(--muted); }
+  /* A section title with a small action on the right (People, Copy Invite). */
+  .sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 28px 0 0; }
+  .sechead h2 { margin: 0; }
+  button.link { width: auto; min-height: 44px; margin: 0; padding: 0 2px; background: none; color: var(--accent); font-size: 15px; font-weight: 500; }
+  /* Recent on-sale alerts: a small table, figures set like the overview's. */
+  #stats-events:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); column-gap: 12px; }   /* one set of columns for every row */
+  #stats-events > :not(.trow) { grid-column: 1 / -1; }
+  .trow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .trow:first-child { border-top: 0; }
+  .trow > span:first-child { font-size: 15px; overflow-wrap: break-word; }
+  .trow b { font: 400 20px/1.2 var(--serif); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .trow.head { padding-top: 9px; padding-bottom: 7px; font-size: 13px; color: var(--muted); }
+  .trow.head span:not(:first-child) { text-align: right; white-space: nowrap; }
+  @media (max-width: 359px) {   /* small phones: the event name gets its own line above the figures */
+    .trow > span:first-child { grid-column: 1 / -1; }
+    .trow.head > span:first-child { display: none; }
+    .trow > :nth-child(2) { grid-column: 2; }
+  }
+  /* Every alert sent: folded away under a row. */
+  #log-box .logrow { padding: 11px 16px; }
+  #log-box .swipe > .alert { background: var(--surface); }
   /* Free-month upgrade card on the Alerts tab. */
   .upsell { background: var(--surface); border: 1px solid var(--coral); border-radius: var(--r-m); padding: 14px 16px; margin: 14px 0 6px; }
   .upsell p { margin: 0; font-size: 15px; }
@@ -368,6 +434,7 @@
   .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-s); flex: none; display: grid; place-items: center; }
   .dots svg { width: 22px; height: 22px; fill: currentColor; }
   .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
+  .rowline .health { margin: 0; text-align: right; }
   #people-search { margin-top: 10px; }
   #admin-msg:empty { display: none; }
   /* The owner's overview: a figure and its label in each cell. */
@@ -397,6 +464,7 @@
   button.item { background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 52px; margin: 0; padding: 14px 4px; font-weight: 500; }
   button.item:active { background: var(--surface-2); }
   button.item.danger { color: var(--problem); }
+  button.item .val { float: right; color: var(--muted); font-weight: 400; margin-left: 12px; }
   button.danger-btn { background: var(--danger-fill); color: #fff; }
 
   /* ===== Install gate: an arrow that points at where the Share or menu button is ===== */
@@ -480,12 +548,15 @@
 
   <section id="admin" class="screen" aria-label="Admin">
     <h2 class="title">Admin</h2>
-    <p id="watcher-admin" class="health" hidden></p>
-    <div class="group"><label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label></div>
-    <p class="meta">A copy of every alert in the Telegram group. When off, only the app sends alerts (Telegram still steps in if Supabase is down).</p>
+    <div class="group">
+      <div class="rowline"><span>Watcher</span><span id="watcher-admin" class="health">Checking...</span></div>
+      <label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label>
+    </div>
+    <p class="meta foot">Telegram gets a copy of every alert, and still steps in if Supabase is down.</p>
+    <h2>Overview</h2>
     <div id="stats" class="stats"></div>
-    <p id="stats-note" class="meta"></p>
-    <button id="invite">Copy Invite Message</button>
+    <p id="stats-note" class="meta foot"></p>
+    <div class="sechead"><h2>People</h2><button id="invite" class="link" type="button">Copy Invite</button></div>
     <div class="seg filter" id="people-filter" role="group" aria-label="Show people">
       <button data-filter="all" aria-pressed="true">All</button>
       <button data-filter="pending" aria-pressed="false">Waiting</button>
@@ -494,11 +565,14 @@
     </div>
     <input id="people-search" type="search" placeholder="Search People" hidden>
     <p id="admin-msg" class="msg muted" role="status"></p>
-    <div id="people"></div>
-    <h2>How Recent Alerts Did</h2>
-    <div id="stats-events"></div>
-    <h2>Recent Alerts Sent</h2>
-    <div id="alert-log"></div>
+    <div id="people" class="group"></div>
+    <h2>Recent On-Sale Alerts</h2>
+    <div id="stats-events" class="group"></div>
+    <p class="meta foot">Phones it reached, taps on Open on FIXR, and how long tickets lasted.</p>
+    <details class="group" id="log-box">
+      <summary class="rowline chev"><span>Every Alert Sent</span><span class="val" id="log-count"></span></summary>
+      <div id="alert-log"></div>
+    </details>
   </section>
 
   <section id="gate-install" class="screen gate center" aria-label="Add to Home Screen">
@@ -610,42 +684,23 @@
     <div class="group">
       <div class="rowline"><span>Signed In As</span><span class="val" id="acct-email"></span></div>
       <div class="rowline" id="plan-row" hidden><span>Plan</span><span class="val" id="acct-plan"></span></div>
+      <button id="manage-sub" class="rowbtn chev" type="button" hidden>Manage Subscription</button>
+      <label class="rowline"><span>Your Name</span><input id="my-name" class="inrow" type="text" autocomplete="name" maxlength="60" placeholder="Add Your Name"></label>
     </div>
-    <button id="manage-sub" class="secondary" type="button" hidden>Manage Subscription</button>
-    <label class="field-label" for="my-name">Your Name</label>
-    <input id="my-name" type="text" autocomplete="name" maxlength="60">
-    <button id="save-name" class="secondary" type="button">Save Name</button>
-    <p id="name-msg" class="msg muted" role="status"></p>
-    <button class="secondary signout" type="button">Sign Out</button>
+    <p id="name-msg" class="msg muted foot" role="status"></p>
     <h2>Your Alerts</h2>
     <div class="group" id="my-types">
       <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>
       <label class="rowline"><span>On Sale Soon</span><input class="switch" type="checkbox" data-type="on_sale_soon"></label>
       <label class="rowline"><span>Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
     </div>
-    <p class="muted" style="margin-top:14px">Pick nights, words or both. You get alerts for events that match any of them. Leave both empty to hear about every event.</p>
-    <div class="seg nights" id="my-nights" role="group" aria-label="Your nights"></div>
-    <label class="field-label" for="my-words">Words to Look For</label>
-    <input id="my-words" type="text" maxlength="200" autocapitalize="none" placeholder="For example: sketch, boujee">
-    <p class="meta">Separate words with commas.</p>
-    <button id="save-alerts" class="secondary" type="button">Save Your Alerts</button>
-    <p id="alerts-msg" class="msg muted" role="status"></p>
-    <div id="invite-box" hidden>
-      <h2>Invite Friends</h2>
-      <p class="muted" id="invite-text"></p>
-      <div class="linkbox" id="invite-link"></div>
-      <button id="invite-share" class="secondary" type="button">Share Your Link</button>
-      <p class="meta" id="invite-count"></p>
+    <div class="group">
+      <div class="block"><span class="blabel" id="nights-label">Nights</span><div class="seg nights" id="my-nights" role="group" aria-labelledby="nights-label"></div></div>
+      <label class="block"><span class="blabel">Words to Look For</span><input id="my-words" type="text" maxlength="200" autocapitalize="none" placeholder="For example: sketch, boujee"></label>
     </div>
-    <h2>Appearance</h2>
-    <div class="seg" id="theme" role="group" aria-label="Appearance">
-      <button data-mode="auto" aria-pressed="true">Auto</button>
-      <button data-mode="light" aria-pressed="false">Light</button>
-      <button data-mode="dark" aria-pressed="false">Dark</button>
-    </div>
-    <p class="muted">Auto follows your phone's setting. It is the only choice where the bar at the very top of the screen matches the app.</p>
+    <p class="meta foot">You get alerts for events on your nights or with your words in the name. Leave both empty to hear about every event. Separate words with commas.</p>
+    <p id="alerts-msg" class="msg muted foot" role="status"></p>
     <h2>Quiet Hours</h2>
-    <p class="muted">Alerts that arrive during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
     <div class="group">
       <label class="rowline"><span>Use Quiet Hours</span><input class="switch" type="checkbox" id="quiet-on"></label>
       <div class="row2">
@@ -653,25 +708,43 @@
         <label>To<input type="time" id="quiet-end" value="08:00"></label>
       </div>
     </div>
-    <button id="quiet-save" class="secondary">Save Quiet Hours</button>
-    <p id="quiet-msg" class="msg muted" role="status"></p>
-    <h2>Check This Phone</h2>
-    <p class="muted">Shows a notification on this phone only. Your PC's own test is <b>py timepiece_watcher.py --test-push</b>.</p>
-    <button id="test">Send Test Notification</button>
-    <h2>Fix My Alerts</h2>
-    <p class="muted">Checks everything that has to work for alerts to reach this phone.</p>
-    <button id="diagnose" class="secondary">Run Check</button>
+    <p class="meta foot">Alerts during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
+    <p id="quiet-msg" class="msg muted foot" role="status"></p>
+    <div id="invite-box" hidden>
+      <h2>Invite Friends</h2>
+      <div class="group">
+        <div class="rowline"><span class="linkbox" id="invite-link"></span></div>
+        <button id="invite-share" class="rowbtn accent" type="button">Share Your Link</button>
+      </div>
+      <p class="meta foot" id="invite-text"></p>
+      <p class="meta foot" id="invite-count"></p>
+    </div>
+    <h2>Appearance</h2>
+    <div class="seg" id="theme" role="group" aria-label="Appearance">
+      <button data-mode="auto" aria-pressed="true">Auto</button>
+      <button data-mode="light" aria-pressed="false">Light</button>
+      <button data-mode="dark" aria-pressed="false">Dark</button>
+    </div>
+    <p class="meta foot">Auto follows your phone, and is the only choice where the bar at the very top matches the app.</p>
+    <h2>Help</h2>
+    <div class="group">
+      <button id="test" class="rowbtn chev" type="button">Send a Test Notification</button>
+      <button id="diagnose" class="rowbtn chev" type="button">Check Why Alerts Aren't Arriving</button>
+      <details>
+        <summary class="rowbtn chev">Make Alerts Loud on iPhone</summary>
+        <p class="muted guide-intro">A web app can't override silent mode by itself. Set this up once:</p>
+        <ol class="guide">
+          <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
+          <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
+          <li>If you see Time Sensitive Notifications, turn it on.</li>
+          <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow this app.</li>
+          <li>Leave the ringer switch on if you want sound.</li>
+        </ol>
+      </details>
+    </div>
     <ul class="steps" id="diag"></ul>
     <p class="muted" id="diag-note"></p>
-    <h2>Make Alerts Loud on iPhone</h2>
-    <p class="muted">A web app can't override silent mode by itself. Set this up once:</p>
-    <ol class="guide group">
-      <li>Add the app to your Home Screen (Share, then Add to Home Screen) and open it from there.</li>
-      <li>In Settings, go to Notifications, then the app. Turn on Allow Notifications and Sounds, and set Banner Style to Persistent.</li>
-      <li>If you see Time Sensitive Notifications, turn it on.</li>
-      <li>In Settings, go to Focus. In each Focus you use (Sleep, Do Not Disturb), open Apps and allow this app.</li>
-      <li>Leave the ringer switch on if you want sound.</li>
-    </ol>
+    <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
   </section>
 </main>
 </div>
