@@ -535,7 +535,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 68;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 69;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -788,9 +788,13 @@ $("diag-again").onclick = runCheck;
 
 // ---- Pages opened from a row (data-page), with Back (data-back) and a swipe from the left edge, like iPhone apps.
 // The tab they came from stays lit; any tab button leaves them. ----
+const scrollMemo = {};   // where each page was scrolled to when a sub-page opened over it
 function showScreen(id) {
+  const main = document.querySelector("main"), from = document.querySelector(".screen.active");
+  const back = from?.dataset.back === id;   // leaving a sub-page for the page it came from
+  if (from && !back) scrollMemo[from.id] = main.scrollTop;
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
-  document.querySelector("main").scrollTop = 0;
+  main.scrollTop = back ? scrollMemo[id] || 0 : 0;
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-page], button.back[data-back]");
