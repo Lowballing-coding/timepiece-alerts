@@ -525,7 +525,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 66;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 67;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -563,7 +563,9 @@ function fillQuiet() {
   const on = !!(profile && profile.quiet_start && profile.quiet_end);
   $("quiet-on").checked = on;
   if (on) { $("quiet-start").value = profile.quiet_start; $("quiet-end").value = profile.quiet_end; }
+  quietVal();
 }
+const quietVal = () => { $("quiet-val").textContent = profile && profile.quiet_start && profile.quiet_end ? `${profile.quiet_start.slice(0, 5)} to ${profile.quiet_end.slice(0, 5)}` : "Off"; };
 const inQuiet = (start, end) => {
   const t = new Date().toTimeString().slice(0, 5);
   return start <= end ? start <= t && t < end : t >= start || t < end;
@@ -578,7 +580,7 @@ const saveQuiet = async () => {
   try {
     await patchProfile(session.user.id, fields);
     if (!profile) return;
-    Object.assign(profile, fields); store.set("tp-profile", profile);
+    Object.assign(profile, fields); store.set("tp-profile", profile); quietVal();
     msg.textContent = on ? "Quiet hours saved." : "Quiet hours are off.";
   } catch (e) { msg.className = "msg error foot"; msg.textContent = e.message; if (profile) fillQuiet(); }
 };
@@ -629,7 +631,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) flush
 // ---- Invite friends: a friend who signs up with your link gets an extra free week, and so do you while you're on free time ----
 function fillInvite() {
   const code = profile && profile.ref_code;
-  $("invite-box").hidden = !code;
+  $("invite-box").hidden = $("invite-open").hidden = !code;
   if (!code) return;
   const rewarded = profile.access === "free" || profile.access === "lapsed" || (profile.access === "comped" && profile.comped_until);
   $("invite-text").textContent = profile.access === "lapsed"
@@ -640,6 +642,7 @@ function fillInvite() {
   $("invite-link").textContent = inviteLink();
   const n = profile.referrals || 0;
   $("invite-count").textContent = n ? `${n} ${n === 1 ? "friend has" : "friends have"} joined with your link.` : "";
+  $("invite-val").textContent = n ? `${n} Joined` : "";
 }
 $("invite-share").onclick = async () => {
   const text = `I get Timepiece ticket alerts from TP Notify. Sign up with my link and your free month gets an extra week: ${inviteLink()}`;
@@ -737,7 +740,7 @@ $("install-copy").onclick = async () => {
 };
 
 // ---- Fix My Alerts: checks each link in the chain and says how to repair the broken one ----
-$("diagnose").onclick = async () => {
+async function runCheck() {
   const rows = [], add = (ok, label, fix) => rows.push({ ok, label, fix });
   $("diag").innerHTML = '<li class="muted">Checking...</li>'; $("diag-note").textContent = "";
   add(standalone(), "Opened from the Home Screen icon", "Add the app to your Home Screen and open it from there.");
@@ -765,15 +768,51 @@ $("diagnose").onclick = async () => {
   $("diag").innerHTML = rows.map((r) => `<li class="${r.ok ? "done" : "bad"}"><span class="mark">${r.ok ? "\u2713" : "!"}</span>
     <span>${esc(r.label)}${r.ok ? "" : `<span class="fix">${esc(r.fix)}</span>`}</span></li>`).join("");
   $("diag-note").textContent = note;
-};
+}
+$("diagnose").addEventListener("click", runCheck);
+$("diag-again").onclick = runCheck;
 
-// ---- Make Alerts Loud: its own page, opened from Settings (the Settings tab stays lit) ----
+// ---- Pages opened from a row (data-page), with Back (data-back) and a swipe from the left edge, like iPhone apps.
+// The tab they came from stays lit; any tab button leaves them. ----
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
   document.querySelector("main").scrollTop = 0;
 }
-$("loud-open").onclick = () => showScreen("loud");
-$("loud-back").onclick = () => showScreen("settings");
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-page], button.back[data-back]");
+  if (b) showScreen(b.dataset.page || b.dataset.back);
+});
+let edge = null;   // a swipe that started at the left edge of a page
+const mainEl = document.querySelector("main");
+mainEl.addEventListener("touchstart", (e) => {
+  const page = document.querySelector(".screen.sub.active");
+  edge = page && e.touches.length === 1 && e.touches[0].clientX < 30 ? { page, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false } : null;
+}, { passive: true });
+mainEl.addEventListener("touchmove", (e) => {
+  if (!edge) return;
+  const dx = e.touches[0].clientX - edge.x, dy = e.touches[0].clientY - edge.y;
+  if (!edge.on) {
+    if (Math.abs(dy) > 10 && Math.abs(dy) > dx) { edge = null; return; }   // scrolling, not swiping
+    if (dx < 10) return;
+    edge.on = true; edge.page.style.transition = "none";
+  }
+  edge.dx = Math.max(0, dx);
+  edge.page.style.transform = `translateX(${edge.dx}px)`;
+  edge.page.style.opacity = String(1 - edge.dx / innerWidth / 2);
+}, { passive: true });
+const edgeEnd = () => {
+  if (!edge) return;
+  const { page, dx, on } = edge;
+  edge = null;
+  if (!on) return;
+  const back = dx > innerWidth / 3;
+  page.style.transition = "transform .2s ease-out, opacity .2s ease-out";
+  page.style.transform = back ? `translateX(${innerWidth}px)` : "";
+  page.style.opacity = back ? "0" : "";
+  setTimeout(() => { page.style.transition = page.style.transform = page.style.opacity = ""; if (back) showScreen(page.dataset.back); }, 200);
+};
+mainEl.addEventListener("touchend", edgeEnd);
+mainEl.addEventListener("touchcancel", edgeEnd);
 
 // ---- Theme (Auto / Light / Dark; default Auto, because the iPhone status bar always follows the phone) ----
 function savedMode() { try { return localStorage.getItem("tp-theme") || "auto"; } catch { return "auto"; } }
@@ -916,7 +955,7 @@ function showApp() {
   hideSplash();
   if (store.get("tp-got-pending") === null) store.set("tp-got-pending", store.get("tp-got") || {});   // answers from before v62 lived only on the phone
   sendGot();
-  $("quiet-msg").after($("invite-box"));   // back in Settings, if the ended screen borrowed it
+  $("invite-page").append($("invite-box"));   // back on its page, if the ended screen borrowed it
   $("tabs").hidden = false;
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
@@ -1128,8 +1167,9 @@ function ago(iso) {
   const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
   if (s < 90) return "just now";
   if (s < 3600) return `${Math.round(s / 60)} minutes ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
-  return `${Math.round(s / 86400)} days ago`;
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? "" : "s"} ago`;
+  if (s < 86400) return n(Math.round(s / 3600), "hour");
+  return n(Math.round(s / 86400), "day");
 }
 // Everyone sees a live line on Alerts ("Live: checked 40 seconds ago"). When the watcher is down, it says when it last
 // worked, in this phone's own time zone; the admin also gets that as a card on the Admin tab.

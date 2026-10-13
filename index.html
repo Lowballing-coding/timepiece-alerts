@@ -297,17 +297,12 @@
   .rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; margin: 0; padding: 14px 16px;
     border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--text); font: 400 17px/1.3 var(--sans);
     text-align: left; cursor: pointer; }
-  .group > .rowbtn:first-child, .group > details:first-child > .rowbtn { border-top: 0; }
+  .group > .rowbtn:first-child { border-top: 0; }
+  .rowbtn .val { margin-left: auto; color: var(--muted); font-size: 15px; }
   .rowbtn:active { background: var(--surface-2); }
   .rowbtn.accent { color: var(--accent); font-weight: 500; }
   .rowbtn.danger { color: var(--problem); justify-content: center; font-weight: 500; }
   .chev::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); margin-right: 4px; }
-  details > summary.chev::after { transform: rotate(45deg); margin-top: -4px; }
-  details[open] > summary.chev::after { transform: rotate(-135deg); margin-top: 4px; }
-  summary { list-style: none; }
-  summary::-webkit-details-marker { display: none; }
-  details > summary.rowline { cursor: pointer; }
-  details > summary.rowline .val { margin-left: auto; }
   /* Typing straight into a row (Your Name). */
   .rowline input.inrow { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; text-align: right; font-size: 17px; }
   .rowline input.inrow:focus { box-shadow: none; }
@@ -427,8 +422,10 @@
     .trow > :nth-child(2) { grid-column: 2; }
   }
   /* Every alert sent: folded away under a row. */
-  #log-box .logrow { padding: 11px 16px; }
-  #log-box .swipe > .alert { background: var(--surface); }
+  #alert-log .logrow { padding: 11px 16px; }
+  #alert-log .swipe > .alert { background: var(--surface); }
+  #alert-log > .swipe:first-child .logrow { border-top: 0; }
+  #invite-page #invite-box > h2 { display: none; }   /* the page title says it */
   /* Free-month upgrade card on the Alerts tab. */
   .upsell { background: var(--surface); border: 1px solid var(--coral); border-radius: var(--r-m); padding: 14px 16px; margin: 14px 0 6px; }
   .upsell p { margin: 0; font-size: 15px; }
@@ -574,10 +571,14 @@
     <h2>Recent On-Sale Alerts</h2>
     <div id="stats-events" class="group"></div>
     <p class="meta foot">Phones it reached, taps on Open on FIXR, and how long tickets lasted.</p>
-    <details class="group" id="log-box">
-      <summary class="rowline chev"><span>Every Alert Sent</span><span class="val" id="log-count"></span></summary>
-      <div id="alert-log"></div>
-    </details>
+    <div class="group"><button class="rowbtn chev" type="button" data-page="log-page"><span>Every Alert Sent</span><span class="val" id="log-count"></span></button></div>
+  </section>
+
+  <section id="log-page" class="screen sub" data-back="admin" aria-label="Every Alert Sent">
+    <button class="back" type="button" data-back="admin">Admin</button>
+    <h2 class="title">Every Alert Sent</h2>
+    <div class="group" id="alert-log"></div>
+    <p class="meta foot">Swipe a row left to hide it on this phone.</p>
   </section>
 
   <section id="gate-install" class="screen gate center" aria-label="Add to Home Screen">
@@ -691,6 +692,7 @@
       <div class="rowline" id="plan-row" hidden><span>Plan</span><span class="val" id="acct-plan"></span></div>
       <button id="manage-sub" class="rowbtn chev" type="button" hidden>Manage Subscription</button>
       <label class="rowline"><span>Your Name</span><input id="my-name" class="inrow" type="text" autocomplete="name" maxlength="60" placeholder="Add Your Name"></label>
+      <button id="invite-open" class="rowbtn chev" type="button" data-page="invite-page" hidden><span>Invite Friends</span><span class="val" id="invite-val"></span></button>
     </div>
     <p id="name-msg" class="msg muted foot" role="status"></p>
     <h2>Your Alerts</h2>
@@ -705,25 +707,7 @@
     </div>
     <p class="meta foot">You get alerts for events on your nights or with your words in the name. Leave both empty to hear about every event. Separate words with commas.</p>
     <p id="alerts-msg" class="msg muted foot" role="status"></p>
-    <h2>Quiet Hours</h2>
-    <div class="group">
-      <label class="rowline"><span>Use Quiet Hours</span><input class="switch" type="checkbox" id="quiet-on"></label>
-      <div class="row2">
-        <label>From<input type="time" id="quiet-start" value="23:00"></label>
-        <label>To<input type="time" id="quiet-end" value="08:00"></label>
-      </div>
-    </div>
-    <p class="meta foot">Alerts during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
-    <p id="quiet-msg" class="msg muted foot" role="status"></p>
-    <div id="invite-box" hidden>
-      <h2>Invite Friends</h2>
-      <div class="group">
-        <div class="rowline"><span class="linkbox" id="invite-link"></span></div>
-        <button id="invite-share" class="rowbtn accent" type="button">Share Your Link</button>
-      </div>
-      <p class="meta foot" id="invite-text"></p>
-      <p class="meta foot" id="invite-count"></p>
-    </div>
+    <div class="group"><button class="rowbtn chev" type="button" data-page="quiet-page"><span>Quiet Hours</span><span class="val" id="quiet-val"></span></button></div>
     <h2>Appearance</h2>
     <div class="seg" id="theme" role="group" aria-label="Appearance">
       <button data-mode="auto" aria-pressed="true">Auto</button>
@@ -734,16 +718,51 @@
     <h2>Help</h2>
     <div class="group">
       <button id="test" class="rowbtn chev" type="button">Send a Test Notification</button>
-      <button id="diagnose" class="rowbtn chev" type="button">Check Why Alerts Aren't Arriving</button>
-      <button id="loud-open" class="rowbtn chev" type="button">Make Alerts Loud on iPhone</button>
+      <button id="diagnose" class="rowbtn chev" type="button" data-page="check-page">Check Why Alerts Aren't Arriving</button>
+      <button class="rowbtn chev" type="button" data-page="loud">Make Alerts Loud on iPhone</button>
     </div>
-    <ul class="steps" id="diag"></ul>
-    <p class="muted" id="diag-note"></p>
     <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
   </section>
 
-  <section id="loud" class="screen sub" aria-label="Make Alerts Loud on iPhone">
-    <button id="loud-back" class="back" type="button">Settings</button>
+  <section id="quiet-page" class="screen sub" data-back="settings" aria-label="Quiet Hours">
+    <button class="back" type="button" data-back="settings">Settings</button>
+    <h2 class="title">Quiet Hours</h2>
+    <div class="group">
+      <label class="rowline"><span>Use Quiet Hours</span><input class="switch" type="checkbox" id="quiet-on"></label>
+      <div class="row2">
+        <label>From<input type="time" id="quiet-start" value="23:00"></label>
+        <label>To<input type="time" id="quiet-end" value="08:00"></label>
+      </div>
+    </div>
+    <p class="meta foot">Alerts during these hours are skipped, not saved for later. Anything you miss still shows on the Alerts tab.</p>
+    <p id="quiet-msg" class="msg muted foot" role="status"></p>
+  </section>
+
+  <section id="invite-page" class="screen sub" data-back="settings" aria-label="Invite Friends">
+    <button class="back" type="button" data-back="settings">Settings</button>
+    <h2 class="title">Invite Friends</h2>
+    <div id="invite-box" hidden>
+      <h2>Invite Friends</h2>
+      <div class="group">
+        <div class="rowline"><span class="linkbox" id="invite-link"></span></div>
+        <button id="invite-share" class="rowbtn accent" type="button">Share Your Link</button>
+      </div>
+      <p class="meta foot" id="invite-text"></p>
+      <p class="meta foot" id="invite-count"></p>
+    </div>
+  </section>
+
+  <section id="check-page" class="screen sub" data-back="settings" aria-label="Check Why Alerts Aren't Arriving">
+    <button class="back" type="button" data-back="settings">Settings</button>
+    <h2 class="title">Alert Check</h2>
+    <p class="muted">Each thing that has to work for alerts to reach this phone.</p>
+    <ul class="steps" id="diag"></ul>
+    <p class="muted" id="diag-note"></p>
+    <button id="diag-again" class="secondary" type="button">Check Again</button>
+  </section>
+
+  <section id="loud" class="screen sub" data-back="settings" aria-label="Make Alerts Loud on iPhone">
+    <button class="back" type="button" data-back="settings">Settings</button>
     <h2 class="title">Make Alerts Loud</h2>
     <p class="muted">A web app can't override silent mode by itself. Set this up once on your iPhone:</p>
     <div class="group"><ol class="guide">
