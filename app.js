@@ -535,7 +535,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 72;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 73;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -545,6 +545,8 @@ async function checkForUpdate() {
 $("update-now").onclick = () => { flushSaves(); location.reload(); };
 checkForUpdate();
 setInterval(checkForUpdate, 15 * 60e3);
+// On a computer the page is a centre column: the mouse wheel over the empty sides scrolls it too.
+addEventListener("wheel", (e) => { if (e.target === document.body) document.querySelector("main").scrollBy(0, e.deltaY); }, { passive: true });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 
 // ---- Short-page fix: a Home Screen app whose page is a little shorter than the screen (seen on an iOS beta) ----
