@@ -133,6 +133,8 @@
   h1 { margin: 0; font: 400 22px/1 var(--serif); letter-spacing: -.3px; }
   /* #stage holds the tab pages (main). */
   #stage { flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; position: relative; overflow: hidden; }
+  * { scrollbar-width: none; }   /* no scroll bars anywhere (scrolling still works), mainly for the computer app */
+  *::-webkit-scrollbar { display: none; }
   main {
     height: 100%; width: 100%;
     overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
