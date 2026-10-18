@@ -544,7 +544,7 @@
     <p class="muted">Three steps to get alerts on this device.</p>
     <ul class="steps" id="checklist"></ul>
     <button id="enable">Turn On Notifications</button>
-    <button id="download-pc" class="secondary install-pc" type="button" hidden>Download TP Notify for This Computer</button>
+    <button id="download-pc" class="secondary install-pc" type="button" data-msg="setup-msg" hidden>Download TP Notify for This Computer</button>
     <p id="setup-msg" class="muted" role="status"></p>
   </section>
 
@@ -695,6 +695,11 @@
       <button id="invite-open" class="rowbtn chev" type="button" data-page="invite-page" hidden><span>Invite Friends</span><span class="val" id="invite-val"></span></button>
     </div>
     <p id="name-msg" class="msg muted foot" role="status"></p>
+    <div id="download-pc-group" hidden>
+      <h2>This Computer</h2>
+      <div class="group"><button id="download-pc2" class="rowbtn chev install-pc" type="button" data-msg="download-msg">Download TP Notify for This Computer</button></div>
+      <p id="download-msg" class="msg muted foot" role="status"></p>
+    </div>
     <h2>Your Alerts</h2>
     <div class="group" id="my-types">
       <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>

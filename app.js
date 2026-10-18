@@ -535,7 +535,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 70;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 71;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -735,11 +735,12 @@ $("install-go").onclick = async () => {
   if (choice.outcome !== "accepted") { $("install-msg").className = "msg"; $("install-msg").textContent = "No problem. Tap Add to Home Screen when you're ready."; }
   installPrompt = null; $("install-go").hidden = true;
 };
-const pcButtons = (hide) => document.querySelectorAll(".install-pc").forEach((b) => { b.hidden = hide; });
+const pcButtons = (hide) => { document.querySelectorAll(".install-pc").forEach((b) => { b.hidden = hide; }); if (hide) $("download-pc-group").hidden = true; };
+{ const { ios, android } = device(); $("download-pc-group").hidden = ios || android || standalone(); }   // Settings keeps a download button on computers after Setup hides itself
 document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => {
   if (!installPrompt) {   // the browser hasn't offered one-click install: say how to do it by hand
-    const ua = navigator.userAgent, edge = /Edg\//.test(ua);
-    $("setup-msg").textContent = /Firefox\//.test(ua) ? "Firefox can't install apps. Open TP Notify in Chrome or Edge, then click Download again."
+    const ua = navigator.userAgent, edge = /Edg\//.test(ua), other = /Firefox\//.test(ua) ? "Firefox" : /OPR\//.test(ua) ? "Opera" : "";
+    $(b.dataset.msg || "setup-msg").textContent = other ? `${other} can't install apps. Open TP Notify in Microsoft Edge (it comes with Windows) or Chrome, then click Download again.`
       : /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua) ? "In Safari's menu bar, choose File, then Add to Dock."
       : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your desktop or Start menu.`;
     return;
