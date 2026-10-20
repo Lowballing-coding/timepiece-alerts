@@ -148,7 +148,6 @@
   .tick { stroke: var(--muted); }
   .sweepline { stroke: var(--on); }
   .hub { fill: var(--coral); }
-  .dot { fill: var(--on); }
 
   /* ===== Buttons: coral primary, outline secondary, red destructive ===== */
   .go, button {
@@ -499,20 +498,10 @@
 </head>
 <body>
 <div id="splash" aria-hidden="true">
-  <svg viewBox="88 88 336 336">
-    <path class="ring" d="M399 210.7A150 150 0 1 1 301.4 113" stroke-width="34" stroke-linecap="round"/>
-    <circle class="dot" cx="362.1" cy="149.9" r="36"/>
-    <path class="hand" d="M256 256L326.7 185.3" stroke-width="26"/>
-    <circle class="hub" cx="256" cy="256" r="22"/>
-  </svg>
+  <svg viewBox="5 5 54 54"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#c8ff2e"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#0c0c0e" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#0c0c0e"/></svg>
 </div>
 <header>
-  <svg viewBox="88 88 336 336" aria-hidden="true">
-    <path class="ring" d="M399 210.7A150 150 0 1 1 301.4 113" stroke-width="34" stroke-linecap="round"/>
-    <circle class="dot" cx="362.1" cy="149.9" r="36"/>
-    <path class="hand" d="M256 256L326.7 185.3" stroke-width="26"/>
-    <circle class="hub" cx="256" cy="256" r="22"/>
-  </svg>
+  <svg viewBox="5 5 54 54" aria-hidden="true"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#c8ff2e"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#0c0c0e" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#0c0c0e"/></svg>
   <h1>TP Notify</h1>
 </header>
 <div id="update-bar" role="status" hidden>
