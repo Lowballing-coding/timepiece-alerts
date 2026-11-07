@@ -23,7 +23,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0c0c0e">
+<meta name="theme-color" content="#0c0916">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TP Notify">
@@ -39,38 +39,43 @@
   })();
 </script>
 <style>
-  /* ===== Fonts: the "Night out" kit's three faces, self-hosted (the security policy only allows this site) ===== */
-  @font-face { font-family: "Big Shoulders Display"; src: url(fonts/big-shoulders-display.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+  /* ===== Fonts: Unbounded for headlines, Schibsted Grotesk for everything else, self-hosted (the security policy only allows this site) ===== */
+  @font-face { font-family: "Unbounded"; src: url(fonts/unbounded.woff2) format("woff2"); font-weight: 200 900; font-display: swap; }
   @font-face { font-family: "Schibsted Grotesk"; src: url(fonts/schibsted-grotesk.woff2) format("woff2"); font-weight: 400 900; font-display: swap; }
-  @font-face { font-family: "IBM Plex Mono"; src: url(fonts/ibm-plex-mono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
 
-  /* ===== "Night out" design tokens (same values as the website's tokens.css). Lime = live, on sale, or the main
-     thing to tap. UV = coming soon. Red = only errors and deleting. Every colour comes with words. ===== */
+  /* ===== "Afterglow" design tokens (same values as the website's tokens.css): a club night after dark. Gold is rare on
+     purpose: it only means on sale now, or live. Violet is anything you tap or switch on. Red = only errors and deleting.
+     Every colour comes with words. Cards are solid (not see-through) so the red Delete never shows through a swipe. ===== */
   :root, :root[data-theme="dark"] {
-    --bg: #0c0c0e; --surface: #16161a; --surface-2: #212127; --line: #2e2e36; --line-strong: #6a6a76;
-    --text: #f4f2ec; --muted: #a3a19b;
-    --signal: #c8ff2e; --on-signal: #0c0c0e; --signal-ink: #c8ff2e; --signal-soft: #1f2a06;
-    --action: #c8ff2e; --on-action: #0c0c0e;
-    --uv: #9580ff; --uv-ink: #a99aff; --uv-soft: #1f1a3d;
-    --danger: #ff6b5e; --on-danger: #0c0c0e; --danger-ink: #ff8075; --danger-soft: #3a1411;
-    --focus: #c8ff2e; --glow: 0 0 0 1px #c8ff2e40, 0 12px 40px #c8ff2e1f; --scrim: rgba(0, 0, 0, .62);
+    --bg: #0c0916; --surface: #1a1628; --surface-2: #241f35; --line: #2f2944; --line-strong: #625a80;
+    --text: #f8f6ff; --muted: #a9a3c4;
+    --signal: #ffc95c; --on-signal: #140d22; --signal-ink: #ffd88a; --signal-soft: rgba(255, 201, 92, .14);
+    --edge: rgba(255, 201, 92, .45); --stub: linear-gradient(160deg, rgba(150, 110, 255, .3), rgba(150, 110, 255, .12));
+    --action: linear-gradient(135deg, #6c46e8, #9461fb); --on-action: #ffffff;
+    --uv: #7650ee; --uv-ink: #c0aaff; --uv-soft: rgba(150, 110, 255, .22);
+    --danger: #ff6b5e; --on-danger: #0c0916; --danger-ink: #ff8075; --danger-soft: rgba(255, 107, 94, .16);
+    --focus: #c0aaff; --glow: 0 0 0 1px rgba(255, 201, 92, .1), 0 16px 48px rgba(150, 110, 255, .18); --scrim: rgba(0, 0, 0, .62);
+    --glass: rgba(255, 255, 255, .035);
+    --wash: radial-gradient(900px 520px at 88% -8%, rgba(138, 92, 255, .38), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 79, 160, .16), transparent 60%);
     color-scheme: dark;
   }
   :root[data-theme="light"] {
-    --bg: #f6f5f0; --surface: #ffffff; --surface-2: #ecebe5; --line: #dcdad2; --line-strong: #8a877d;
-    --text: #0c0c0e; --muted: #5d5b55;
-    --signal: #c8ff2e; --on-signal: #0c0c0e; --signal-ink: #3b5700; --signal-soft: #eaf8c4;
-    --action: #0c0c0e; --on-action: #c8ff2e;
-    --uv: #5b3fe0; --uv-ink: #4a2fd0; --uv-soft: #ebe7ff;
+    --bg: #f6f3fb; --surface: #ffffff; --surface-2: #f1edf9; --line: #e3ddf0; --line-strong: #8f85a8;
+    --text: #1a1030; --muted: #675f7d;
+    --signal: #ffc23d; --on-signal: #1a1030; --signal-ink: #7d5200; --signal-soft: rgba(255, 194, 61, .2);
+    --edge: rgba(214, 150, 30, .55); --stub: linear-gradient(160deg, rgba(118, 80, 238, .16), rgba(118, 80, 238, .06));
+    --action: linear-gradient(135deg, #6c46e8, #9461fb); --on-action: #ffffff;
+    --uv: #6a3fe0; --uv-ink: #5a2fd0; --uv-soft: rgba(118, 80, 238, .12);
     --danger: #c8241a; --on-danger: #ffffff; --danger-ink: #b3201a; --danger-soft: #fde8e5;
-    --focus: #5b3fe0; --glow: 0 1px 2px #0c0c0e14, 0 12px 32px #0c0c0e1a; --scrim: rgba(12, 12, 14, .45);
+    --focus: #6a3fe0; --glow: 0 0 0 1px rgba(214, 150, 30, .12), 0 14px 36px rgba(118, 80, 238, .14); --scrim: rgba(26, 16, 48, .45);
+    --glass: rgba(255, 255, 255, .55);
+    --wash: radial-gradient(900px 520px at 88% -8%, rgba(150, 110, 255, .22), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 173, 85, .18), transparent 60%);
     color-scheme: light;
   }
   :root {
-    --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+    --display: "Unbounded", "Schibsted Grotesk", system-ui, sans-serif;
     --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-    --r-s: 8px; --r-m: 12px; --r-l: 16px;
+    --r-s: 12px; --r-m: 16px; --r-l: 22px;
     --side: 248px;   /* the sidebar on computers */
   }
 
@@ -81,19 +86,20 @@
   body {
     margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
     display: flex; flex-direction: column;
-    background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+    background: var(--wash), var(--bg); color: var(--text); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
   }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
   [hidden] { display: none !important; }
   p { margin: 6px 0; }
-  a { color: var(--signal-ink); }
-  /* Page titles are the kit's display face; section headings are small mono labels, so the page reads in a clear order. */
-  h2 { font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 32px 2px 0; }
-  .title { font: 800 46px/.92 var(--display); letter-spacing: .01em; text-transform: uppercase; color: var(--text); margin: 14px 0 6px; }
+  a { color: var(--uv-ink); }
+  /* Page titles are the wide display face; section headings are small spaced-out labels, so the page reads in a clear order. */
+  h2 { font: 600 11px/16px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 32px 2px 0; }
+  .title { font: 700 40px/1 var(--display); letter-spacing: -.02em; text-transform: none; color: var(--text); margin: 14px 0 6px; }
   .muted { color: var(--muted); font-size: 15px; }
   .meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
   .pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
   .pagehead .title { margin-bottom: 6px; }
+  .title, .tbody h3, .empty h2, .gate h2, .panel h3, .auth-brand .big { text-wrap: balance; }   /* a long title breaks into even lines, not one word alone */
   .lede { margin: 2px 0 0; max-width: 640px; }
   /* Mouse or touch: a few hints only make sense for one of them. */
   @media (hover: hover) and (pointer: fine) { .touch-only { display: none; } }
@@ -103,10 +109,10 @@
   header {
     flex: none; width: 100%; max-width: 640px; margin: 0 auto;
     display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 20px 4px;
-    position: relative; z-index: 1; background: var(--bg);
+    position: relative; z-index: 1;
   }
   header svg { width: 28px; height: 28px; flex: none; }
-  h1 { margin: 0; font: 800 25px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+  h1 { margin: 0; font: 700 17px/1 var(--display); letter-spacing: -.01em; }
   /* #stage holds the tab pages (main). */
   #stage { flex: 1; min-height: 0; width: 100%; position: relative; overflow: hidden; }
   * { scrollbar-width: none; }   /* no scroll bars anywhere (scrolling still works), mainly for the computer app */
@@ -126,14 +132,14 @@
   .sweepline { stroke: var(--signal); }
   .hub { fill: var(--signal); }
 
-  /* ===== Buttons: lime (black in light mode) for the main action, outline for the rest, red only to delete ===== */
+  /* ===== Buttons: violet pills for the main action, outline for the rest, red only to delete ===== */
   .go, button {
     display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px;
-    border: 1px solid transparent; border-radius: var(--r-s); background: var(--action); color: var(--on-action);
-    font: 600 16px/1.2 var(--sans); text-align: center; text-decoration: none; padding: 12px 16px; margin: 14px 0 0; cursor: pointer;
+    border: 1px solid transparent; border-radius: 99px; background: var(--action); color: var(--on-action);
+    font: 700 16px/1.2 var(--sans); text-align: center; text-decoration: none; padding: 12px 16px; margin: 14px 0 0; cursor: pointer;
   }
   button:active, .go:active { opacity: .85; }
-  button.secondary, .go.secondary { background: transparent; color: var(--text); border-color: var(--line-strong); }
+  button.secondary, .go.secondary { background: var(--glass); color: var(--text); border-color: var(--line-strong); font-weight: 600; }
   button:disabled { opacity: .45; cursor: default; }
   button.small { width: auto; min-height: 40px; padding: 8px 14px; margin: 0 0 8px; font-size: 14px; }
   @media (hover: hover) {
@@ -141,9 +147,9 @@
     button.secondary:hover, .go.secondary:hover { background: var(--surface-2); }
   }
 
-  /* ===== Pills: mono labels. Colour always comes with the words. ===== */
-  .pill, .new { display: inline-flex; align-items: center; font: 500 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase;
-    padding: 3px 9px; border-radius: 99px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+  /* ===== Pills: small spaced-out labels. Colour always comes with the words. ===== */
+  .pill, .new { display: inline-flex; align-items: center; font: 600 11px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 99px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
   .pill.on { background: var(--signal); color: var(--on-signal); }
   .pill.soon { background: var(--uv-soft); color: var(--uv-ink); }
   .pill.check { background: transparent; box-shadow: inset 0 0 0 1px var(--signal-ink); color: var(--signal-ink); }
@@ -152,7 +158,7 @@
   .new.missed { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); color: var(--muted); }
 
   /* ===== Alerts ===== */
-  .health { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; font: 500 12px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .health { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; font: 600 12px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .health::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
   .health.live { color: var(--signal-ink); }
   .health.live::before { background: var(--signal); animation: live 2.4s ease-in-out infinite; }
@@ -171,16 +177,16 @@
   .alert .line1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .alert h3 { margin: 6px 0 0; font: 600 17px/1.3 var(--sans); }
   .alert .when { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
-  .alert .at { font: 500 12px/16px var(--mono); letter-spacing: .04em; color: var(--muted); padding-top: 4px; }
+  .alert .at { font: 600 12px/16px var(--sans); letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--muted); padding-top: 4px; }
   /* Everything that isn't a ticket is a card with a date tile. */
   .alert.row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px 16px;
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); }
-  .tile { flex: none; width: 52px; padding: 6px 0 7px; border: 1px solid var(--line-strong); border-radius: var(--r-s); text-align: center; }
-  .tile span { display: block; font: 500 10px/14px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  .tile b { display: block; font: 800 26px/1 var(--display); margin: 1px 0; font-variant-numeric: tabular-nums; }
+  .tile { flex: none; width: 52px; padding: 6px 0 7px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 14px; text-align: center; }
+  .tile span { display: block; font: 600 10px/14px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tile b { display: block; font: 700 21px/1.1 var(--display); letter-spacing: -.02em; margin: 1px 0; font-variant-numeric: tabular-nums; }
   .tile.icon { height: 52px; display: grid; place-items: center; padding: 0; color: var(--muted); }
   .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  .alert.on_sale_soon .tile { border-color: var(--uv); }
+  .alert.on_sale_soon .tile { border-color: var(--uv); box-shadow: 0 0 18px rgba(150, 110, 255, .35); }
   .alert.on_sale_soon .tile.icon { color: var(--uv-ink); }
   .alert.problem .tile { border-color: var(--danger); }
   .alert.problem .tile.icon { color: var(--danger-ink); }
@@ -200,7 +206,7 @@
     background: var(--danger); color: var(--on-danger); font: 600 15px/1 var(--sans); display: flex; align-items: center; justify-content: flex-end; opacity: 0; }
   .swipe.open > .del, .swipe:has(> .alert[style*="translate"]) > .del { opacity: 1; }
   @media (hover: hover) and (pointer: fine) {
-    .swipe > .del { inset: 10px 10px auto auto; z-index: 2; width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: var(--r-s);
+    .swipe > .del { inset: 10px 10px auto auto; z-index: 2; width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 50%;
       background: var(--surface-2); color: var(--muted); font-size: 0; opacity: 0; transition: opacity .15s, background .15s; }
     .swipe > .del::before { content: "\00d7"; font: 400 22px/1 var(--sans); }
     .swipe:not(.tk) > .del { inset: auto 10px 10px auto; }
@@ -219,29 +225,27 @@
   .acts .share { flex: none; width: auto; margin: 0; padding: 12px 18px; }
   .event .acts .go, .event .acts .share { min-height: 44px; padding-block: 8px; font-size: 15px; }
 
-  /* The on-sale alert is a ticket: a lime stub, a perforation, and notches cut into the edge. */
+  /* The on-sale alert is a ticket: a gold edge, and a violet stub with the date in gold behind a perforation. */
   .alert.on_sale { padding: 0; margin: 0; }
   .ticket { position: relative; display: flex; min-height: 128px; background: var(--surface); color: var(--text);
-    border: 1px solid var(--signal); border-radius: var(--r-l); box-shadow: var(--glow); overflow: hidden; }
-  .ticket::before, .ticket::after { content: ""; position: absolute; z-index: 1; left: 77px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); }
-  .ticket::before { top: -9px; } .ticket::after { bottom: -9px; }
+    border: 1px solid var(--edge); border-radius: var(--r-l); box-shadow: var(--glow); overflow: hidden; }
   .stub { flex: none; width: 86px; padding: 14px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-    background: var(--signal); color: var(--on-signal); border-right: 2px dashed var(--bg); font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    background: var(--stub); color: var(--signal-ink); border-right: 1px dashed var(--edge); font: 700 11px/14px var(--sans); letter-spacing: .12em; text-transform: uppercase; }
   .stub span { display: block; }
-  .stub b { display: block; font: 800 46px/1 var(--display); letter-spacing: 0; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .stub b { display: block; font: 800 34px/1.05 var(--display); letter-spacing: -.03em; margin: 2px 0; font-variant-numeric: tabular-nums; }
   .tbody { flex: 1; min-width: 0; padding: 14px 16px 14px 18px; }
-  .tbody h3 { margin: 8px 0 0; font: 700 28px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
-  .tbody .when { font: 500 12px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; }
+  .tbody h3 { margin: 8px 0 0; font: 700 21px/1.15 var(--display); letter-spacing: -.02em; }
+  .tbody .when { font: 600 12px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; }
   .tbody .rec { color: var(--muted); font-size: 13px; line-height: 18px; margin: 6px 0 0; }
   /* Sold out: the stub greys out and the ticket loses its glow, with a "Now Sold Out" tag. */
   .alert.sold .ticket { border-color: var(--line); box-shadow: none; }
-  .alert.sold .stub { background: var(--surface-2); color: var(--muted); }
+  .alert.sold .stub { background: var(--surface-2); color: var(--muted); border-right-color: var(--line); }
   .alert.sold .tbody h3 { color: var(--muted); }
   /* "Did you get a ticket?" under an on-sale ticket. */
   .gotit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--muted); }
   .gotit span { flex: 1 1 100%; }
   .gotit button, .gotit .pillbtn { width: auto; min-height: 44px; padding: 8px 18px; margin: 0; font-size: 15px; }
-  .gotit .pillbtn { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: var(--r-s); color: var(--text); text-decoration: none; font-weight: 600; }
+  .gotit .pillbtn { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 99px; color: var(--text); text-decoration: none; font-weight: 600; }
   .alert.arrive, .tgroup:has(.arrive) { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
   @media (prefers-reduced-motion: reduce) { .alert.arrive, .tgroup:has(.arrive) { animation: none; } }
@@ -250,7 +254,7 @@
   /* ===== Empty state ===== */
   .empty { text-align: center; padding: 40px 12px 24px; }
   .empty svg { width: 140px; height: 140px; }
-  .empty h2, .gate h2 { font: 800 34px/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; color: var(--text); margin: 18px 0 8px; }
+  .empty h2, .gate h2 { font: 700 30px/1.05 var(--display); letter-spacing: -.02em; text-transform: none; color: var(--text); margin: 18px 0 8px; }
   .empty-line { padding: 16px 2px; color: var(--muted); }
   .sweep { transform-origin: 60px 60px; animation: sweep 60s linear infinite; }
   @keyframes sweep { to { transform: rotate(360deg); } }
@@ -271,7 +275,7 @@
   .meter i { height: 6px; border-radius: 3px; background: var(--line); }
   .meter.s0 i:nth-child(-n+1), .meter.s1 i:nth-child(-n+1) { background: var(--danger); }
   .meter.s2 i:nth-child(-n+2) { background: var(--muted); }
-  .meter.s3 i:nth-child(-n+3), .meter.s4 i:nth-child(-n+4) { background: var(--signal); }
+  .meter.s3 i:nth-child(-n+3), .meter.s4 i:nth-child(-n+4) { background: var(--uv); }
   #auth-hint { margin: 6px 0 0; }
   /* Visible labels above inputs (a placeholder alone disappears as you type). */
   label.field-label { display: block; margin-top: 16px; font-size: 14px; font-weight: 600; }
@@ -283,13 +287,13 @@
   .captcha { margin-top: 12px; }
   .captcha:empty { display: none; }
   label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
-  label.check input { display: inline-block; width: 20px; min-height: 0; height: 20px; margin: 0; padding: 0; accent-color: var(--signal); }
-  /* On and off switch: lime when on. */
+  label.check input { display: inline-block; width: 20px; min-height: 0; height: 20px; margin: 0; padding: 0; accent-color: var(--uv); }
+  /* On and off switch: violet when on. */
   input.switch { -webkit-appearance: none; appearance: none; display: block; flex: none; width: 48px; min-height: 0; height: 28px; margin: 0; padding: 0;
     border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line-strong); position: relative; cursor: pointer; transition: background .2s, border-color .2s; }
   input.switch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
-  input.switch:checked { background: var(--signal); border-color: var(--signal); }
-  input.switch:checked::before { transform: translateX(20px); background: var(--on-signal); }
+  input.switch:checked { background: var(--uv); border-color: var(--uv); }
+  input.switch:checked::before { transform: translateX(20px); background: #fff; }
   input.switch:focus { outline: 0; }
   input.switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { input.switch, input.switch::before { transition: none; } }
@@ -314,7 +318,7 @@
   .rowbtn .val { margin-left: auto; color: var(--muted); font-size: 15px; }
   .rowbtn:active { background: var(--surface-2); opacity: 1; }
   @media (hover: hover) { .rowbtn:hover, .person:hover, button.item:hover { background: var(--surface-2); } }
-  .rowbtn.accent { color: var(--signal-ink); font-weight: 600; }
+  .rowbtn.accent { color: var(--uv-ink); font-weight: 600; }
   .rowbtn.danger { color: var(--danger-ink); justify-content: center; font-weight: 600; }
   .chev::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); margin-right: 4px; }
   /* Typing straight into a row (Your Name). */
@@ -330,7 +334,7 @@
   .group .linkbox { margin: 0; padding: 0; border: 0; background: none; font-size: 15px; }
   /* A page opened from a row, with Back at the top. */
   button.back { display: inline-flex; align-items: center; gap: 8px; width: auto; min-height: 44px; margin: 6px 0 0 -2px; padding: 0 2px;
-    background: none; border: 0; color: var(--signal-ink); font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    background: none; border: 0; color: var(--uv-ink); font: 600 12px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
   button.back::before { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
   .screen.sub.active { animation: subin .25s ease-out; }
   .group > ol.guide { margin: 0; }
@@ -348,15 +352,15 @@
   .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
 
   /* ===== Segmented control (theme, Admin filter, nights) ===== */
-  .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); }
-  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--muted); font: 600 14px/1.2 var(--sans); flex: 1; width: auto; }
+  .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 26px; }
+  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border: 0; border-radius: 99px; background: transparent; color: var(--muted); font: 600 14px/1.2 var(--sans); flex: 1; width: auto; }
   .seg button:active { background: var(--surface-2); }
   @media (hover: hover) { .seg button:hover { color: var(--text); } }
   .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
   .seg.filter button { font-size: 13px; padding: 8px 2px; }
   .seg.nights { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }   /* two rows keep every day 44px+ wide on a phone */
-  .seg.nights button { min-height: 44px; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
-  .seg.nights button[aria-pressed="true"] { background: var(--signal); color: var(--on-signal); }
+  .seg.nights button { min-height: 44px; font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+  .seg.nights button[aria-pressed="true"] { background: var(--uv); color: #fff; }
   @media (min-width: 600px) { .seg.nights { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 
   /* ===== Setup steps and guides ===== */
@@ -365,8 +369,8 @@
   .steps li { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); }
   .steps li:first-child { border-top: 0; }
   .mark { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-strong); color: var(--muted);
-    display: grid; place-items: center; font: 800 17px/1 var(--display); flex: none; }
-  .steps .done .mark { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+    display: grid; place-items: center; font: 700 14px/1 var(--display); flex: none; }
+  .steps .done .mark { background: var(--uv); border-color: var(--uv); color: #fff; }
   .steps .bad .mark { border-color: var(--danger); color: var(--danger-ink); }
   .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #setup-msg { min-height: 1.4em; }
@@ -374,39 +378,39 @@
   ol.guide { list-style: none; counter-reset: g; padding: 0; margin: 14px 0; }
   ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; border-top: 1px solid var(--line); margin: 0; }
   ol.guide li:first-child { border-top: 0; }
-  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--on-signal);
-    font: 800 16px/26px var(--display); text-align: center; }
+  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--uv); color: #fff;
+    font: 700 13px/26px var(--display); text-align: center; }
 
   /* Sign-in and waiting screens */
   .gate { padding-top: 24px; max-width: 520px; margin: 0 auto; }
   .gate.center { text-align: center; padding-top: 48px; }
   .gate.center ol.guide { text-align: left; }
   .gate .rowbtn.accent { justify-content: center; }   /* Share Your Link, when the ended screen borrows the invite card */
-  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--signal-soft); color: var(--signal-ink); display: grid; place-items: center; margin: 0 auto 16px; }
+  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--uv-soft); color: var(--uv-ink); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   .auth-brand { display: none; }
-  .eyebrow { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 99px; padding: 6px 14px; color: var(--signal-ink);
-    font: 500 12px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .eyebrow { display: inline-flex; border: 1px solid var(--uv); border-radius: 99px; padding: 6px 14px; color: var(--uv-ink);
+    font: 600 12px/1.2 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
 
-  /* ===== Tab bar (phones): the open tab's icon sits in a lime pill ===== */
+  /* ===== Tab bar (phones): the open tab's icon sits in a violet pill ===== */
   nav {
-    flex: none; display: flex; background: var(--bg);
+    flex: none; display: flex; background: color-mix(in srgb, var(--bg) 65%, transparent);
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
   }
   nav button {
     flex: 1; margin: 0; border: 0; border-radius: 0; background: none; color: var(--muted);
-    min-height: 70px; font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; display: flex; flex-direction: column;
+    min-height: 70px; font: 600 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 6px; padding: 8px 2px 10px;
   }
   nav button:active { background: none; opacity: .7; }
   nav button svg { box-sizing: content-box; width: 24px; height: 24px; padding: 4px 16px; border-radius: 99px; fill: none; stroke: currentColor; stroke-width: 1.75;
     stroke-linecap: round; stroke-linejoin: round; transition: background .15s; }
   nav button.active { color: var(--text); }
-  nav button.active svg { background: var(--signal); color: var(--on-signal); }
+  nav button.active svg { background: var(--uv-soft); color: var(--uv-ink); }
   .side-foot { display: none; }
   /* Some iPhones give a Home Screen app a page shorter than the screen; colour the leftover strip like the tab bar. */
   html.strip { background: var(--bg); }
-  html.strip nav { padding-bottom: 0; }
+  html.strip nav { padding-bottom: 0; background: var(--bg); }
 
   /* ===== Admin ===== */
   /* People: one short row each inside a card; click a row (or its dots) for everything else. */
@@ -414,7 +418,7 @@
     border-top: 1px solid var(--line); cursor: pointer; }
   .group > .person:first-child { border-top: 0; }
   .person:active { background: var(--surface-2); }
-  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 700 18px/1 var(--display); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--uv-soft); color: var(--text); display: grid; place-items: center; font: 700 15px/1 var(--display); }
   .person.pending .avatar { box-shadow: 0 0 0 2px var(--signal); }
   .person .who { font: 600 16px/1.3 var(--sans); word-break: break-word; }
   .person .who .pill { padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
@@ -427,7 +431,7 @@
   /* A section title with a small action on the right (People, Copy Invite). */
   .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 32px 0 0; }
   .sechead h2 { margin: 0; }
-  button.link { width: auto; min-height: 36px; margin: 0; padding: 0 2px; border: 0; background: none; color: var(--signal-ink); font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  button.link { width: auto; min-height: 36px; margin: 0; padding: 0 2px; border: 0; background: none; color: var(--uv-ink); font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
   @media (hover: hover) { button.link:hover { text-decoration: underline; text-underline-offset: 3px; } }
   /* Recent on-sale alerts: a small table, figures set like the overview's. */
   #stats-events:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); column-gap: 16px; }   /* one set of columns for every row */
@@ -435,8 +439,8 @@
   .trow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 12px 18px; border-top: 1px solid var(--line); }
   .trow:first-child { border-top: 0; }
   .trow:not(.head) > span:first-child { font-size: 15px; overflow-wrap: break-word; }
-  .trow b { font: 800 22px/1.1 var(--display); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-  .trow.head { padding-top: 10px; padding-bottom: 8px; font: 500 11px/14px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .trow b { font: 700 18px/1.1 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .trow.head { padding-top: 10px; padding-bottom: 8px; font: 600 11px/14px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .trow.head span:not(:first-child) { text-align: right; white-space: nowrap; }
   @media (max-width: 359px) {   /* small phones: the event name gets its own line above the figures */
     .trow > span:first-child { grid-column: 1 / -1; }
@@ -449,7 +453,7 @@
   #alert-log > .swipe:first-child .logrow { border-top: 0; }
   #invite-page #invite-box > h2 { display: none; }   /* the page title says it */
   /* Free-month upgrade card on the Alerts tab. */
-  .upsell { background: var(--surface); border: 1px solid var(--signal); border-radius: var(--r-l); box-shadow: var(--glow); padding: 16px 18px; margin: 18px 0 6px; }
+  .upsell { background: var(--surface); border: 1px solid var(--edge); border-radius: var(--r-l); box-shadow: var(--glow); padding: 16px 18px; margin: 18px 0 6px; }
   .upsell p { margin: 0; font-size: 15px; }
   .upsell button { margin-top: 12px; }
   .upsell .msg:empty { display: none; }
@@ -464,9 +468,9 @@
   /* The owner's overview: a big figure and its label in each cell. */
   .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line);
     border-radius: var(--r-l); overflow: hidden; margin-top: 10px; }
-  .stats > div { background: var(--surface); padding: 14px 16px 16px; }
-  .stats b { display: block; font: 800 38px/1 var(--display); font-variant-numeric: tabular-nums; }
-  .stats span { display: block; margin-top: 6px; font: 500 11px/14px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .stats > div { background: var(--surface); padding: 14px 16px 16px; container-type: inline-size; }
+  .stats b { display: block; font: 700 min(30px, 17cqi)/1.05 var(--display);   /* shrinks to fit a narrow cell, so "£1234.56" never spills out */ letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .stats span { display: block; margin-top: 6px; font: 600 11px/14px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .stats:empty { display: none; }
   @media (min-width: 700px) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   /* Invite link: shown in full so it can be checked, but it wraps rather than scrolling sideways. */
@@ -485,7 +489,7 @@
     padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   }
   #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 14px; }
-  .panel h3 { margin: 0 0 6px; font: 800 30px/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; word-break: break-word; }
+  .panel h3 { margin: 0 0 6px; font: 700 24px/1.1 var(--display); letter-spacing: -.02em; word-break: break-word; }
   .panel input { background: var(--bg); }
   button.item { display: flex; justify-content: space-between; gap: 12px; background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0;
     text-align: left; min-height: 52px; margin: 0; padding: 14px 8px; font: 500 16px/1.3 var(--sans); }
@@ -509,12 +513,12 @@
 
   /* ===== Update notice (stays above the content until the app is reloaded) ===== */
   #update-bar { flex: none; width: calc(100% - 40px); max-width: 600px; margin: 6px auto 0; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
-    background: var(--surface); border: 1px solid var(--signal); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
+    background: var(--surface); border: 1px solid var(--uv); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
   #update-bar span { flex: 1; min-width: 0; }
   #update-bar button { flex: none; width: auto; min-height: 40px; padding: 8px 14px; margin: 0; font-size: 15px; }
 
   /* ===== Launch screen ===== */
-  #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
+  #splash { position: fixed; inset: 0; z-index: 20; background: var(--wash), var(--bg); display: grid; place-items: center; transition: opacity .35s; }
   #splash.gone { opacity: 0; pointer-events: none; }
   #splash svg { width: 96px; height: 96px; }
 
@@ -523,18 +527,18 @@
     main { padding: 40px 56px 72px; }
     .screen { max-width: 1240px; margin: 0 auto; }
     .screen.sub > *, #setup > * { max-width: 760px; }   /* narrow, but on the same left edge as every other page */
-    .title { font-size: 64px; margin-top: 0; }
+    .title { font-size: 46px; margin-top: 0; }
     header { max-width: none; padding: 24px 56px 0; }
     body.app { padding-left: var(--side); }
-    body.app > header { position: fixed; left: 0; top: 0; width: var(--side); height: 92px; padding: 30px 26px 0; background: var(--surface); border-right: 1px solid var(--line); z-index: 3; }
+    body.app > header { position: fixed; left: 0; top: 0; width: var(--side); height: 92px; padding: 30px 26px 0; background: var(--glass); border-right: 1px solid var(--line); z-index: 3; }
     #tabs { position: fixed; left: 0; top: 92px; bottom: 0; width: var(--side); flex-direction: column; gap: 2px; padding: 8px 14px 20px;
-      background: var(--surface); border-top: 0; border-right: 1px solid var(--line); z-index: 3; }
-    #tabs button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 10px 12px; border-radius: var(--r-s);
-      font: 600 15px/1 var(--sans); letter-spacing: 0; text-transform: none; }
+      background: var(--glass); border-top: 0; border-right: 1px solid var(--line); z-index: 3; }
+    #tabs button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 10px 14px; border-radius: 99px;
+      font: 600 14px/1 var(--sans); letter-spacing: 0; text-transform: none; }
     #tabs button svg { width: 22px; height: 22px; padding: 0; border-radius: 0; background: none; color: inherit; }
     #tabs button:hover { background: var(--surface-2); color: var(--text); }
-    #tabs button.active { background: var(--signal-soft); color: var(--text); }
-    #tabs button.active svg { color: var(--signal-ink); }
+    #tabs button.active { background: var(--uv-soft); color: var(--text); }
+    #tabs button.active svg { color: var(--uv-ink); }
     .side-foot { display: block; margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--line); }
     .side-foot .health { white-space: normal; }
     body.app #watcher-line { display: none; }   /* the sidebar shows it on every tab */
@@ -553,10 +557,10 @@
     #gate-auth { max-width: 1120px; }
     #gate-auth.active { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 80px; align-items: center; min-height: calc(100% - 24px); padding-top: 0; }
     .auth-brand { display: block; }
-    .auth-brand .big { font: 800 clamp(64px, 6.4vw, 104px)/.88 var(--display); letter-spacing: .01em; text-transform: uppercase; margin: 22px 0 0; }
+    .auth-brand .big { font: 700 clamp(48px, 4.6vw, 72px)/1.02 var(--display); letter-spacing: -.03em; margin: 22px 0 0; }
     .auth-brand .muted { font-size: 18px; max-width: 460px; margin-top: 20px; }
     .auth-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); padding: 8px 28px 24px; }
-    .auth-box .title { font-size: 44px; margin-top: 18px; }
+    .auth-box .title { font-size: 34px; margin-top: 18px; }
   }
   /* Wide windows: Admin and Settings become two columns. */
   @media (min-width: 1200px) {
@@ -570,10 +574,10 @@
 </head>
 <body>
 <div id="splash" aria-hidden="true">
-  <svg viewBox="5 5 54 54"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#c8ff2e"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#0c0c0e" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#0c0c0e"/></svg>
+  <svg viewBox="5 5 54 54"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#ffc95c"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#140d22" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#140d22"/></svg>
 </div>
 <header>
-  <svg viewBox="5 5 54 54" aria-hidden="true"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#c8ff2e"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#0c0c0e" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#0c0c0e"/></svg>
+  <svg viewBox="5 5 54 54" aria-hidden="true"><path d="M12 14H52A6 6 0 0 1 58 20V26A6 6 0 0 0 58 38V44A6 6 0 0 1 52 50H12A6 6 0 0 1 6 44V38A6 6 0 0 0 6 26V20A6 6 0 0 1 12 14Z" fill="#ffc95c"/><path d="M42 19V23M42 28V32M42 37V41M42 46V48" stroke="#140d22" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="32" r="7" fill="#140d22"/></svg>
   <h1>TP Notify</h1>
 </header>
 <div id="update-bar" role="status" hidden>

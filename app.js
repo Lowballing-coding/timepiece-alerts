@@ -843,7 +843,7 @@ function savedMode() { try { return localStorage.getItem("tp-theme") || "auto"; 
 function applyTheme(mode) {
   const dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#0c0c0e" : "#f6f5f0";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0c0916" : "#f6f3fb";
   document.querySelectorAll("#theme button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
 }
 document.querySelectorAll("#theme button").forEach((b) => {
@@ -1336,7 +1336,7 @@ async function renderStats() {
       [ps.filter((p) => Date.now() - Date.parse(p.created_at) < 7 * 864e5).length, "New This Week"],
       [ps.filter((p) => p.referred_by).length, "Joined via a Friend"],
       [`£${income.toFixed(2)}`, "Income a Month"],
-      [paid.length + lapsed ? `${Math.round((100 * paid.length) / (paid.length + lapsed))}%` : "None Yet", "Paying Rate"],
+      [paid.length + lapsed ? `${Math.round((100 * paid.length) / (paid.length + lapsed))}%` : "–", "Paying Rate"],   // a dash, like an unsold event in the table below
     ];
     $("stats").innerHTML = cells.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
     $("stats-note").textContent = "Income is at full price. Paying Rate is paying members out of everyone whose free time or plan has ended.";
