@@ -538,7 +538,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 76;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 77;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -915,34 +915,50 @@ async function api(path, opts = {}) {
 // ---- Payments (Stripe) ----
 // PUBLIC links only (the same ones as the website's config.js). The Stripe secret key lives only in Supabase.
 // Empty = not set up yet; the buttons say so instead of breaking.
-// TEST (sandbox) links for now; swap all four for the live ones when going live.
-const PAY_MONTHLY = "https://buy.stripe.com/test_8x28wPgav2Ur5GA1O7g7e00";          // Payment Link: £4.99 a month
-const PAY_QUARTERLY = "https://buy.stripe.com/test_cNifZh1fB9iP3ys0K3g7e01";        // Payment Link: £11.99 every 3 months
-const PROMO_MONTHLY = "FIRSTMONTH";        // promotion code that makes the first month £3.99 (new customers only)
-const BILLING_PORTAL_URL = "https://billing.stripe.com/p/login/test_8x28wPgav2Ur5GA1O7g7e00";   // Stripe customer portal login link (Manage Subscription, update card, cancel)
-const PLAN_NAMES = { monthly: "Monthly", quarterly: "3 Months" };
+// Made by the stripe-setup function (same links as the website's config.js). TEST links until Stripe goes live.
+// Passes are one payment and never renew; the webhook sets paid_until to the pass's last day.
+const PAY_TERM = "https://buy.stripe.com/test_dRmbJ1f6r3Yvfha78rg7e03";      // Term Pass, £11.99 once, until 26 March 2027
+const PAY_YEAR = "https://buy.stripe.com/test_14AeVd2jFamT2uo50jg7e04";      // Year Pass, £24.99 once, until 11 June 2027
+const PAY_MONTHLY = "https://buy.stripe.com/test_8x23cvbUf52zd920K3g7e02";   // £4.99 a month
+const PROMO_MONTHLY = "FIRSTMONTH";        // makes the first month £3.99 (new customers only)
+const PROMO_TERM = "EARLYSPRING", PROMO_TERM_UNTIL = Date.parse("2026-12-11T23:59:59Z");   // early-bird Term Pass £9.99; a real deadline Stripe enforces
+const earlyBird = () => Date.now() < PROMO_TERM_UNTIL;
+const termPrice = () => (earlyBird() ? "£9.99" : "£11.99");
+const PLAN_NAMES = { monthly: "Monthly", quarterly: "3 Months", term: "Term Pass", year: "Year Pass" };
+const isPass = (p) => p && (p.plan === "term" || p.plan === "year") && !p.stripe_subscription_id;
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "");
 // A payment link tied to one account, so the Stripe webhook knows exactly who paid. intro = apply the first-month offer.
 function payLink(plan, who, intro) {
-  const base = plan === "quarterly" ? PAY_QUARTERLY : PAY_MONTHLY;
+  const base = { term: PAY_TERM, quarterly: PAY_TERM, year: PAY_YEAR, monthly: PAY_MONTHLY }[plan];
   if (!base) return "";
   const q = new URLSearchParams({ client_reference_id: who.id, locked_prefilled_email: who.email });
   if (intro && plan === "monthly" && PROMO_MONTHLY) q.set("prefilled_promo_code", PROMO_MONTHLY);
+  if (plan !== "monthly" && plan !== "year" && earlyBird()) q.set("prefilled_promo_code", PROMO_TERM);
   return `${base}${base.includes("?") ? "&" : "?"}${q}`;
 }
 // [pill class, label, detail] for someone's payment state. Colours only mean status and always come with words.
 function accessText(p) {
   return {
-    paid: ["on", "Paid", p.paid_until ? `${PLAN_NAMES[p.plan] || "Paid"}, renews ${shortDate(p.paid_until)}` : ""],
+    paid: ["on", "Paid", p.paid_until ? `${PLAN_NAMES[p.plan] || "Paid"}, ${isPass(p) ? "until" : "renews"} ${shortDate(p.paid_until)}` : ""],
     comped: ["", "Exempt", !p.comped_until ? "" : new Date(p.comped_until) > new Date() ? `Free until ${shortDate(p.comped_until)}` : "Free period ended"],
     free: ["", "Free Month", p.comped_until ? `Ends ${shortDate(p.comped_until)}. After the first, on-sale alerts come 30 minutes late.` : "After the first, on-sale alerts come 30 minutes late."],
     lapsed: ["problem", "Lapsed", "Alerts stopped"],
     none: ["", "Not Paid", ""],
   }[p.access || "none"] || ["", String(p.access), ""];
 }
-function openBilling() {
-  if (!BILLING_PORTAL_URL) return;
-  window.open(`${BILLING_PORTAL_URL}${BILLING_PORTAL_URL.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(session.user.email)}`, "_blank", "noopener");
+// Stripe's billing page for this person's own subscription (cancel, change card, invoices), via the billing-portal function.
+async function openBilling() {
+  const w = window.open("", "_blank");   // opened now, while the tap still counts, or Safari blocks it
+  try {
+    const r = await fetch(`${SB_URL}/functions/v1/billing-portal`, { method: "POST",
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${await token()}` } });
+    const j = await r.json();
+    if (!j.url) throw new Error(j.error || "no link");
+    if (w) w.location = j.url; else location.href = j.url;
+  } catch (e) {
+    if (w) w.close();
+    alert("Couldn't open your billing page. Try again, or email TPNotify@outlook.com.");
+  }
 }
 $("manage-sub").onclick = openBilling;
 $("ended-billing").onclick = openBilling;
@@ -962,9 +978,55 @@ function payNow(plan, msgEl) {
   if (link) { window.open(link, "_blank", "noopener"); return; }
   msgEl.className = "msg error"; msgEl.textContent = "Paying isn't set up yet. Email TPNotify@outlook.com.";
 }
-$("ended-renew").onclick = () => payNow(profile.plan || "monthly", $("ended-msg"));
+$("ended-renew").onclick = () => payNow(profile.plan === "monthly" && profile.stripe_subscription_id ? "monthly" : "term", $("ended-msg"));
+$("ended-year").onclick = () => payNow("year", $("ended-msg"));
+$("upgrade-term").onclick = () => payNow("term", $("upgrade-msg"));
+$("upgrade-year").onclick = () => payNow("year", $("upgrade-msg"));
 $("upgrade-monthly").onclick = () => payNow("monthly", $("upgrade-msg"));
-$("upgrade-quarterly").onclick = () => payNow("quarterly", $("upgrade-msg"));
+
+// ---- Selling moments: one small window, shown at most once per moment ----
+// Every number in it is real: the event's own sell-out time, the person's own free-month end date.
+function sell({ kicker, title, text, go, plan, alt, altPlan, onAlt }) {
+  const d = $("sell");
+  $("sell-kicker").textContent = kicker; $("sell-title").textContent = title; $("sell-text").textContent = text;
+  $("sell-go").textContent = go; $("sell-go").onclick = () => { d.close(); if (plan) payNow(plan, $("sell-msg")); };
+  $("sell-alt").hidden = !alt; $("sell-alt").textContent = alt || "";
+  $("sell-alt").onclick = () => { d.close(); if (onAlt) onAlt(); else payNow(altPlan, $("sell-msg")); };
+  $("sell-msg").textContent = "";
+  if (!d.open) d.showModal();
+}
+$("sell-close").onclick = () => $("sell").close();
+const today = () => new Date().toISOString().slice(0, 10);
+async function sellingMoment() {
+  const acc = profile && profile.access, was = store.get("tp-last-access");
+  store.set("tp-last-access", acc);
+  if (acc === "paid" && was && was !== "paid") {   // they've just paid: end on a high, and the best time to ask for a friend
+    return sell({ kicker: "You're in", title: `${PLAN_NAMES[profile.plan] || "Instant alerts"} is on`,
+      text: `Every alert now reaches you the moment tickets go on sale${profile.paid_until && isPass(profile) ? `, until ${shortDate(profile.paid_until)}` : ""}. Going out with friends? Send them your invite so the whole group hears first.`,
+      go: "Done", plan: null, alt: "Invite Friends", onAlt: () => $("invite-open").click() });
+  }
+  if (acc !== "free") return;
+  // 1. A night sold out before their late free alert was due: the moment the 30-minute delay really costs something.
+  try {
+    const [m] = await api(`alert_log?select=id,event_name,url&type=eq.too_late&user_ids=cs.{${session.user.id}}&order=id.desc&limit=1`);
+    if (m && m.id > (store.get("tp-missed-seen") || 0)) {
+      store.set("tp-missed-seen", m.id);
+      const [e] = m.url ? await api(`event_status?select=on_sale_at,sold_out_at,first_sold_out_at&url=eq.${encodeURIComponent(m.url)}`) : [];
+      const mins = soldMins(e);
+      return sell({ kicker: "Sold out first", title: mins > 0 && mins < 30 ? `Gone in ${Math.max(1, Math.ceil(mins))} ${Math.ceil(mins) <= 1 ? "minute" : "minutes"}` : "This one sold out first",
+        text: `${m.event_name || "A Timepiece night"} sold out before your free alert was due, 30 minutes after it went on sale. Pass members got that alert the moment tickets went on sale.`,
+        go: `Get the Term Pass: ${termPrice()}`, plan: "term", alt: "Year Pass: £24.99", altPlan: "year" });
+    }
+  } catch (e) { /* offline: try next time */ }
+  // 2. The free month is nearly over: keep what they already have.
+  const days = profile.comped_until ? Math.ceil((Date.parse(profile.comped_until) - Date.now()) / 864e5) : 99;
+  if (days <= 3 && store.get("tp-ending-nudge") !== today()) {
+    store.set("tp-ending-nudge", today());
+    sell({ kicker: "Free month ending", title: "Keep your alerts",
+      text: `Your free month ends ${days <= 1 ? "within a day" : `in ${days} days`}, on ${shortDate(profile.comped_until)}. After that, alerts stop. A Term Pass keeps every alert coming, instantly, until 26 March. One payment, nothing to cancel.`,
+      go: `Get the Term Pass: ${termPrice()}`, plan: "term", alt: "Year Pass: £24.99", altPlan: "year" });
+  }
+}
 
 // ---- Which screen to show ----
 const hideSplash = () => $("splash").classList.add("gone");
@@ -993,16 +1055,17 @@ function showApp() {
   if (acc === "free") {
     const days = profile.comped_until ? Math.ceil((Date.parse(profile.comped_until) - Date.now()) / 864e5) : 99;
     $("upgrade-text").textContent = (days <= 3
-      ? `Your free month ends ${days <= 1 ? "within a day" : `in ${days} days`} (${shortDate(profile.comped_until)}). After that, alerts stop until you choose a plan. `
+      ? `Your free month ends ${days <= 1 ? "within a day" : `in ${days} days`} (${shortDate(profile.comped_until)}). After that, alerts stop until you choose a pass. `
       : `Free month${profile.comped_until ? ` until ${shortDate(profile.comped_until)}` : ""}: `)
-      + "Your first Tickets on Sale alert comes instantly; after that they reach you 30 minutes late. Paid members get every one the moment tickets go on sale.";
+      + "Your first Tickets on Sale alert comes instantly; after that they reach you 30 minutes late. Pass members get every one the moment tickets go on sale.";
+    $("upgrade-term").textContent = `Get the Term Pass: ${termPrice()}`;
     // Nights that sold out before this person's late alert was due (the watcher sends a short note instead of the alert).
     const base = $("upgrade-text").textContent;
     api(`alert_log?select=id&type=eq.too_late&user_ids=cs.{${session.user.id}}`).then((rows) => {
       if (rows.length && profile && profile.access === "free") $("upgrade-text").textContent = `${base} Since you joined, ${rows.length} ${rows.length === 1 ? "night" : "nights"} sold out before your free alert arrived.`;
     }, () => {});
   }
-  $("manage-sub").hidden = !(BILLING_PORTAL_URL && profile && profile.stripe_customer_id);
+  $("manage-sub").hidden = !(profile && profile.stripe_subscription_id);   // passes have nothing to manage or cancel
   $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
@@ -1016,6 +1079,7 @@ function showApp() {
   if (wanted) { history.replaceState(null, "", location.pathname); tab = document.querySelector(`#tabs [data-tab="${wanted === "admin" ? "admin" : "alerts"}"]`); }
   if (!tab || tab.hidden) tab = document.querySelector('#tabs [data-tab="alerts"]');
   tab.click();
+  sellingMoment();
 }
 async function loadProfile() {
   try {
@@ -1028,12 +1092,13 @@ async function loadProfile() {
     if (!profile) { showGate("gate-auth"); $("auth-msg").textContent = e.message; $("auth-msg").className = "msg error"; return; }
   }
   if (profile.status === "approved" && profile.access === "lapsed") {   // their subscription ended: alerts are off until they renew
-    $("ended-billing").hidden = !(BILLING_PORTAL_URL && profile.stripe_customer_id);
-    const wasFree = !!profile.comped_until && !profile.stripe_subscription_id;   // a free period ran out (they never paid)
-    $("ended-title").textContent = wasFree ? "Free Access Ended" : "Subscription Ended";
-    $("ended-text").textContent = wasFree ? "Your free access has ended, so alerts have stopped. Subscribe to get them again, the moment tickets go on sale."
-      : "Your subscription has ended or a payment didn't go through, so alerts are paused. Renew to start them again.";
-    $("ended-renew").textContent = wasFree ? "Subscribe" : "Renew";
+    const sub = !!profile.stripe_subscription_id, pass = isPass(profile);
+    $("ended-billing").hidden = !sub;
+    $("ended-title").textContent = sub ? "Subscription Ended" : pass ? `Your ${PLAN_NAMES[profile.plan]} Has Ended` : "Keep Your Alerts";
+    $("ended-text").textContent = sub ? "Your subscription has ended or a payment didn't go through, so alerts are paused. Renew to start them again."
+      : `${pass ? "Your pass has run its course" : "Your free month has ended"}, so alerts have stopped. A Term Pass brings back every alert, the moment tickets go on sale, until 26 March. One payment, nothing to cancel.`;
+    $("ended-renew").textContent = sub ? "Renew" : `Get the Term Pass: ${termPrice()}`;
+    $("ended-year").hidden = sub;
     $("ended-msg").before($("invite-box")); fillInvite();   // inviting a friend brings back a free week
     showGate("gate-ended");
   } else if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
@@ -1385,10 +1450,9 @@ function drawSheet() {
   } else if (sheetMode === "pay") {
     html = `<h3>Payment Link for ${name}</h3>
       <p class="muted">Copies a personal link to send them. It's tied to their account, so they switch to Paying automatically once they pay.${p.access === "comped" ? " They keep free access until then." : ""}</p>
-      ${PAY_MONTHLY || PAY_QUARTERLY
-        ? `${PAY_MONTHLY ? '<button data-act="copy-pay" data-plan="monthly">Copy Monthly Link</button>' : ""}
-           ${PAY_QUARTERLY ? `<button ${PAY_MONTHLY ? 'class="secondary" ' : ""}data-act="copy-pay" data-plan="quarterly">Copy 3 Months Link</button>` : ""}`
-        : '<p class="msg error">Payment links aren\'t set up yet.</p>'}
+      <button data-act="copy-pay" data-plan="term">Copy Term Pass Link</button>
+      <button class="secondary" data-act="copy-pay" data-plan="year">Copy Year Pass Link</button>
+      <button class="secondary" data-act="copy-pay" data-plan="monthly">Copy Monthly Link</button>
       <button class="secondary" data-act="back">Cancel</button>`;
   } else if (sheetMode === "exempt") {
     html = `<h3>${p.access === "comped" ? "Change Free Period" : p.status === "pending" ? `Approve ${name}` : `Make ${name} Exempt`}</h3>
