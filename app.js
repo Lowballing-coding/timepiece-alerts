@@ -742,10 +742,10 @@ const pcButtons = (hide) => { document.querySelectorAll(".install-pc").forEach((
 { const { ios, android } = device(); $("download-pc-group").hidden = ios || android || standalone(); }   // Settings keeps a download button on computers after Setup hides itself
 document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => {
   if (!installPrompt) {   // the browser hasn't offered one-click install: say how to do it by hand
-    const ua = navigator.userAgent, edge = /Edg\//.test(ua), other = /Firefox\//.test(ua) ? "Firefox" : /OPR\//.test(ua) ? "Opera" : "";
-    $(b.dataset.msg || "setup-msg").textContent = other ? `${other} can't install apps. Open TP Notify in Microsoft Edge (it comes with Windows) or Chrome, then click Download again.`
+    const ua = navigator.userAgent, edge = /Edg\//.test(ua), mac = /Macintosh/.test(ua), other = /Firefox\//.test(ua) ? "Firefox" : /OPR\//.test(ua) ? "Opera" : "";
+    $(b.dataset.msg || "setup-msg").textContent = other ? `${other} can't install apps. Open TP Notify in ${mac ? "Safari or Chrome" : "Microsoft Edge (it comes with Windows) or Chrome"}, then click Download again.`
       : /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua) ? "In Safari's menu bar, choose File, then Add to Dock."
-      : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your desktop or Start menu.`;
+      : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your ${mac ? "Dock or Launchpad" : "desktop or Start menu"}.`;
     return;
   }
   installPrompt.prompt();
