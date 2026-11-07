@@ -23,7 +23,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#faf9f5">
+<meta name="theme-color" content="#0c0c0e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TP Notify">
@@ -39,70 +39,39 @@
   })();
 </script>
 <style>
-  /* ===== Design tokens (from DESIGN.md: warm cream canvas, coral accent, dark warm surfaces) =====
-     Coral means "tap this" (primary buttons, active tab, switches, links). Green, amber and red only ever mean status. ===== */
-  :root, :root[data-theme="light"] {
-    --bg: #faf9f5;
-    --surface: #f5f0e8;
-    --surface-2: #efe9de;
-    --line: #e6dfd8;
-    --line-strong: #d3cabb;
-    --text: #141413;
-    --muted: #65635d;
-    --accent: #a9583e;
-    --coral: #cc785c;
-    --fill: #b5593b;
-    --fill-press: #8f4730;
-    --on-fill: #ffffff;
-    --danger-fill: #c64545;
-    --on: #26703c;
-    --check: #8a5a00;
-    --problem: #c64545;
-    --on-tint: rgba(38, 112, 60, .11);
-    --check-tint: rgba(138, 90, 0, .12);
-    --problem-tint: rgba(198, 69, 69, .10);
-    --muted-tint: rgba(101, 99, 93, .12);
-    --seg-on: #e8e0d2;
-    --paper: #efe9de;
-    --ink: #141413;
-    --ink-muted: #65635d;
-    --paper-line: #cfc5b3;
-    --stub: #b5593b;
-    --stub-ink: #ffffff;
-    --stub-muted: #ffffff;
-    --ticket-pill-bg: rgba(38, 112, 60, .12);
-    --ticket-pill-fg: #26703c;
-    --ticket-new-bg: #141413;
-    --ticket-new-fg: #faf9f5;
-    --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
-    --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
-    --r-s: 8px; --r-m: 12px; --r-l: 16px;
+  /* ===== Fonts: the "Night out" kit's three faces, self-hosted (the security policy only allows this site) ===== */
+  @font-face { font-family: "Big Shoulders Display"; src: url(fonts/big-shoulders-display.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "Schibsted Grotesk"; src: url(fonts/schibsted-grotesk.woff2) format("woff2"); font-weight: 400 900; font-display: swap; }
+  @font-face { font-family: "IBM Plex Mono"; src: url(fonts/ibm-plex-mono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+
+  /* ===== "Night out" design tokens (same values as the website's tokens.css). Lime = live, on sale, or the main
+     thing to tap. UV = coming soon. Red = only errors and deleting. Every colour comes with words. ===== */
+  :root, :root[data-theme="dark"] {
+    --bg: #0c0c0e; --surface: #16161a; --surface-2: #212127; --line: #2e2e36; --line-strong: #6a6a76;
+    --text: #f4f2ec; --muted: #a3a19b;
+    --signal: #c8ff2e; --on-signal: #0c0c0e; --signal-ink: #c8ff2e; --signal-soft: #1f2a06;
+    --action: #c8ff2e; --on-action: #0c0c0e;
+    --uv: #9580ff; --uv-ink: #a99aff; --uv-soft: #1f1a3d;
+    --danger: #ff6b5e; --on-danger: #0c0c0e; --danger-ink: #ff8075; --danger-soft: #3a1411;
+    --focus: #c8ff2e; --glow: 0 0 0 1px #c8ff2e40, 0 12px 40px #c8ff2e1f; --scrim: rgba(0, 0, 0, .62);
+    color-scheme: dark;
   }
-  :root[data-theme="dark"] {
-    --bg: #181715;
-    --surface: #1f1e1b;
-    --surface-2: #252320;
-    --line: #35332f;
-    --line-strong: #4a4741;
-    --text: #faf9f5;
-    --muted: #a09d96;
-    --accent: #e39679;
-    --on: #5db872;
-    --check: #e8a55a;
-    --problem: #ec7a7a;
-    --on-tint: rgba(93, 184, 114, .16);
-    --check-tint: rgba(232, 165, 90, .16);
-    --problem-tint: rgba(236, 122, 122, .16);
-    --muted-tint: rgba(160, 157, 150, .16);
-    --seg-on: #35332f;
-    --paper: #252320;
-    --ink: #faf9f5;
-    --ink-muted: #a09d96;
-    --paper-line: #181715;
-    --ticket-pill-bg: rgba(93, 184, 114, .16);
-    --ticket-pill-fg: #5db872;
-    --ticket-new-bg: #faf9f5;
-    --ticket-new-fg: #181715;
+  :root[data-theme="light"] {
+    --bg: #f6f5f0; --surface: #ffffff; --surface-2: #ecebe5; --line: #dcdad2; --line-strong: #8a877d;
+    --text: #0c0c0e; --muted: #5d5b55;
+    --signal: #c8ff2e; --on-signal: #0c0c0e; --signal-ink: #3b5700; --signal-soft: #eaf8c4;
+    --action: #0c0c0e; --on-action: #c8ff2e;
+    --uv: #5b3fe0; --uv-ink: #4a2fd0; --uv-soft: #ebe7ff;
+    --danger: #c8241a; --on-danger: #ffffff; --danger-ink: #b3201a; --danger-soft: #fde8e5;
+    --focus: #5b3fe0; --glow: 0 1px 2px #0c0c0e14, 0 12px 32px #0c0c0e1a; --scrim: rgba(12, 12, 14, .45);
+    color-scheme: light;
+  }
+  :root {
+    --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+    --sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --r-s: 8px; --r-m: 12px; --r-l: 16px;
+    --side: 248px;   /* the sidebar on computers */
   }
 
   /* ===== Base ===== */
@@ -112,25 +81,32 @@
   body {
     margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
     display: flex; flex-direction: column;
-    background: var(--bg); color: var(--text); font: 17px/1.5 var(--sans);
+    background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
   }
-  :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
   [hidden] { display: none !important; }
   p { margin: 6px 0; }
-  /* Headlines are serif at regular weight with tight tracking; everything else is the phone's sans. */
-  h2 { font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; margin: 28px 0 6px; }
-  .title { font: 400 34px/1.1 var(--serif); letter-spacing: -.5px; margin: 8px 0 4px; }
+  a { color: var(--signal-ink); }
+  /* Page titles are the kit's display face; section headings are small mono labels, so the page reads in a clear order. */
+  h2 { font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 32px 2px 0; }
+  .title { font: 800 46px/.92 var(--display); letter-spacing: .01em; text-transform: uppercase; color: var(--text); margin: 14px 0 6px; }
   .muted { color: var(--muted); font-size: 15px; }
-  .meta { color: var(--muted); font-size: 13px; }
+  .meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .pagehead .title { margin-bottom: 6px; }
+  .lede { margin: 2px 0 0; max-width: 640px; }
+  /* Mouse or touch: a few hints only make sense for one of them. */
+  @media (hover: hover) and (pointer: fine) { .touch-only { display: none; } }
+  @media not all and (hover: hover) and (pointer: fine) { .mouse-only { display: none; } }
 
   /* Header and tab bar stay put; only <main> scrolls. */
   header {
-    flex: none; width: 100%; max-width: 560px; margin: 0 auto;
-    display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 10px) 20px 4px;
+    flex: none; width: 100%; max-width: 640px; margin: 0 auto;
+    display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 20px 4px;
     position: relative; z-index: 1; background: var(--bg);
   }
-  header svg { width: 26px; height: 26px; flex: none; }
-  h1 { margin: 0; font: 400 22px/1 var(--serif); letter-spacing: -.3px; }
+  header svg { width: 28px; height: 28px; flex: none; }
+  h1 { margin: 0; font: 800 25px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
   /* #stage holds the tab pages (main). */
   #stage { flex: 1; min-height: 0; width: 100%; position: relative; overflow: hidden; }
   * { scrollbar-width: none; }   /* no scroll bars anywhere (scrolling still works), mainly for the computer app */
@@ -138,66 +114,101 @@
   main {
     height: 100%; width: 100%;
     overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    padding: 4px max(20px, calc(50% - 260px)) 28px;   /* full-width scroller (wheel works anywhere), 520px content column */
+    padding: 4px max(20px, calc(50% - 300px)) 36px;   /* full-width scroller (wheel works anywhere), 600px column on phones and tablets */
   }
   .screen { display: none; }
   .screen.active { display: block; }
 
-  .ring { fill: none; stroke: var(--coral); }
+  /* The dial on the empty Alerts screen. */
+  .ring { fill: none; stroke: var(--line-strong); }
   .hand { fill: none; stroke: var(--text); stroke-linecap: round; }
   .tick { stroke: var(--muted); }
-  .sweepline { stroke: var(--on); }
-  .hub { fill: var(--coral); }
+  .sweepline { stroke: var(--signal); }
+  .hub { fill: var(--signal); }
 
-  /* ===== Buttons: coral primary, outline secondary, red destructive ===== */
+  /* ===== Buttons: lime (black in light mode) for the main action, outline for the rest, red only to delete ===== */
   .go, button {
-    display: block; width: 100%; min-height: 50px; border: 0; border-radius: var(--r-s);
-    background: var(--fill); color: var(--on-fill); font: 500 17px/1.2 var(--sans);
-    text-align: center; text-decoration: none; padding: 14px; margin: 14px 0 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px;
+    border: 1px solid transparent; border-radius: var(--r-s); background: var(--action); color: var(--on-action);
+    font: 600 16px/1.2 var(--sans); text-align: center; text-decoration: none; padding: 12px 16px; margin: 14px 0 0; cursor: pointer;
   }
-  button:active, .go:active { background: var(--fill-press); }
-  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
-  button.secondary:active { background: var(--surface-2); }
-  button:disabled { opacity: .5; }
+  button:active, .go:active { opacity: .85; }
+  button.secondary, .go.secondary { background: transparent; color: var(--text); border-color: var(--line-strong); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.small { width: auto; min-height: 40px; padding: 8px 14px; margin: 0 0 8px; font-size: 14px; }
+  @media (hover: hover) {
+    :is(button, .go):not(.secondary, .rowbtn, .item, .back, .link, .dots, .del, .danger-btn, nav button, .seg button):hover { filter: brightness(1.1); }
+    button.secondary:hover, .go.secondary:hover { background: var(--surface-2); }
+  }
 
-  /* ===== Pills and tags ===== */
-  .pill { display: inline-flex; align-items: center; font: 500 13px/1 var(--sans); padding: 5px 12px; border-radius: 99px; background: var(--muted-tint); color: var(--muted); }
-  .pill.on { background: var(--on-tint); color: var(--on); }
-  .pill.check { background: var(--check-tint); color: var(--check); }
-  .pill.problem { background: var(--problem-tint); color: var(--problem); }
-  .new { display: inline-flex; font: 500 13px/1 var(--sans); background: var(--fill); color: var(--on-fill); border-radius: 99px; padding: 5px 10px; }
-  .new.missed { background: transparent; border: 1px solid var(--check); color: var(--check); padding: 4px 9px; }
+  /* ===== Pills: mono labels. Colour always comes with the words. ===== */
+  .pill, .new { display: inline-flex; align-items: center; font: 500 11px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 99px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+  .pill.on { background: var(--signal); color: var(--on-signal); }
+  .pill.soon { background: var(--uv-soft); color: var(--uv-ink); }
+  .pill.check { background: transparent; box-shadow: inset 0 0 0 1px var(--signal-ink); color: var(--signal-ink); }
+  .pill.problem { background: var(--danger-soft); color: var(--danger-ink); }
+  .new { background: var(--text); color: var(--bg); }
+  .new.missed { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); color: var(--muted); }
 
   /* ===== Alerts ===== */
-  .health { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
-  .health::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-  .health.problem::before { background: var(--problem); }
-  .health.live::before { background: var(--on); }
-  .health.card { background: var(--surface-2); border-radius: var(--r-m); padding: 12px 16px; font-size: 15px; color: var(--text); margin: 12px 0 0; }
+  .health { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; font: 500 12px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .health::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .health.live { color: var(--signal-ink); }
+  .health.live::before { background: var(--signal); animation: live 2.4s ease-in-out infinite; }
+  .health.problem { color: var(--danger-ink); }
+  .health.problem::before { background: var(--danger); }
+  @keyframes live { 50% { box-shadow: 0 0 0 4px var(--signal-soft); } }
+  @media (prefers-reduced-motion: reduce) { .health.live::before { animation: none; } }
 
-  .day { font: 500 13px/1 var(--sans); color: var(--muted); margin: 24px 0 6px; letter-spacing: 0; }
-  .alert { padding: 16px 0; border-top: 1px solid var(--line); }
-  .alert.row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+  /* The alerts and the events sit in a grid: one column on a phone, two or three on a computer. */
+  #list, #event-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px 18px; align-items: start; margin-top: 18px; }
+  #event-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: stretch; }
+  #list > :not(.tgroup, .swipe), #event-list > :not(.event) { grid-column: 1 / -1; }
+  .day { margin: 16px 2px 0; }
+  #list > .day:first-child { margin-top: 0; }
+  .alert { padding: 16px 0; }
   .alert .line1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .alert h3 { margin: 6px 0 0; font: 500 18px/1.3 var(--sans); }
-  .alert .when { color: var(--muted); font-size: 15px; margin: 2px 0 0; }
-  .alert .at { font: 500 13px/1.2 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 3px; }
-  .tile { flex: none; width: 48px; padding: 5px 0; border: 1px solid var(--line-strong); border-radius: var(--r-s); text-align: center; line-height: 1.2; }
-  .tile span { display: block; font-size: 13px; color: var(--muted); }
-  .tile b { display: block; font: 400 22px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
-  .tile.icon { height: 48px; display: grid; place-items: center; padding: 0; }
+  .alert h3 { margin: 6px 0 0; font: 600 17px/1.3 var(--sans); }
+  .alert .when { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+  .alert .at { font: 500 12px/16px var(--mono); letter-spacing: .04em; color: var(--muted); padding-top: 4px; }
+  /* Everything that isn't a ticket is a card with a date tile. */
+  .alert.row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px 16px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); }
+  .tile { flex: none; width: 52px; padding: 6px 0 7px; border: 1px solid var(--line-strong); border-radius: var(--r-s); text-align: center; }
+  .tile span { display: block; font: 500 10px/14px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .tile b { display: block; font: 800 26px/1 var(--display); margin: 1px 0; font-variant-numeric: tabular-nums; }
+  .tile.icon { height: 52px; display: grid; place-items: center; padding: 0; color: var(--muted); }
   .tile.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  .alert.check .tile.icon, .alert.on_sale_soon .tile.icon { color: var(--check); } .alert.problem .tile.icon { color: var(--problem); } .alert.test .tile.icon { color: var(--muted); }
+  .alert.on_sale_soon .tile { border-color: var(--uv); }
+  .alert.on_sale_soon .tile.icon { color: var(--uv-ink); }
+  .alert.problem .tile { border-color: var(--danger); }
+  .alert.problem .tile.icon { color: var(--danger-ink); }
+  /* Events: the buttons line up along the bottom of each card. */
+  .alert.row.event { grid-template-columns: 52px minmax(0, 1fr); height: 100%; }
+  .event > div:last-child { display: flex; flex-direction: column; min-height: 100%; }
+  .event .meta { margin: 6px 0 0; }
+  .event .acts { margin-top: auto; padding-top: 14px; }
+  .alert.row .acts { margin-top: 12px; }
 
-  /* Swipe to delete: the alert slides left over a red Delete area. */
-  .swipe { position: relative; overflow: hidden; background: var(--danger-fill); touch-action: pan-y; }
-  .swipe > .alert { position: relative; background: var(--bg); transition: transform .2s ease-out; }
+  /* Swipe to delete on a phone: the card slides left over a red Delete area. With a mouse, a small × appears instead. */
+  .swipe { position: relative; overflow: hidden; border-radius: var(--r-l); touch-action: pan-y; }
+  .swipe > .alert { position: relative; z-index: 1; transition: transform .2s ease-out; }
+  .swipe > .alert.row, .swipe > .logrow { background: var(--surface); }
   .swipe > .alert.dragging { transition: none; }
-  .swipe > .del { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; min-height: 0; margin: 0; padding: 0; border-radius: 0;
-    background: transparent; color: #fff; font: 500 15px/1 var(--sans); display: grid; place-items: center; }
-  .tgroup { margin: 14px 0 18px; }
-  .tgroup > .swipe.tk { border-radius: var(--r-l); }
-  .tgroup .alert.on_sale { margin: 0; }
+  .swipe > .del { position: absolute; inset: 0; z-index: 0; width: auto; min-height: 0; margin: 0; padding: 0 24px 0 0; border: 0; border-radius: 0;
+    background: var(--danger); color: var(--on-danger); font: 600 15px/1 var(--sans); display: flex; align-items: center; justify-content: flex-end; opacity: 0; }
+  .swipe.open > .del, .swipe:has(> .alert[style*="translate"]) > .del { opacity: 1; }
+  @media (hover: hover) and (pointer: fine) {
+    .swipe > .del { inset: 10px 10px auto auto; z-index: 2; width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: var(--r-s);
+      background: var(--surface-2); color: var(--muted); font-size: 0; opacity: 0; transition: opacity .15s, background .15s; }
+    .swipe > .del::before { content: "\00d7"; font: 400 22px/1 var(--sans); }
+    .swipe:not(.tk) > .del { inset: auto 10px 10px auto; }
+    .swipe:hover > .del, .swipe > .del:focus-visible { opacity: 1; }
+    .swipe > .del:hover { background: var(--danger); color: var(--on-danger); }
+    .swipe:has(> .alert[style*="translate"]) > .del { opacity: 0; }
+    .swipe.tk .tbody { padding-right: 48px; }
+  }
   .tgroup > .acts { transition: opacity .2s; }
   .tgroup > .acts.pop { animation: pop .22s ease-in forwards; pointer-events: none; }
   @keyframes pop { to { transform: scale(.55); opacity: 0; } }
@@ -205,45 +216,42 @@
   /* Open on FIXR, with Share beside it. */
   .acts { display: flex; gap: 8px; margin-top: 10px; }
   .acts .go { flex: 1; margin: 0; }
-  .acts .share { flex: none; width: auto; margin: 0; padding: 14px 18px; }
-  .event .acts .go, .event .acts .share { min-height: 44px; padding-block: 10px; font-size: 15px; }
+  .acts .share { flex: none; width: auto; margin: 0; padding: 12px 18px; }
+  .event .acts .go, .event .acts .share { min-height: 44px; padding-block: 8px; font-size: 15px; }
 
-  /* The on-sale alert is a ticket: a coral stub on the left, perforation, notches cut into the edge. */
-  .alert.on_sale { border: 0; padding: 0; margin: 14px 0 18px; }
-  .ticket { display: flex; background: var(--paper); color: var(--ink); border-radius: var(--r-l); }
-  .stub { position: relative; flex: none; width: 78px; padding: 16px 0; text-align: center; line-height: 1.1;
-    display: flex; flex-direction: column; justify-content: center; border-right: 2px dashed var(--paper-line);
-    background: var(--stub); color: var(--stub-ink); border-radius: var(--r-l) 0 0 var(--r-l); }
-  .stub span { display: block; font-size: 13px; color: var(--stub-muted); }
-  .stub b { display: block; font: 400 38px/1.05 var(--serif); letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
-  .stub::before, .stub::after { content: ""; position: absolute; right: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); }
-  .stub::before { top: -7px; } .stub::after { bottom: -7px; }
-  .tbody { min-width: 0; padding: 14px 14px 14px 16px; }
-  .tbody h3 { margin: 8px 0 0; font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; color: var(--ink); }
-  .tbody .when { color: var(--ink-muted); }
-  .tbody .rec { color: var(--ink-muted); font-size: 13px; margin: 6px 0 0; }
-  .ticket .pill.on { background: var(--ticket-pill-bg); color: var(--ticket-pill-fg); }
-  .ticket .new { background: var(--ticket-new-bg); color: var(--ticket-new-fg); }
-  /* Sold out: the coral stub turns grey and the ticket fades, with a red "Now Sold Out" tag (colour always comes with words). */
-  .alert.sold .stub { background: var(--muted); }
-  :root[data-theme="dark"] .alert.sold .stub { background: #5f5c56; }   /* --muted is too light for white text in dark */
-  .alert.sold .tbody h3 { color: var(--ink-muted); }
+  /* The on-sale alert is a ticket: a lime stub, a perforation, and notches cut into the edge. */
+  .alert.on_sale { padding: 0; margin: 0; }
+  .ticket { position: relative; display: flex; min-height: 128px; background: var(--surface); color: var(--text);
+    border: 1px solid var(--signal); border-radius: var(--r-l); box-shadow: var(--glow); overflow: hidden; }
+  .ticket::before, .ticket::after { content: ""; position: absolute; z-index: 1; left: 77px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); }
+  .ticket::before { top: -9px; } .ticket::after { bottom: -9px; }
+  .stub { flex: none; width: 86px; padding: 14px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    background: var(--signal); color: var(--on-signal); border-right: 2px dashed var(--bg); font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .stub span { display: block; }
+  .stub b { display: block; font: 800 46px/1 var(--display); letter-spacing: 0; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .tbody { flex: 1; min-width: 0; padding: 14px 16px 14px 18px; }
+  .tbody h3 { margin: 8px 0 0; font: 700 28px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+  .tbody .when { font: 500 12px/16px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; }
+  .tbody .rec { color: var(--muted); font-size: 13px; line-height: 18px; margin: 6px 0 0; }
+  /* Sold out: the stub greys out and the ticket loses its glow, with a "Now Sold Out" tag. */
+  .alert.sold .ticket { border-color: var(--line); box-shadow: none; }
+  .alert.sold .stub { background: var(--surface-2); color: var(--muted); }
+  .alert.sold .tbody h3 { color: var(--muted); }
   /* "Did you get a ticket?" under an on-sale ticket. */
-  .gotit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; color: var(--muted); }
+  .gotit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--muted); }
   .gotit span { flex: 1 1 100%; }
-  .gotit button { width: auto; min-height: 44px; padding: 8px 18px; margin: 0; font-size: 15px; }
-  .gotit a { color: var(--accent); }
-  .gotit .pillbtn { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; border: 1px solid var(--line-strong);
-    border-radius: var(--r-s); color: var(--text); text-decoration: none; font-weight: 500; }
-  .alert.arrive { animation: arrive .4s ease-out; }
+  .gotit button, .gotit .pillbtn { width: auto; min-height: 44px; padding: 8px 18px; margin: 0; font-size: 15px; }
+  .gotit .pillbtn { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: var(--r-s); color: var(--text); text-decoration: none; font-weight: 600; }
+  .alert.arrive, .tgroup:has(.arrive) { animation: arrive .4s ease-out; }
   @keyframes arrive { from { opacity: 0; transform: translateY(-10px); } }
-  @media (prefers-reduced-motion: reduce) { .alert.arrive { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .alert.arrive, .tgroup:has(.arrive) { animation: none; } }
+  .hint { text-align: center; margin-top: 18px; }
 
   /* ===== Empty state ===== */
   .empty { text-align: center; padding: 40px 12px 24px; }
-  .empty svg { width: 150px; height: 150px; }
-  .empty h2 { margin-top: 18px; }
-  .empty-line { padding: 16px 0; border-top: 1px solid var(--line); }
+  .empty svg { width: 140px; height: 140px; }
+  .empty h2, .gate h2 { font: 800 34px/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; color: var(--text); margin: 18px 0 8px; }
+  .empty-line { padding: 16px 2px; color: var(--muted); }
   .sweep { transform-origin: 60px 60px; animation: sweep 60s linear infinite; }
   @keyframes sweep { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .sweep { animation: none; } }
@@ -251,171 +259,184 @@
   /* ===== Forms ===== */
   input {
     display: block; width: 100%; min-height: 50px; margin-top: 12px; padding: 0 14px;
-    background: var(--bg); color: var(--text); border: 1px solid var(--line-strong);
-    border-radius: var(--r-s); font: 17px/1.2 var(--sans);
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: var(--r-s); font: 16px/1.2 var(--sans);
   }
-  input:focus { outline: 0; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(204, 120, 92, .2); }
+  input:focus { outline: 2px solid var(--focus); outline-offset: 0; }
   input::placeholder { color: var(--muted); }
-  .msg { min-height: 1.4em; margin-top: 10px; }
-  .msg.error { color: var(--problem); }
+  .msg { min-height: 1.4em; margin-top: 10px; font-size: 15px; }
+  .msg.error { color: var(--danger-ink); }
   /* Password strength on sign-up: bars plus a text label (status colours always come with words). */
   .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; }
   .meter i { height: 6px; border-radius: 3px; background: var(--line); }
-  .meter.s0 i:nth-child(-n+1), .meter.s1 i:nth-child(-n+1) { background: var(--problem); }
-  .meter.s2 i:nth-child(-n+2) { background: var(--check); }
-  .meter.s3 i:nth-child(-n+3), .meter.s4 i:nth-child(-n+4) { background: var(--on); }
+  .meter.s0 i:nth-child(-n+1), .meter.s1 i:nth-child(-n+1) { background: var(--danger); }
+  .meter.s2 i:nth-child(-n+2) { background: var(--muted); }
+  .meter.s3 i:nth-child(-n+3), .meter.s4 i:nth-child(-n+4) { background: var(--signal); }
   #auth-hint { margin: 6px 0 0; }
   /* Visible labels above inputs (a placeholder alone disappears as you type). */
-  label.field-label { display: block; margin-top: 14px; font-size: 15px; font-weight: 500; }
+  label.field-label { display: block; margin-top: 16px; font-size: 14px; font-weight: 600; }
   label.field-label + input { margin-top: 6px; }
   /* An error sits right under the field it's about. */
-  .field-error { color: var(--problem); font-size: 15px; margin: 4px 0 0; }
+  .field-error { color: var(--danger-ink); font-size: 14px; margin: 4px 0 0; }
   .field-error:empty { display: none; }
-  input[aria-invalid="true"] { border-color: var(--problem); }
+  input[aria-invalid="true"] { border-color: var(--danger); }
   .captcha { margin-top: 12px; }
   .captcha:empty { display: none; }
   label.check { display: flex; align-items: center; min-height: 48px; gap: 12px; }
-  label.check input { display: inline-block; width: 22px; min-height: 0; height: 22px; margin: 0; padding: 0; accent-color: var(--coral); }
-  /* On and off switch. Coral because it is something you tap. */
-  input.switch { -webkit-appearance: none; appearance: none; display: block; flex: none; width: 51px; min-height: 0; height: 31px; margin: 0; padding: 0;
-    border-radius: 99px; background: var(--seg-on); border: 1px solid var(--line-strong); position: relative; cursor: pointer; transition: background .2s; }
-  input.switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: 25px; height: 25px; border-radius: 50%; background: var(--muted); transition: transform .2s; }
-  input.switch:checked { background: var(--coral); border-color: var(--coral); }
-  input.switch:checked::before { transform: translateX(20px); background: #fff; }
+  label.check input { display: inline-block; width: 20px; min-height: 0; height: 20px; margin: 0; padding: 0; accent-color: var(--signal); }
+  /* On and off switch: lime when on. */
+  input.switch { -webkit-appearance: none; appearance: none; display: block; flex: none; width: 48px; min-height: 0; height: 28px; margin: 0; padding: 0;
+    border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line-strong); position: relative; cursor: pointer; transition: background .2s, border-color .2s; }
+  input.switch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
+  input.switch:checked { background: var(--signal); border-color: var(--signal); }
+  input.switch:checked::before { transform: translateX(20px); background: var(--on-signal); }
+  input.switch:focus { outline: 0; }
+  input.switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { input.switch, input.switch::before { transition: none; } }
-  /* Grouped rows: a quiet container with hairlines between rows (Settings, Setup, results). */
-  .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; margin-top: 10px; }
+  /* Grouped rows: a card with hairlines between rows (Settings, Setup, results). */
+  .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); overflow: hidden; margin-top: 10px; }
   .group:empty { display: none; }
-  .group :focus-visible { outline-offset: -2px; }   /* inside the card, which clips anything outside */
-  .group > .msg { margin: 0; padding: 14px 16px; }
-  .rowline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; min-height: 52px; border-top: 1px solid var(--line); }
+  .group :focus-visible { outline-offset: -2px; }
+  .group > .msg { margin: 0; padding: 14px 18px; }
+  .rowline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 13px 18px; min-height: 54px; border-top: 1px solid var(--line); }
   .group > .rowline:first-child { border-top: 0; }
-  .rowline .val { color: var(--muted); font-size: 15px; text-align: right; word-break: break-all; }
+  /* A long value (an email on a small phone) moves under its label instead of breaking mid-word. */
+  .rowline .val { margin-left: auto; min-width: 0; color: var(--muted); font-size: 15px; text-align: right; overflow-wrap: anywhere; }
+  .rowline .health { margin: 0 0 0 auto; text-align: right; }
   /* A short note under a card. */
   .foot { margin: 8px 4px 0; }
   .msg.foot:empty { display: none; }
   /* A whole row that is a button (Manage Subscription, Help, Sign Out). */
-  .rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; margin: 0; padding: 14px 16px;
-    border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--text); font: 400 17px/1.3 var(--sans);
+  .rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 54px; margin: 0; padding: 13px 18px;
+    border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--text); font: 400 16px/1.3 var(--sans);
     text-align: left; cursor: pointer; }
   .group > .rowbtn:first-child { border-top: 0; }
   .rowbtn .val { margin-left: auto; color: var(--muted); font-size: 15px; }
-  .rowbtn:active { background: var(--surface-2); }
-  .rowbtn.accent { color: var(--accent); font-weight: 500; }
-  .rowbtn.danger { color: var(--problem); justify-content: center; font-weight: 500; }
+  .rowbtn:active { background: var(--surface-2); opacity: 1; }
+  @media (hover: hover) { .rowbtn:hover, .person:hover, button.item:hover { background: var(--surface-2); } }
+  .rowbtn.accent { color: var(--signal-ink); font-weight: 600; }
+  .rowbtn.danger { color: var(--danger-ink); justify-content: center; font-weight: 600; }
   .chev::after { content: ""; flex: none; width: 8px; height: 8px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); margin-right: 4px; }
   /* Typing straight into a row (Your Name). */
-  .rowline input.inrow { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; text-align: right; font-size: 17px; }
-  .rowline input.inrow:focus { box-shadow: none; }
-  .rowline:has(.inrow:focus) { box-shadow: inset 0 0 0 2px var(--coral); }
+  .rowline input.inrow { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; text-align: right; font-size: 16px; }
+  .rowline input.inrow:focus { outline: 0; }
+  .rowline:has(.inrow:focus) { box-shadow: inset 0 0 0 2px var(--focus); }
   /* A label with its control underneath, inside a card (Nights, Words). */
-  .group .block { display: block; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+  .group .block { display: block; padding: 14px 18px 16px; border-top: 1px solid var(--line); }
   .group > .block:first-child { border-top: 0; }
-  .blabel { display: block; font-size: 15px; font-weight: 500; }
-  .block .seg { margin-top: 8px; background: var(--bg); }
-  .block input { margin-top: 8px; }
+  .blabel { display: block; font-size: 15px; font-weight: 600; }
+  .block .seg { margin-top: 10px; background: var(--bg); }
+  .block input { margin-top: 10px; }
   .group .linkbox { margin: 0; padding: 0; border: 0; background: none; font-size: 15px; }
-  /* A page opened from a Settings row, with Back at the top. */
-  button.back { display: inline-flex; align-items: center; gap: 6px; width: auto; min-height: 44px; margin: 0 0 2px -2px; padding: 0 2px;
-    background: none; border: 0; color: var(--accent); font: 500 17px/1 var(--sans); }
-  button.back::before { content: ""; width: 9px; height: 9px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
+  /* A page opened from a row, with Back at the top. */
+  button.back { display: inline-flex; align-items: center; gap: 8px; width: auto; min-height: 44px; margin: 6px 0 0 -2px; padding: 0 2px;
+    background: none; border: 0; color: var(--signal-ink); font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  button.back::before { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
   .screen.sub.active { animation: subin .25s ease-out; }
   .group > ol.guide { margin: 0; }
   @keyframes subin { from { transform: translateX(24px); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .screen.sub.active { animation: none; } }
-  .signout-group { margin-top: 28px; }
-  .group .row2 { padding: 0 16px 16px; }
+  .signout-group { margin-top: 32px; }
+  .group .row2 { padding: 0 18px 16px; }
   .group .row2 label { margin-top: 4px; }
   .row2 { display: flex; gap: 10px; }
-  .row2 label { flex: 1; min-width: 0; font-size: 15px; color: var(--muted); }
+  .row2 label { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); }
   .row2 input { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; padding: 0; text-align: center; line-height: normal;
     display: flex; align-items: center; justify-content: center; }
   /* iPhone draws the time inside its own inner element, which has to be centred separately. */
   .row2 input::-webkit-date-and-time-value { text-align: center; margin: 0 auto; }
   .row2 input::-webkit-datetime-edit { padding: 0; text-align: center; }
 
-  /* ===== Segmented control (theme choice, Admin filter). Selected is a neutral cream chip, not coral. ===== */
+  /* ===== Segmented control (theme, Admin filter, nights) ===== */
   .seg { display: flex; gap: 4px; padding: 4px; margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); }
-  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border-radius: var(--r-s); background: transparent; color: var(--muted); font-weight: 500; font-size: 15px; flex: 1; width: auto; }
-  .seg button:active { background: var(--seg-on); }
-  .seg button[aria-pressed="true"] { background: var(--seg-on); color: var(--text); font-weight: 600; }
+  .seg button { margin: 0; min-height: 42px; padding: 8px 6px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--muted); font: 600 14px/1.2 var(--sans); flex: 1; width: auto; }
+  .seg button:active { background: var(--surface-2); }
+  @media (hover: hover) { .seg button:hover { color: var(--text); } }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
   .seg.filter button { font-size: 13px; padding: 8px 2px; }
-  .seg.nights { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }   /* two rows keep every day 44px+ wide */
-  .seg.nights button { min-height: 44px; }
+  .seg.nights { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }   /* two rows keep every day 44px+ wide on a phone */
+  .seg.nights button { min-height: 44px; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .seg.nights button[aria-pressed="true"] { background: var(--signal); color: var(--on-signal); }
+  @media (min-width: 600px) { .seg.nights { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 
   /* ===== Setup steps and guides ===== */
   ul.steps:empty { display: none; }
-  ul.steps { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
-  .steps li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--line); }
+  ul.steps { list-style: none; padding: 0; margin: 14px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); overflow: hidden; }
+  .steps li { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); }
   .steps li:first-child { border-top: 0; }
-  .mark {
-    width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted);
-    display: grid; place-items: center; font: 500 15px/1 var(--sans); flex: none;
-  }
-  .steps .done .mark { background: var(--on); border-color: var(--on); color: var(--bg); font-weight: 700; }
-  .steps .bad .mark { border-color: var(--problem); color: var(--problem); }
+  .mark { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-strong); color: var(--muted);
+    display: grid; place-items: center; font: 800 17px/1 var(--display); flex: none; }
+  .steps .done .mark { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+  .steps .bad .mark { border-color: var(--danger); color: var(--danger-ink); }
   .steps .fix { display: block; color: var(--muted); font-size: 14px; }
   #setup-msg { min-height: 1.4em; }
   /* Numbered steps: a real sequence, so the numbers carry meaning. */
-  ol.guide { list-style: none; counter-reset: g; padding: 0; margin: 10px 0; }
-  ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-top: 1px solid var(--line); margin: 0; }
+  ol.guide { list-style: none; counter-reset: g; padding: 0; margin: 14px 0; }
+  ol.guide li { counter-increment: g; display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; border-top: 1px solid var(--line); margin: 0; }
   ol.guide li:first-child { border-top: 0; }
-  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--seg-on); color: var(--accent);
-    font: 500 14px/26px var(--sans); text-align: center; }
+  ol.guide li::before { content: counter(g); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--on-signal);
+    font: 800 16px/26px var(--display); text-align: center; }
 
   /* Sign-in and waiting screens */
-  .gate { padding-top: 24px; }
+  .gate { padding-top: 24px; max-width: 520px; margin: 0 auto; }
   .gate.center { text-align: center; padding-top: 48px; }
   .gate.center ol.guide { text-align: left; }
   .gate .rowbtn.accent { justify-content: center; }   /* Share Your Link, when the ended screen borrows the invite card */
-  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); color: var(--accent); display: grid; place-items: center; margin: 0 auto 16px; }
+  .gate .icon { width: 72px; height: 72px; border-radius: 50%; background: var(--signal-soft); color: var(--signal-ink); display: grid; place-items: center; margin: 0 auto 16px; }
   .gate .icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .auth-brand { display: none; }
+  .eyebrow { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 99px; padding: 6px 14px; color: var(--signal-ink);
+    font: 500 12px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
 
-  /* ===== Tab bar ===== */
+  /* ===== Tab bar (phones): the open tab's icon sits in a lime pill ===== */
   nav {
     flex: none; display: flex; background: var(--bg);
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
   }
   nav button {
-    flex: 1; margin: 0; border-radius: 0; background: none; color: var(--muted);
-    min-height: 76px; font-weight: 500; font-size: 14px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 6px; padding: 10px 4px;
+    flex: 1; margin: 0; border: 0; border-radius: 0; background: none; color: var(--muted);
+    min-height: 70px; font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; padding: 8px 2px 10px;
   }
-  nav button:active { background: none; opacity: .6; }
-  nav button svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  nav button.active { color: var(--accent); font-weight: 600; }
+  nav button:active { background: none; opacity: .7; }
+  nav button svg { box-sizing: content-box; width: 24px; height: 24px; padding: 4px 16px; border-radius: 99px; fill: none; stroke: currentColor; stroke-width: 1.75;
+    stroke-linecap: round; stroke-linejoin: round; transition: background .15s; }
+  nav button.active { color: var(--text); }
+  nav button.active svg { background: var(--signal); color: var(--on-signal); }
+  .side-foot { display: none; }
   /* Some iPhones give a Home Screen app a page shorter than the screen; colour the leftover strip like the tab bar. */
   html.strip { background: var(--bg); }
   html.strip nav { padding-bottom: 0; }
 
   /* ===== Admin ===== */
-  /* People: one short row each inside a card; tap a row (or its dots) for everything else. */
-  .person { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px 10px 14px;
+  /* People: one short row each inside a card; click a row (or its dots) for everything else. */
+  .person { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px 10px 16px;
     border-top: 1px solid var(--line); cursor: pointer; }
   .group > .person:first-child { border-top: 0; }
   .person:active { background: var(--surface-2); }
-  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 500 14px/1 var(--sans); }
-  .person.pending .avatar { box-shadow: 0 0 0 2px var(--coral); }
-  .person .who { font: 500 16px/1.3 var(--sans); word-break: break-word; }
-  .person .who .pill { padding: 2px 9px; margin-left: 4px; vertical-align: 1px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 700 18px/1 var(--display); }
+  .person.pending .avatar { box-shadow: 0 0 0 2px var(--signal); }
+  .person .who { font: 600 16px/1.3 var(--sans); word-break: break-word; }
+  .person .who .pill { padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
   .person .meta { margin-top: 2px; }
   .person .meta span { white-space: nowrap; }
   .person .row-actions { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 8px; padding-right: 6px; }
   .row-actions button { width: auto; min-height: 44px; padding: 8px 16px; margin: 0; font-size: 15px; }
-  .group .empty { margin: 0; padding: 14px 16px; }
+  .group .empty { margin: 0; padding: 14px 18px; text-align: left; }
   .person .dots { border: 0; background: none; color: var(--muted); }
   /* A section title with a small action on the right (People, Copy Invite). */
-  .sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 28px 0 0; }
+  .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 32px 0 0; }
   .sechead h2 { margin: 0; }
-  button.link { width: auto; min-height: 44px; margin: 0; padding: 0 2px; background: none; color: var(--accent); font-size: 15px; font-weight: 500; }
+  button.link { width: auto; min-height: 36px; margin: 0; padding: 0 2px; border: 0; background: none; color: var(--signal-ink); font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  @media (hover: hover) { button.link:hover { text-decoration: underline; text-underline-offset: 3px; } }
   /* Recent on-sale alerts: a small table, figures set like the overview's. */
-  #stats-events:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); column-gap: 12px; }   /* one set of columns for every row */
+  #stats-events:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); column-gap: 16px; }   /* one set of columns for every row */
   #stats-events > :not(.trow) { grid-column: 1 / -1; }
-  .trow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .trow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 12px 18px; border-top: 1px solid var(--line); }
   .trow:first-child { border-top: 0; }
-  .trow > span:first-child { font-size: 15px; overflow-wrap: break-word; }
-  .trow b { font: 400 20px/1.2 var(--serif); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-  .trow.head { padding-top: 9px; padding-bottom: 7px; font-size: 13px; color: var(--muted); }
+  .trow:not(.head) > span:first-child { font-size: 15px; overflow-wrap: break-word; }
+  .trow b { font: 800 22px/1.1 var(--display); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .trow.head { padding-top: 10px; padding-bottom: 8px; font: 500 11px/14px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .trow.head span:not(:first-child) { text-align: right; white-space: nowrap; }
   @media (max-width: 359px) {   /* small phones: the event name gets its own line above the figures */
     .trow > span:first-child { grid-column: 1 / -1; }
@@ -423,55 +444,58 @@
     .trow > :nth-child(2) { grid-column: 2; }
   }
   /* Every alert sent: folded away under a row. */
-  #alert-log .logrow { padding: 11px 16px; }
-  #alert-log .swipe > .alert { background: var(--surface); }
+  #alert-log .swipe { border-radius: 0; }
+  #alert-log .logrow { padding: 12px 18px; }
   #alert-log > .swipe:first-child .logrow { border-top: 0; }
   #invite-page #invite-box > h2 { display: none; }   /* the page title says it */
   /* Free-month upgrade card on the Alerts tab. */
-  .upsell { background: var(--surface); border: 1px solid var(--coral); border-radius: var(--r-m); padding: 14px 16px; margin: 14px 0 6px; }
+  .upsell { background: var(--surface); border: 1px solid var(--signal); border-radius: var(--r-l); box-shadow: var(--glow); padding: 16px 18px; margin: 18px 0 6px; }
   .upsell p { margin: 0; font-size: 15px; }
   .upsell button { margin-top: 12px; }
   .upsell .msg:empty { display: none; }
   /* A person's payment state at the top of their menu. */
-  .access-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 12px; }
+  .access-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
   .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-s); flex: none; display: grid; place-items: center; }
   .dots svg { width: 22px; height: 22px; fill: currentColor; }
   .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
-  .rowline .health { margin: 0; text-align: right; }
   #people-search { margin-top: 10px; }
   #admin-msg:empty { display: none; }
-  /* The owner's overview: a figure and its label in each cell. */
+  #admin-msg { margin-bottom: 4px; }
+  /* The owner's overview: a big figure and its label in each cell. */
   .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line);
-    border-radius: var(--r-m); overflow: hidden; margin-top: 12px; }
-  .stats > div { background: var(--surface); padding: 12px 14px; }
-  .stats b { display: block; font: 400 24px/1.2 var(--serif); font-variant-numeric: tabular-nums; }
-  .stats span { display: block; font-size: 13px; color: var(--muted); }
+    border-radius: var(--r-l); overflow: hidden; margin-top: 10px; }
+  .stats > div { background: var(--surface); padding: 14px 16px 16px; }
+  .stats b { display: block; font: 800 38px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .stats span { display: block; margin-top: 6px; font: 500 11px/14px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .stats:empty { display: none; }
+  @media (min-width: 700px) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   /* Invite link: shown in full so it can be checked, but it wraps rather than scrolling sideways. */
   .linkbox { margin-top: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-s);
     font-size: 15px; word-break: break-all; user-select: all; -webkit-user-select: all; }
   /* A short note at the bottom of the screen (Copied, Couldn't share). */
-  #toast { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 92px);
-    max-width: calc(100% - 40px); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: var(--r-m); font-size: 15px; }
-  #admin-msg { margin-bottom: 4px; }
+  #toast { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 86px); margin: 0;
+    max-width: calc(100% - 40px); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; }
 
-  /* ===== Bottom sheet ===== */
+  /* ===== Menus: a bottom sheet on a phone, a centred window on a computer ===== */
   #sheet { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; }
-  #sheet .backdrop { position: absolute; inset: 0; background: rgba(20, 20, 19, .5); }
+  #sheet .backdrop { position: absolute; inset: 0; background: var(--scrim); }
   #sheet .panel {
     position: relative; width: 100%; max-width: 560px; margin: 0 auto; max-height: 85vh; overflow-y: auto;
-    background: var(--bg); border-radius: var(--r-l) var(--r-l) 0 0; padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-l) var(--r-l) 0 0;
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   }
   #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 14px; }
-  .panel h3 { margin: 0 0 6px; font: 400 24px/1.2 var(--serif); letter-spacing: -.3px; word-break: break-word; }
-  button.item { background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 52px; margin: 0; padding: 14px 4px; font-weight: 500; }
-  button.item:active { background: var(--surface-2); }
-  button.item.danger { color: var(--problem); }
-  button.item .val { float: right; color: var(--muted); font-weight: 400; margin-left: 12px; }
-  button.danger-btn { background: var(--danger-fill); color: #fff; }
+  .panel h3 { margin: 0 0 6px; font: 800 30px/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; word-break: break-word; }
+  .panel input { background: var(--bg); }
+  button.item { display: flex; justify-content: space-between; gap: 12px; background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0;
+    text-align: left; min-height: 52px; margin: 0; padding: 14px 8px; font: 500 16px/1.3 var(--sans); }
+  button.item:active { background: var(--surface-2); opacity: 1; }
+  button.item.danger { color: var(--danger-ink); }
+  button.item .val { color: var(--muted); font-weight: 400; margin-left: 12px; text-align: right; }
+  button.danger-btn { background: var(--danger); color: var(--on-danger); }
 
   /* ===== Install gate: an arrow that points at where the Share or menu button is ===== */
-  .arrow { position: fixed; z-index: 15; pointer-events: none; color: var(--accent); font: 500 15px/1.25 var(--sans); text-align: center; }
+  .arrow { position: fixed; z-index: 15; pointer-events: none; color: var(--signal-ink); font: 600 15px/1.25 var(--sans); text-align: center; }
   .arrow .bob { display: flex; flex-direction: column; align-items: center; animation: bob 1.1s ease-in-out infinite; }
   .arrow svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .arrow.bottom { left: 50%; bottom: calc(env(safe-area-inset-bottom) + 8px); transform: translateX(-50%); }
@@ -481,19 +505,67 @@
   @keyframes bob { 50% { transform: translateY(8px); } }
   @keyframes bobup { 50% { transform: translateY(-8px); } }
   @media (prefers-reduced-motion: reduce) { .arrow .bob { animation: none; } }
-  .glyph { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .glyph { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; fill: none; stroke: var(--signal-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== Update notice (stays above the content until the app is reloaded) ===== */
-  #update-bar { flex: none; width: 100%; max-width: 560px; margin: 4px auto 0; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
-    background: var(--surface-2); border: 1px solid var(--coral); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
+  #update-bar { flex: none; width: calc(100% - 40px); max-width: 600px; margin: 6px auto 0; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--signal); border-radius: var(--r-m); font-size: 15px; line-height: 1.3; }
   #update-bar span { flex: 1; min-width: 0; }
   #update-bar button { flex: none; width: auto; min-height: 40px; padding: 8px 14px; margin: 0; font-size: 15px; }
-  @media (max-width: 600px) { #update-bar { width: calc(100% - 40px); } }
 
   /* ===== Launch screen ===== */
   #splash { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; place-items: center; transition: opacity .35s; }
   #splash.gone { opacity: 0; pointer-events: none; }
   #splash svg { width: 96px; height: 96px; }
+
+  /* ===== Computers: a sidebar instead of the tab bar, and pages that use the whole window ===== */
+  @media (min-width: 1000px) {
+    main { padding: 40px 56px 72px; }
+    .screen { max-width: 1240px; margin: 0 auto; }
+    .screen.sub > *, #setup > * { max-width: 760px; }   /* narrow, but on the same left edge as every other page */
+    .title { font-size: 64px; margin-top: 0; }
+    header { max-width: none; padding: 24px 56px 0; }
+    body.app { padding-left: var(--side); }
+    body.app > header { position: fixed; left: 0; top: 0; width: var(--side); height: 92px; padding: 30px 26px 0; background: var(--surface); border-right: 1px solid var(--line); z-index: 3; }
+    #tabs { position: fixed; left: 0; top: 92px; bottom: 0; width: var(--side); flex-direction: column; gap: 2px; padding: 8px 14px 20px;
+      background: var(--surface); border-top: 0; border-right: 1px solid var(--line); z-index: 3; }
+    #tabs button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 10px 12px; border-radius: var(--r-s);
+      font: 600 15px/1 var(--sans); letter-spacing: 0; text-transform: none; }
+    #tabs button svg { width: 22px; height: 22px; padding: 0; border-radius: 0; background: none; color: inherit; }
+    #tabs button:hover { background: var(--surface-2); color: var(--text); }
+    #tabs button.active { background: var(--signal-soft); color: var(--text); }
+    #tabs button.active svg { color: var(--signal-ink); }
+    .side-foot { display: block; margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--line); }
+    .side-foot .health { white-space: normal; }
+    body.app #watcher-line { display: none; }   /* the sidebar shows it on every tab */
+    #update-bar { width: calc(100% - 112px); max-width: 1240px; margin-top: 16px; }
+    #toast { bottom: 32px; }
+    body.app #toast { left: calc(50% + var(--side) / 2); }
+    /* Alerts: Clear All sits by the title; the free-month card is one wide strip. */
+    .upsell { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px 12px; align-items: center; }
+    .upsell button { width: auto; margin: 0; }
+    .upsell .msg { grid-column: 1 / -1; }
+    /* Menus open as a window in the middle. */
+    #sheet { align-items: center; justify-content: center; padding: 24px; }
+    #sheet .panel { max-width: 460px; border-bottom: 1px solid var(--line); border-radius: var(--r-l); padding: 24px 24px 18px; max-height: min(82vh, 760px); }
+    #sheet .panel::before { display: none; }
+    /* Sign in: the website's headline beside the form. */
+    #gate-auth { max-width: 1120px; }
+    #gate-auth.active { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 80px; align-items: center; min-height: calc(100% - 24px); padding-top: 0; }
+    .auth-brand { display: block; }
+    .auth-brand .big { font: 800 clamp(64px, 6.4vw, 104px)/.88 var(--display); letter-spacing: .01em; text-transform: uppercase; margin: 22px 0 0; }
+    .auth-brand .muted { font-size: 18px; max-width: 460px; margin-top: 20px; }
+    .auth-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); padding: 8px 28px 24px; }
+    .auth-box .title { font-size: 44px; margin-top: 18px; }
+  }
+  /* Wide windows: Admin and Settings become two columns. */
+  @media (min-width: 1200px) {
+    .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent"; column-gap: 32px; align-items: start; }
+    .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; }
+    .setcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "alerts account" "alerts computer" "alerts look" "alerts help" "alerts out";
+      grid-template-rows: auto auto auto auto 1fr; column-gap: 40px; align-items: start; }
+    .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; } .s-out { grid-area: out; }
+  }
 </style>
 </head>
 <body>
@@ -505,13 +577,16 @@
   <h1>TP Notify</h1>
 </header>
 <div id="update-bar" role="status" hidden>
-  <span>Your version is out of date. Tap Update Now, or close the app and reopen it.</span>
+  <span>A new version of TP Notify is ready.</span>
   <button id="update-now" type="button">Update Now</button>
 </div>
 <div id="stage">
 <main>
   <section id="alerts" class="screen active" aria-label="Alerts">
-    <h2 class="title">Alerts</h2>
+    <div class="pagehead">
+      <h2 class="title">Alerts</h2>
+      <button id="clear" class="secondary small" type="button" hidden>Clear All</button>
+    </div>
     <p id="watcher-line" class="health" hidden></p>
     <div id="upgrade-card" class="upsell" hidden>
       <p id="upgrade-text"></p>
@@ -520,13 +595,12 @@
       <p id="upgrade-msg" class="msg" role="status"></p>
     </div>
     <div id="list"></div>
-    <p id="swipe-hint" class="meta" style="text-align:center; display:none">Swipe an alert left to delete it.</p>
-    <button id="clear" class="secondary">Clear All</button>
+    <p id="swipe-hint" class="meta hint" hidden><span class="touch-only">Swipe an alert left to delete it.</span><span class="mouse-only">Point at an alert and click × to delete it.</span></p>
   </section>
 
   <section id="events" class="screen" aria-label="Events">
     <h2 class="title">Events</h2>
-    <p class="muted">Every Timepiece event FIXR lists right now, with its ticket status. It updates about once a minute.</p>
+    <p class="muted lede">Every Timepiece event FIXR lists right now, with its ticket status. It updates about once a minute.</p>
     <div id="event-list"></div>
   </section>
 
@@ -541,35 +615,46 @@
 
   <section id="admin" class="screen" aria-label="Admin">
     <h2 class="title">Admin</h2>
-    <div class="group">
-      <div class="rowline"><span>Watcher</span><span id="watcher-admin" class="health">Checking...</span></div>
-      <label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label>
+    <div class="dash">
+      <div class="b-status">
+        <h2>Status</h2>
+        <div class="group">
+          <div class="rowline"><span>Watcher</span><span id="watcher-admin" class="health">Checking...</span></div>
+          <label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label>
+        </div>
+        <p class="meta foot">Telegram gets a copy of every alert, and still steps in if Supabase is down.</p>
+      </div>
+      <div class="b-overview">
+        <h2>Overview</h2>
+        <div id="stats" class="stats"></div>
+        <p id="stats-note" class="meta foot"></p>
+      </div>
+      <div class="b-people">
+        <div class="sechead"><h2>People</h2><button id="invite" class="link" type="button">Copy Invite</button></div>
+        <div class="seg filter" id="people-filter" role="group" aria-label="Show people">
+          <button data-filter="all" aria-pressed="true">All</button>
+          <button data-filter="pending" aria-pressed="false">Waiting</button>
+          <button data-filter="approved" aria-pressed="false">Approved</button>
+          <button data-filter="blocked" aria-pressed="false">Blocked</button>
+        </div>
+        <input id="people-search" type="search" placeholder="Search People" hidden>
+        <p id="admin-msg" class="msg muted" role="status"></p>
+        <div id="people" class="group"></div>
+      </div>
+      <div class="b-recent">
+        <h2>Recent On-Sale Alerts</h2>
+        <div id="stats-events" class="group"></div>
+        <p class="meta foot">Devices it reached, how many times people opened it on FIXR, and how long tickets lasted.</p>
+        <div class="group"><button class="rowbtn chev" type="button" data-page="log-page"><span>Every Alert Sent</span><span class="val" id="log-count"></span></button></div>
+      </div>
     </div>
-    <p class="meta foot">Telegram gets a copy of every alert, and still steps in if Supabase is down.</p>
-    <h2>Overview</h2>
-    <div id="stats" class="stats"></div>
-    <p id="stats-note" class="meta foot"></p>
-    <div class="sechead"><h2>People</h2><button id="invite" class="link" type="button">Copy Invite</button></div>
-    <div class="seg filter" id="people-filter" role="group" aria-label="Show people">
-      <button data-filter="all" aria-pressed="true">All</button>
-      <button data-filter="pending" aria-pressed="false">Waiting</button>
-      <button data-filter="approved" aria-pressed="false">Approved</button>
-      <button data-filter="blocked" aria-pressed="false">Blocked</button>
-    </div>
-    <input id="people-search" type="search" placeholder="Search People" hidden>
-    <p id="admin-msg" class="msg muted" role="status"></p>
-    <div id="people" class="group"></div>
-    <h2>Recent On-Sale Alerts</h2>
-    <div id="stats-events" class="group"></div>
-    <p class="meta foot">Phones it reached, taps on Open on FIXR, and how long tickets lasted.</p>
-    <div class="group"><button class="rowbtn chev" type="button" data-page="log-page"><span>Every Alert Sent</span><span class="val" id="log-count"></span></button></div>
   </section>
 
   <section id="log-page" class="screen sub" data-back="admin" aria-label="Every Alert Sent">
     <button class="back" type="button" data-back="admin">Admin</button>
     <h2 class="title">Every Alert Sent</h2>
     <div class="group" id="alert-log"></div>
-    <p class="meta foot">Swipe a row left to hide it on this phone.</p>
+    <p class="meta foot"><span class="touch-only">Swipe a row left to hide it on this device.</span><span class="mouse-only">Point at a row and click × to hide it on this device.</span></p>
   </section>
 
   <section id="gate-install" class="screen gate center" aria-label="Add to Home Screen">
@@ -583,36 +668,43 @@
   </section>
 
   <section id="gate-auth" class="screen gate" aria-label="Sign In">
-    <h2 id="auth-title" class="title">Sign In to TP Notify</h2>
-    <p class="muted">Get Timepiece ticket alerts on your phone.</p>
-    <button class="secondary install-pc" type="button" hidden>Install TP Notify on This Computer</button>
-    <form id="auth-form" novalidate>
-      <div id="auth-name-field" hidden>
-        <label class="field-label" for="auth-name">Your Name</label>
-        <input id="auth-name" type="text" autocomplete="name" maxlength="60">
-      </div>
-      <label class="field-label" for="auth-email">Email</label>
-      <input id="auth-email" type="email" autocomplete="email" required>
-      <div id="auth-pass-field">
-        <label class="field-label" for="auth-pass">Password</label>
-        <input id="auth-pass" type="password" autocomplete="current-password" required>
-      </div>
-      <div id="auth-code-field" hidden>
-        <label class="field-label" for="auth-code">Code From Your Email</label>
-        <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
-      </div>
-      <div id="auth-signup-extra" hidden>
-        <div class="meter" id="auth-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <p id="auth-hint" class="meta" aria-live="polite">At least 8 characters. Your first month is free.</p>
-        <label class="field-label" for="auth-confirm">Confirm Password</label>
-        <input id="auth-confirm" type="password" autocomplete="new-password">
-      </div>
-      <div id="auth-captcha" class="captcha"></div>
-      <button id="auth-submit" type="submit">Sign In</button>
-    </form>
-    <button id="auth-code-toggle" type="button" class="secondary">Email Me a Code Instead</button>
-    <button id="auth-toggle" type="button" class="secondary">Create an Account</button>
-    <p id="auth-msg" class="msg" role="alert"></p>
+    <div class="auth-brand" aria-hidden="true">
+      <span class="eyebrow">Ticket alerts for Timepiece events</span>
+      <p class="big">Know the moment tickets go on sale.</p>
+      <p class="muted">TP Notify checks the Timepiece listing on FIXR about once a minute, day and night, and pings you the moment an event is listed as on sale.</p>
+    </div>
+    <div class="auth-box">
+      <h2 id="auth-title" class="title">Sign In to TP Notify</h2>
+      <p class="muted">Get Timepiece ticket alerts on your phone or computer.</p>
+      <button class="secondary install-pc" type="button" hidden>Install TP Notify on This Computer</button>
+      <form id="auth-form" novalidate>
+        <div id="auth-name-field" hidden>
+          <label class="field-label" for="auth-name">Your Name</label>
+          <input id="auth-name" type="text" autocomplete="name" maxlength="60">
+        </div>
+        <label class="field-label" for="auth-email">Email</label>
+        <input id="auth-email" type="email" autocomplete="email" required>
+        <div id="auth-pass-field">
+          <label class="field-label" for="auth-pass">Password</label>
+          <input id="auth-pass" type="password" autocomplete="current-password" required>
+        </div>
+        <div id="auth-code-field" hidden>
+          <label class="field-label" for="auth-code">Code From Your Email</label>
+          <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
+        </div>
+        <div id="auth-signup-extra" hidden>
+          <div class="meter" id="auth-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <p id="auth-hint" class="meta" aria-live="polite">At least 8 characters. Your first month is free.</p>
+          <label class="field-label" for="auth-confirm">Confirm Password</label>
+          <input id="auth-confirm" type="password" autocomplete="new-password">
+        </div>
+        <div id="auth-captcha" class="captcha"></div>
+        <button id="auth-submit" type="submit">Sign In</button>
+      </form>
+      <button id="auth-code-toggle" type="button" class="secondary">Email Me a Code Instead</button>
+      <button id="auth-toggle" type="button" class="secondary">Create an Account</button>
+      <p id="auth-msg" class="msg" role="alert"></p>
+    </div>
   </section>
 
   <section id="gate-notify" class="screen gate center" aria-label="Turn On Notifications">
@@ -677,51 +769,63 @@
 
   <section id="settings" class="screen" aria-label="Settings">
     <h2 class="title">Settings</h2>
-    <h2>Account</h2>
-    <div class="group">
-      <div class="rowline"><span>Signed In As</span><span class="val" id="acct-email"></span></div>
-      <div class="rowline" id="plan-row" hidden><span>Plan</span><span class="val" id="acct-plan"></span></div>
-      <button id="manage-sub" class="rowbtn chev" type="button" hidden>Manage Subscription</button>
-      <label class="rowline"><span>Your Name</span><input id="my-name" class="inrow" type="text" autocomplete="name" maxlength="60" placeholder="Add Your Name"></label>
-      <button id="invite-open" class="rowbtn chev" type="button" data-page="invite-page" hidden><span>Invite Friends</span><span class="val" id="invite-val"></span></button>
+    <div class="setcols">
+      <div class="s-account">
+        <h2>Account</h2>
+        <div class="group">
+          <div class="rowline"><span>Signed In As</span><span class="val" id="acct-email"></span></div>
+          <div class="rowline" id="plan-row" hidden><span>Plan</span><span class="val" id="acct-plan"></span></div>
+          <button id="manage-sub" class="rowbtn chev" type="button" hidden>Manage Subscription</button>
+          <label class="rowline"><span>Your Name</span><input id="my-name" class="inrow" type="text" autocomplete="name" maxlength="60" placeholder="Add Your Name"></label>
+          <button id="invite-open" class="rowbtn chev" type="button" data-page="invite-page" hidden><span>Invite Friends</span><span class="val" id="invite-val"></span></button>
+        </div>
+        <p id="name-msg" class="msg muted foot" role="status"></p>
+      </div>
+      <div id="download-pc-group" class="s-computer" hidden>
+        <h2>This Computer</h2>
+        <div class="group"><button id="download-pc2" class="rowbtn chev install-pc" type="button" data-msg="download-msg">Download TP Notify for This Computer</button></div>
+        <p id="download-msg" class="msg muted foot" role="status"></p>
+      </div>
+      <div class="s-alerts">
+        <h2>Your Alerts</h2>
+        <div class="group" id="my-types">
+          <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>
+          <label class="rowline"><span>On Sale Soon</span><input class="switch" type="checkbox" data-type="on_sale_soon"></label>
+          <label class="rowline"><span>Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
+        </div>
+        <div id="back-group" hidden>
+          <div class="group"><label class="rowline"><span>Returned Tickets</span><input id="my-back" class="switch" type="checkbox"></label></div>
+          <p class="meta foot">A ping when a sold-out night is back on sale because someone returned a ticket. They're often gone in a minute or two.</p>
+        </div>
+        <div class="group">
+          <div class="block"><span class="blabel" id="nights-label">Nights</span><div class="seg nights" id="my-nights" role="group" aria-labelledby="nights-label"></div></div>
+          <label class="block"><span class="blabel">Words to Look For</span><input id="my-words" type="text" maxlength="200" autocapitalize="none" placeholder="For example: sketch, boujee"></label>
+        </div>
+        <p class="meta foot">You get alerts for events on your nights or with your words in the name. Leave both empty to hear about every event. Separate words with commas.</p>
+        <p id="alerts-msg" class="msg muted foot" role="status"></p>
+        <div class="group"><button class="rowbtn chev" type="button" data-page="quiet-page"><span>Quiet Hours</span><span class="val" id="quiet-val"></span></button></div>
+      </div>
+      <div class="s-look">
+        <h2>Appearance</h2>
+        <div class="seg" id="theme" role="group" aria-label="Appearance">
+          <button data-mode="auto" aria-pressed="true">Auto</button>
+          <button data-mode="light" aria-pressed="false">Light</button>
+          <button data-mode="dark" aria-pressed="false">Dark</button>
+        </div>
+        <p class="meta foot">Auto follows your device's light or dark setting. On iPhone it's the only choice where the bar at the very top matches the app.</p>
+      </div>
+      <div class="s-help">
+        <h2>Help</h2>
+        <div class="group">
+          <button id="test" class="rowbtn chev" type="button">Send a Test Notification</button>
+          <button id="diagnose" class="rowbtn chev" type="button" data-page="check-page">Check Why Alerts Aren't Arriving</button>
+          <button class="rowbtn chev" type="button" data-page="loud">Make Alerts Loud on iPhone</button>
+        </div>
+      </div>
+      <div class="s-out">
+        <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
+      </div>
     </div>
-    <p id="name-msg" class="msg muted foot" role="status"></p>
-    <div id="download-pc-group" hidden>
-      <h2>This Computer</h2>
-      <div class="group"><button id="download-pc2" class="rowbtn chev install-pc" type="button" data-msg="download-msg">Download TP Notify for This Computer</button></div>
-      <p id="download-msg" class="msg muted foot" role="status"></p>
-    </div>
-    <h2>Your Alerts</h2>
-    <div class="group" id="my-types">
-      <label class="rowline"><span>Tickets on Sale</span><input class="switch" type="checkbox" data-type="on_sale"></label>
-      <label class="rowline"><span>On Sale Soon</span><input class="switch" type="checkbox" data-type="on_sale_soon"></label>
-      <label class="rowline"><span>Check Manually</span><input class="switch" type="checkbox" data-type="check"></label>
-    </div>
-    <div id="back-group" hidden>
-      <div class="group"><label class="rowline"><span>Returned Tickets</span><input id="my-back" class="switch" type="checkbox"></label></div>
-      <p class="meta foot">A ping when a sold-out night is back on sale because someone returned a ticket. They're often gone in a minute or two.</p>
-    </div>
-    <div class="group">
-      <div class="block"><span class="blabel" id="nights-label">Nights</span><div class="seg nights" id="my-nights" role="group" aria-labelledby="nights-label"></div></div>
-      <label class="block"><span class="blabel">Words to Look For</span><input id="my-words" type="text" maxlength="200" autocapitalize="none" placeholder="For example: sketch, boujee"></label>
-    </div>
-    <p class="meta foot">You get alerts for events on your nights or with your words in the name. Leave both empty to hear about every event. Separate words with commas.</p>
-    <p id="alerts-msg" class="msg muted foot" role="status"></p>
-    <div class="group"><button class="rowbtn chev" type="button" data-page="quiet-page"><span>Quiet Hours</span><span class="val" id="quiet-val"></span></button></div>
-    <h2>Appearance</h2>
-    <div class="seg" id="theme" role="group" aria-label="Appearance">
-      <button data-mode="auto" aria-pressed="true">Auto</button>
-      <button data-mode="light" aria-pressed="false">Light</button>
-      <button data-mode="dark" aria-pressed="false">Dark</button>
-    </div>
-    <p class="meta foot">Auto follows your phone, and is the only choice where the bar at the very top matches the app.</p>
-    <h2>Help</h2>
-    <div class="group">
-      <button id="test" class="rowbtn chev" type="button">Send a Test Notification</button>
-      <button id="diagnose" class="rowbtn chev" type="button" data-page="check-page">Check Why Alerts Aren't Arriving</button>
-      <button class="rowbtn chev" type="button" data-page="loud">Make Alerts Loud on iPhone</button>
-    </div>
-    <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
   </section>
 
   <section id="quiet-page" class="screen sub" data-back="settings" aria-label="Quiet Hours">
@@ -755,7 +859,7 @@
   <section id="check-page" class="screen sub" data-back="settings" aria-label="Check Why Alerts Aren't Arriving">
     <button class="back" type="button" data-back="settings">Settings</button>
     <h2 class="title">Alert Check</h2>
-    <p class="muted">Each thing that has to work for alerts to reach this phone.</p>
+    <p class="muted">Each thing that has to work for alerts to reach this device.</p>
     <ul class="steps" id="diag"></ul>
     <p class="muted" id="diag-note"></p>
     <button id="diag-again" class="secondary" type="button">Check Again</button>
@@ -791,7 +895,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Events
   </button>
   <button data-tab="setup">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>Setup
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>Setup
   </button>
   <button data-tab="settings">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>Settings
@@ -799,6 +903,7 @@
   <button data-tab="admin" id="admin-tab" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/></svg>Admin
   </button>
+  <div class="side-foot"><p id="side-watcher" class="health" hidden></p></div>
 </nav>
 <script src="app.js"></script>
 </body>
