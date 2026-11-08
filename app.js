@@ -915,11 +915,11 @@ async function api(path, opts = {}) {
 // ---- Payments (Stripe) ----
 // PUBLIC links only (the same ones as the website's config.js). The Stripe secret key lives only in Supabase.
 // Empty = not set up yet; the buttons say so instead of breaking.
-// Made by the stripe-setup function (same links as the website's config.js). TEST links until Stripe goes live.
+// Made by the stripe-setup function (same links as the website's config.js). LIVE links (8 Nov 2026).
 // Passes are one payment and never renew; the webhook sets paid_until to the pass's last day.
-const PAY_TERM = "https://buy.stripe.com/test_dRmbJ1f6r3Yvfha78rg7e03";      // Term Pass, £11.99 once, until 26 March 2027
-const PAY_YEAR = "https://buy.stripe.com/test_14AeVd2jFamT2uo50jg7e04";      // Year Pass, £24.99 once, until 11 June 2027
-const PAY_MONTHLY = "https://buy.stripe.com/test_8x23cvbUf52zd920K3g7e02";   // £4.99 a month
+const PAY_TERM = "https://buy.stripe.com/8x2cN4fWz0Zn25j6FT6wE01";      // Term Pass, £11.99 once, until 26 March 2027
+const PAY_YEAR = "https://buy.stripe.com/14AeVcbGjazXaBP7JX6wE02";      // Year Pass, £24.99 once, until 11 June 2027
+const PAY_MONTHLY = "https://buy.stripe.com/14A4gycKngYldO1d4h6wE00";   // £4.99 a month
 const PROMO_MONTHLY = "FIRSTMONTH";        // makes the first month £3.99 (new customers only)
 const PROMO_TERM = "EARLYSPRING", PROMO_TERM_UNTIL = Date.parse("2026-12-11T23:59:59Z");   // early-bird Term Pass £9.99; a real deadline Stripe enforces
 const earlyBird = () => Date.now() < PROMO_TERM_UNTIL;
