@@ -466,6 +466,7 @@
   .upsell p { margin: 0; font-size: 15px; }
   .upsell button { margin-top: 12px; }
   .upsell .msg:empty { display: none; }
+  .upsell .legal { margin-top: 12px; font-size: 13px; }
   /* A person's payment state at the top of their menu. */
   .access-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
   .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-s); flex: none; display: grid; place-items: center; }
@@ -558,7 +559,8 @@
     .upsell { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); gap: 12px; align-items: center; }
     .upsell > p:first-child { grid-column: 1 / -1; }
     .upsell button { width: auto; margin: 0; }
-    .upsell .msg { grid-column: 1 / -1; }
+    .upsell .msg, .upsell .legal { grid-column: 1 / -1; }
+    .upsell .legal { margin: 0; }
     /* Menus open as a window in the middle. */
     #sheet { align-items: center; justify-content: center; padding: 24px; }
     #sheet .panel { max-width: 460px; border-bottom: 1px solid var(--line); border-radius: var(--r-l); padding: 24px 24px 18px; max-height: min(82vh, 760px); }
@@ -608,6 +610,7 @@
       <button id="upgrade-year" class="secondary" type="button">Year Pass: £24.99, Until 11 June</button>
       <button id="upgrade-monthly" class="secondary" type="button">Or Monthly: £3.99 First Month</button>
       <p id="upgrade-msg" class="msg" role="status"></p>
+      <p class="meta legal">Your pass starts as soon as you pay. You can still cancel within 14 days and get back what you haven't used. <a href="https://lowballing-coding.github.io/tp-notify-site/refunds.html" target="_blank" rel="noopener">How refunds work</a></p>
     </div>
     <div id="list"></div>
     <p id="swipe-hint" class="meta hint" hidden><span class="touch-only">Swipe an alert left to delete it.</span><span class="mouse-only">Point at an alert and click × to delete it.</span></p>
@@ -770,6 +773,7 @@
     <button id="ended-year" class="secondary" type="button" hidden>Year Pass: £24.99, Until 11 June</button>
     <button id="ended-billing" class="secondary" type="button" hidden>Update Payment Details</button>
     <p id="ended-msg" class="msg" role="status"></p>
+    <p class="meta">Starts as soon as you pay, with a 14-day right to cancel. <a href="https://lowballing-coding.github.io/tp-notify-site/refunds.html" target="_blank" rel="noopener">How refunds work</a></p>
     <button class="secondary signout" type="button">Sign Out</button>
     <p class="meta">Think this is a mistake? Email TPNotify@outlook.com.</p>
   </section>
@@ -840,6 +844,7 @@
       </div>
       <div class="s-out">
         <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
+        <p class="meta foot">TP Notify is an independent service, not affiliated with or endorsed by Timepiece or FIXR. <a href="https://lowballing-coding.github.io/tp-notify-site/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="https://lowballing-coding.github.io/tp-notify-site/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://lowballing-coding.github.io/tp-notify-site/refunds.html" target="_blank" rel="noopener">Refunds</a></p>
       </div>
     </div>
   </section>
