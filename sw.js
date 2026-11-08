@@ -1,6 +1,7 @@
-const CACHE = "timepiece-v78";
-const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
+const CACHE = "timepiece-v79";
+const SHELL = ["./", "index.html", "app.js", "events.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
+importScripts("events.js");   // eventOver, clearOverNotifications
 const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
   signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert" };
 const NOT_ALERTS = ["signup", "free_ending", "too_late"];   // about the account, not an event: not saved in the alert history
@@ -68,13 +69,14 @@ self.addEventListener("push", (e) => {
       const unseen = await saveAlert({ type: type === "back_on_sale" ? "on_sale" : type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", late, received: Date.now(), seen: false });
       try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
     }
+    await clearOverNotifications(self.registration);
     await self.registration.showNotification(TITLES[type], {
       body: body || "Open the app for details.",
       tag: d.url || (NOT_ALERTS.includes(type) ? type + (d.name || "") : "timepiece"),
       renotify: true,
       requireInteraction: type === "on_sale" || type === "back_on_sale",
       icon: "icon-192.png",
-      data: { url: d.url || "", tab: d.tab === "admin" ? "admin" : "" },
+      data: { url: d.url || "", tab: d.tab === "admin" ? "admin" : "", date: d.date || "", received: Date.now() },
     });
     const wins = await self.clients.matchAll({ type: "window" });
     wins.forEach((w) => w.postMessage("refresh"));

@@ -260,23 +260,6 @@ $("list").addEventListener("click", (e) => {
   renderAlerts();
 });
 let knownIds = null;   // alerts already on screen, so a brand-new one can animate in
-// The night an alert's event is on ("12 October" -> that day, in the right year), or null when it has no readable date.
-function eventDate(a, now = Date.now()) {
-  const m = /^(\d{1,2})\S*\s+([A-Za-z]{3})/.exec(a.date || "");
-  const mon = m ? "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(m[2].toLowerCase()) : -1;
-  if (mon < 0 || mon % 3) return null;
-  const got = new Date(a.received || now);
-  let y = got.getFullYear() - 1;
-  for (; y <= got.getFullYear() + 1; y++) {   // the first year whose night isn't over before the alert came
-    if (new Date(y, mon / 3, +m[1] + 1, 6) >= got - 7 * 864e5) break;
-  }
-  return new Date(Math.min(y, got.getFullYear() + 1), mon / 3, +m[1]);
-}
-// An event is over at 6am the morning after its date (nights run past midnight). Alerts with no date stay.
-function eventOver(a, now = Date.now()) {
-  const d = eventDate(a, now);
-  return !!d && now >= new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 6);
-}
 async function renderAlerts() {
   const stored = await allAlerts();
   const all = [...stored, ...(await fetchMissed(stored))];
@@ -538,7 +521,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 78;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 79;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1572,12 +1555,14 @@ document.addEventListener("visibilitychange", () => {
   setClock();
   if (watcherAt) drawWatcher();
   renderAlerts();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.ready.then(clearOverNotifications);
   if (session && profile && profile.status === "approved") renderWatcher();
   if ($("events").classList.contains("active")) renderEvents();
   if (session && profile && (profile.status !== "approved" || profile.access === "lapsed")) loadProfile();   // pick up an approval or a renewal
   if (session && profile && document.querySelector("#gate-notify.active")) loadProfile();   // they may have just allowed notifications in Settings
 });
 renderAlerts();
+if ("serviceWorker" in navigator) navigator.serviceWorker.ready.then(clearOverNotifications);
 session = store.get("tp-session");
 if (installNeeded()) showInstallGate();
 else if (session) loadProfile(); else showGate("gate-auth");
