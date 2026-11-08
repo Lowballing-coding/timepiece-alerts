@@ -526,14 +526,24 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 84;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
-async function checkForUpdate() {
+const APP_VERSION = 85;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
     if (m) $("update-bar").hidden = Number(m[1]) <= APP_VERSION;
-  } catch { /* offline: leave the notice as it is */ }
+    return m ? Number(m[1]) : null;
+  } catch { return null; /* offline: leave the notice as it is */ }
 }
 $("update-now").onclick = () => { flushSaves(); location.reload(); };
+// Settings > Help > Check for Updates: updates straight away if there's a newer version.
+const updateVal = $("update-val");
+updateVal.textContent = `Version ${APP_VERSION}`;
+$("check-update").onclick = async () => {
+  updateVal.textContent = "Checking...";
+  const v = await checkForUpdate();
+  if (v > APP_VERSION) { updateVal.textContent = "Updating..."; flushSaves(); location.reload(); }
+  else updateVal.textContent = v ? `Up to Date (Version ${APP_VERSION})` : "Couldn't check. Are you online?";
+};
 checkForUpdate();
 setInterval(checkForUpdate, 15 * 60e3);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
