@@ -429,11 +429,11 @@
   .group .empty { margin: 0; padding: 14px 18px; text-align: left; }
   .person .dots { border: 0; background: none; color: var(--muted); }
   /* Selling moments: one small centred window (sold out first, free month ending, you're in). */
-  dialog.sell { width: min(440px, calc(100vw - 32px)); padding: 28px 24px 20px; border: 1px solid var(--signal); border-radius: var(--r-l);
+  dialog.sell { width: min(440px, calc(100vw - 32px)); padding: 28px 24px 20px; border: 1px solid var(--uv); border-radius: var(--r-l);
     background: var(--surface); color: var(--text); box-shadow: var(--glow); }
   dialog.sell::backdrop { background: rgb(0 0 0 / .6); }
-  dialog.sell .kicker { margin: 0; font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--signal-ink); }
-  dialog.sell h2 { margin: 6px 0 12px; font: 800 30px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; color: var(--text); }
+  dialog.sell .kicker { margin: 0; font: 600 12px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--uv-ink); }
+  dialog.sell h2 { margin: 6px 0 12px; font: 700 24px/1.15 var(--display); color: var(--text); }
   dialog.sell p { margin: 0 0 18px; }
   dialog.sell button.link { display: block; margin: 10px auto 0; }
   dialog.sell .msg:empty { display: none; }
