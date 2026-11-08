@@ -474,6 +474,21 @@
   .dots { width: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: var(--r-s); flex: none; display: grid; place-items: center; }
   .dots svg { width: 22px; height: 22px; fill: currentColor; }
   .logrow { padding: 12px 0; border-top: 1px solid var(--line); }
+  /* Instagram (Admin): a 7/30-day table, a list of posts, and comments with a reply box. */
+  #ig-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* it sits in the narrow column on computers */
+  #ig-table:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, auto); column-gap: 16px; }
+  #ig-table > :not(.trow) { grid-column: 1 / -1; }
+  #ig-posts .logrow, .igc { padding: 12px 18px; }
+  #ig-posts > .logrow:first-child, #ig-comments > .igc:first-child { border-top: 0; }
+  #ig-posts a { color: var(--text); text-decoration: none; }
+  .igc { border-top: 1px solid var(--line); }
+  .igc p { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .igc .rep { margin: 10px 0 0 14px; padding-left: 12px; border-left: 2px solid var(--line); }
+  .igc .rep.mine { border-color: var(--uv); }
+  .igc form { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+  .igc textarea { flex: 1; min-height: 44px; padding: 10px 12px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-s); font: 15px/1.35 var(--sans); resize: vertical; }
+  .igc textarea:focus { outline: 2px solid var(--focus); outline-offset: 0; }
+  .igc form button { width: auto; min-height: 44px; margin: 0; padding: 0 18px; }
   #people-search { margin-top: 10px; }
   #admin-msg:empty { display: none; }
   #admin-msg { margin-bottom: 4px; }
@@ -578,8 +593,8 @@
   }
   /* Wide windows: Admin and Settings become two columns. */
   @media (min-width: 1200px) {
-    .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent"; column-gap: 32px; align-items: start; }
-    .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; }
+    .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent" "people instagram"; column-gap: 32px; align-items: start; }
+    .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; } .b-instagram { grid-area: instagram; }
     .setcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "alerts account" "alerts computer" "alerts look" "alerts help" "alerts out";
       grid-template-rows: auto auto auto auto 1fr; column-gap: 40px; align-items: start; }
     .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; } .s-out { grid-area: out; }
@@ -671,7 +686,32 @@
         <p class="meta foot">Devices it reached, how many times people opened it on FIXR, and how long tickets lasted.</p>
         <div class="group"><button class="rowbtn chev" type="button" data-page="log-page"><span>Every Alert Sent</span><span class="val" id="log-count"></span></button></div>
       </div>
+      <div class="b-instagram">
+        <h2>Instagram</h2>
+        <div id="ig-tiles" class="stats"></div>
+        <div id="ig-table" class="group"></div>
+        <p id="ig-note" class="meta foot">Checking...</p>
+        <div class="group" id="ig-links" hidden>
+          <button class="rowbtn chev" type="button" data-page="ig-posts-page"><span>Posts, Reels and Stories</span><span class="val" id="ig-posts-val"></span></button>
+          <button class="rowbtn chev" type="button" data-page="ig-comments-page"><span>Comments</span><span class="val" id="ig-comments-val"></span></button>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <section id="ig-posts-page" class="screen sub" data-back="admin" aria-label="Posts, Reels and Stories">
+    <button class="back" type="button" data-back="admin">Admin</button>
+    <h2 class="title">Posts, Reels and Stories</h2>
+    <div class="group" id="ig-posts"></div>
+    <p class="meta foot">Newest first. Instagram only keeps story stats for a day, so a story shows its last numbers before it ended. Stories with under 5 views get no stats.</p>
+  </section>
+
+  <section id="ig-comments-page" class="screen sub" data-back="admin" aria-label="Comments">
+    <button class="back" type="button" data-back="admin">Admin</button>
+    <h2 class="title">Comments</h2>
+    <div class="group" id="ig-comments"></div>
+    <p id="ig-comments-msg" class="msg foot" role="status"></p>
+    <p class="meta foot">Replies are posted publicly from the TP Notify account within about a minute. Keep them factual: the same advertising rules apply as for posts. New comments show up within 15 minutes, and comments are kept here for 90 days.</p>
   </section>
 
   <section id="log-page" class="screen sub" data-back="admin" aria-label="Every Alert Sent">
