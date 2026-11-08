@@ -1,4 +1,4 @@
-const CACHE = "timepiece-v80";
+const CACHE = "timepiece-v81";
 const SHELL = ["./", "index.html", "app.js", "events.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
 importScripts("events.js");   // eventOver, clearOverNotifications

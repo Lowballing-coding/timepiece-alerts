@@ -43,8 +43,13 @@ function setClock() {
   const d = new Date(), min = d.getMinutes() + d.getSeconds() / 60;
   m.setAttribute("transform", `rotate(${min * 6} 60 60)`);
   h.setAttribute("transform", `rotate(${((d.getHours() % 12) + min / 60) * 30} 60 60)`);
+  // Safari (and Chrome when the window is covered) pauses the seconds sweep while the app is out of sight,
+  // so it came back behind and then jumped. Put it on the real second every time the hands are drawn.
+  const sweep = document.querySelector(".sweep");
+  if (sweep && sweep.getAnimations) sweep.getAnimations().forEach((a) => { a.currentTime = d.getSeconds() * 1000 + d.getMilliseconds() + a.effect.getTiming().delay; });
 }
 setInterval(setClock, 10000);
+window.addEventListener("focus", setClock);   // a Mac window that was only behind others never fires visibilitychange
 
 // Alerts the server sent to this person that never reached this phone (it was off, the push expired, ...).
 async function fetchMissed(local) {
@@ -357,7 +362,7 @@ document.querySelectorAll("nav button").forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === b.dataset.tab));
-    if (b.dataset.tab === "alerts") renderAlerts();
+    if (b.dataset.tab === "alerts") { setClock(); renderAlerts(); }   // the sweep restarts when the page is shown again
     if (b.dataset.tab === "events") renderEvents();
     if (b.dataset.tab === "setup") renderChecklist();
     if (b.dataset.tab === "admin") renderAdmin();
@@ -521,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 80;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 81;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
