@@ -428,6 +428,15 @@
   .row-actions button { width: auto; min-height: 44px; padding: 8px 16px; margin: 0; font-size: 15px; }
   .group .empty { margin: 0; padding: 14px 18px; text-align: left; }
   .person .dots { border: 0; background: none; color: var(--muted); }
+  /* Selling moments: one small centred window (sold out first, free month ending, you're in). */
+  dialog.sell { width: min(440px, calc(100vw - 32px)); padding: 28px 24px 20px; border: 1px solid var(--uv); border-radius: var(--r-l);
+    background: var(--surface); color: var(--text); box-shadow: var(--glow); }
+  dialog.sell::backdrop { background: rgb(0 0 0 / .6); }
+  dialog.sell .kicker { margin: 0; font: 600 12px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--uv-ink); }
+  dialog.sell h2 { margin: 6px 0 12px; font: 700 24px/1.15 var(--display); color: var(--text); }
+  dialog.sell p { margin: 0 0 18px; }
+  dialog.sell button.link { display: block; margin: 10px auto 0; }
+  dialog.sell .msg:empty { display: none; }
   /* A section title with a small action on the right (People, Copy Invite). */
   .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 32px 0 0; }
   .sechead h2 { margin: 0; }
@@ -546,7 +555,8 @@
     #toast { bottom: 32px; }
     body.app #toast { left: calc(50% + var(--side) / 2); }
     /* Alerts: Clear All sits by the title; the free-month card is one wide strip. */
-    .upsell { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px 12px; align-items: center; }
+    .upsell { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); gap: 12px; align-items: center; }
+    .upsell > p:first-child { grid-column: 1 / -1; }
     .upsell button { width: auto; margin: 0; }
     .upsell .msg { grid-column: 1 / -1; }
     /* Menus open as a window in the middle. */
@@ -594,8 +604,9 @@
     <p id="watcher-line" class="health" hidden></p>
     <div id="upgrade-card" class="upsell" hidden>
       <p id="upgrade-text"></p>
-      <button id="upgrade-monthly" type="button">Get Instant Alerts: £3.99 First Month</button>
-      <button id="upgrade-quarterly" class="secondary" type="button">Or £11.99 for 3 Months</button>
+      <button id="upgrade-term" type="button">Get the Term Pass</button>
+      <button id="upgrade-year" class="secondary" type="button">Year Pass: £24.99, Until 11 June</button>
+      <button id="upgrade-monthly" class="secondary" type="button">Or Monthly: £3.99 First Month</button>
       <p id="upgrade-msg" class="msg" role="status"></p>
     </div>
     <div id="list"></div>
@@ -756,6 +767,7 @@
     <h2 id="ended-title">Subscription Ended</h2>
     <p class="muted" id="ended-text">Your subscription has ended or a payment didn't go through, so alerts are paused. Renew to start them again.</p>
     <button id="ended-renew" type="button">Renew</button>
+    <button id="ended-year" class="secondary" type="button" hidden>Year Pass: £24.99, Until 11 June</button>
     <button id="ended-billing" class="secondary" type="button" hidden>Update Payment Details</button>
     <p id="ended-msg" class="msg" role="status"></p>
     <button class="secondary signout" type="button">Sign Out</button>
@@ -909,6 +921,15 @@
   </button>
   <div class="side-foot"><p id="side-watcher" class="health" hidden></p></div>
 </nav>
+<dialog id="sell" class="sell" aria-labelledby="sell-title">
+  <p class="kicker" id="sell-kicker"></p>
+  <h2 id="sell-title"></h2>
+  <p id="sell-text"></p>
+  <button id="sell-go" type="button"></button>
+  <button id="sell-alt" class="secondary" type="button" hidden></button>
+  <button id="sell-close" class="link" type="button">Not Now</button>
+  <p id="sell-msg" class="msg" role="status"></p>
+</dialog>
 <script src="app.js"></script>
 </body>
 </html>
