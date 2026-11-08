@@ -1,5 +1,6 @@
-const CACHE = "timepiece-v75";
-const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const CACHE = "timepiece-v76";
+const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
+  "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
 const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
   signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert" };
 const NOT_ALERTS = ["signup", "free_ending", "too_late"];   // about the account, not an event: not saved in the alert history

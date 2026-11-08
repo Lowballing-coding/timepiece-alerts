@@ -6,19 +6,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Page Not Found | TP Notify</title>
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#faf9f5">
+<meta name="theme-color" content="#0c0916">
 <!-- GitHub Pages shows this for any missing address, at any depth, so links use the full app address. -->
 <link rel="icon" href="https://lowballing-coding.github.io/timepiece-alerts/icon-192.png">
 <style>
-  :root { --bg: #faf9f5; --text: #141413; --muted: #65635d; --fill: #b5593b; --accent: #a9583e; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #181715; --text: #faf9f5; --muted: #a09d96; --accent: #e39679; } }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  /* The app's "Afterglow" look. Fonts use the full address because this page shows at any depth. */
+  @font-face { font-family: "Unbounded"; src: url(https://lowballing-coding.github.io/timepiece-alerts/fonts/unbounded.woff2) format("woff2"); font-weight: 200 900; font-display: swap; }
+  @font-face { font-family: "Schibsted Grotesk"; src: url(https://lowballing-coding.github.io/timepiece-alerts/fonts/schibsted-grotesk.woff2) format("woff2"); font-weight: 400 900; font-display: swap; }
+  :root { --bg: #0c0916; --text: #f8f6ff; --muted: #a9a3c4; --link: #c0aaff; color-scheme: dark;
+    --wash: radial-gradient(900px 520px at 88% -8%, rgba(138, 92, 255, .38), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 79, 160, .16), transparent 60%); }
+  @media (prefers-color-scheme: light) { :root { --bg: #f6f3fb; --text: #1a1030; --muted: #675f7d; --link: #5a2fd0; color-scheme: light;
+    --wash: radial-gradient(900px 520px at 88% -8%, rgba(150, 110, 255, .22), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 173, 85, .18), transparent 60%); } }
+  html { min-height: 100%; background: var(--wash), var(--bg); }
+  body { margin: 0; color: var(--text); font: 17px/1.5 "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
   main { max-width: 480px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 72px) 20px 40px; text-align: center; }
-  h1 { font: 400 34px/1.1 ui-serif, "New York", Georgia, serif; letter-spacing: -.5px; margin: 0; }
+  h1 { font: 700 34px/1.1 "Unbounded", system-ui, sans-serif; letter-spacing: -.02em; margin: 0; }
   p { color: var(--muted); font-size: 15px; margin: 12px 0 0; }
-  a.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 28px; margin-top: 28px; border-radius: 8px;
-    background: var(--fill); color: #fff; font-weight: 500; text-decoration: none; }
-  a { color: var(--accent); }
+  a.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 28px; margin-top: 28px; border-radius: 99px;
+    background: linear-gradient(135deg, #6c46e8, #9461fb); color: #fff; font-weight: 700; text-decoration: none; }
+  a { color: var(--link); }
 </style>
 </head>
 <body>

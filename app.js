@@ -137,6 +137,8 @@ const ICONS = {
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
   clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
 };
+// A small calendar tile: day, date and month, in the same order as the ticket stub ("Fri 13 Nov").
+const dateTile = (day, d) => `<div class="tile">${day ? `<span>${esc(day.slice(0, 3))}</span>` : ""}<b>${esc(d[1])}</b><span>${esc(d[2].slice(0, 3))}</span></div>`;
 // Each event's latest status from the watcher ("on", "soon", "off" = sold out), so old on-sale cards don't stay "On Sale Now",
 // plus when it went on sale and sold out (for "Sold out within 14 minutes of going on sale").
 async function eventStatuses(items) {
@@ -181,7 +183,7 @@ function gotItHtml(a, url) {
   }
   if (ans === "no") return `<div class="gotit" data-url="${esc(url)}"><span>No luck? We'll ping you if it's listed as on sale again. Or check ${MYNIGHTOUT_URL ? `<a href="${esc(MYNIGHTOUT_URL)}" target="_blank" rel="noopener">MyNightOut</a>` : "MyNightOut"} for resale tickets under £10.</span>
     <button class="secondary" type="button" data-got="yes">I Got One</button></div>`;
-  return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket? If not, tap No and we'll ping you if it's back on sale.</span>
+  return `<div class="gotit" data-url="${esc(url)}"><span>Did you get a ticket? If not, choose No and we'll ping you if it's back on sale.</span>
     <button class="secondary" type="button" data-got="yes">Yes</button><button class="secondary" type="button" data-got="no">No</button></div>`;
 }
 // Add to Calendar: an all-day event for the night, made by a small Supabase function (iPhone opens it straight in Calendar).
@@ -241,7 +243,8 @@ function eventActions(ev, opts = {}) {
   const url = safeUrl(ev.url);
   if (!url) return "";
   const share = opts.share ? `<button class="secondary share" type="button" data-share="${esc(JSON.stringify({ name: ev.name, day: ev.day, date: ev.date, url, status: ev.status, out: ev.out || "" }))}">Share</button>` : "";
-  return `<div class="acts"><a class="go" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on FIXR</a>${share}</div>`;
+  const quiet = ["off", "soon", "unknown"].includes(ev.status) ? " secondary" : "";   // lime only while tickets are on sale
+  return `<div class="acts"><a class="go${quiet}" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on FIXR</a>${share}</div>`;
 }
 function onEventClick(e) {
   const t = e.target.closest("[data-tap]");
@@ -285,8 +288,7 @@ async function renderAlerts() {
   const statuses = await eventStatuses(items);
   const fresh = new Set(knownIds ? items.filter((a) => a.id && !knownIds.has(a.id)).map((a) => a.id) : []);
   knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
-  $("clear").style.display = items.length ? "block" : "none";
-  $("swipe-hint").style.display = items.length ? "block" : "none";
+  $("clear").hidden = $("swipe-hint").hidden = !items.length;
   if (!items.length) {
     $("list").innerHTML = `<div class="empty">
       <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -331,7 +333,7 @@ async function renderAlerts() {
         <div class="ticket">
           <div class="stub">${stub}</div>
           <div class="tbody">
-            <div class="line1">${status === "off" ? '<span class="pill problem">Now Sold Out</span>' : status === "soon" ? '<span class="pill check">On Sale Soon</span>' : '<span class="pill on">On Sale Now</span>'}${tag}</div>
+            <div class="line1">${status === "off" ? '<span class="pill">Now Sold Out</span>' : status === "soon" ? '<span class="pill soon">On Sale Soon</span>' : '<span class="pill on">On Sale Now</span>'}${tag}</div>
             <h3>${esc(a.name)}</h3>
             <p class="when">${esc(when)}</p>
             <p class="rec">Received ${esc(time)}</p>
@@ -340,16 +342,15 @@ async function renderAlerts() {
         </div>
       </article>`)}${eventActions({ ...a, status, out: status === "off" ? soldOutIn(st) : "" }, { share: true })}${url ? gotItHtml(a, url) : ""}</div>`;
     }
-    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>`
-      : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
+    const tile = d ? dateTile(a.day, d) : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
     const url2 = type === "on_sale_soon" ? safeUrl(a.url) : "";
     return heading + wrap("", `<article class="${cls} row">
       ${tile}
       <div>
-        <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "check" || type === "on_sale_soon" ? "check" : ""}">${LABELS[type]}</span>${tag}</div>
+        <div class="line1"><span class="pill ${type === "problem" ? "problem" : type === "on_sale_soon" ? "soon" : ""}">${LABELS[type]}</span>${tag}</div>
         <h3>${esc(a.name)}</h3>
         ${when ? `<p class="when">${esc(when)}</p>` : ""}
-        ${type === "on_sale_soon" ? `<p class="when">Check it on FIXR.${url2 ? ` <a href="${esc(url2)}" target="_blank" rel="noopener" data-tap="${esc(url2)}" style="color:var(--accent)">Open FIXR</a>` : ""}</p>` : ""}
+        ${type === "on_sale_soon" ? (url2 ? eventActions({ ...a, url: url2, status: "soon" }) : '<p class="when">Check it on FIXR.</p>') : ""}
       </div>
       <time class="at">${esc(time)}</time>
     </article>`);
@@ -382,7 +383,7 @@ document.querySelectorAll("nav button").forEach((b) => {
 $("clear").onclick = async () => { await clearAlerts(); store.set("tp-since", Date.now()); renderAlerts(); };
 
 // ---- Events: every Timepiece event FIXR lists right now, with its live ticket status (saved by the watcher on every check) ----
-const EVENT_PILLS = { on: ["on", "On Sale Now"], soon: ["check", "On Sale Soon"], off: ["problem", "Sold Out"], unknown: ["", "Check FIXR"] };
+const EVENT_PILLS = { on: ["on", "On Sale Now"], soon: ["soon", "On Sale Soon"], off: ["", "Sold Out"], unknown: ["", "Check FIXR"] };
 async function renderEvents() {
   const box = $("event-list");
   if (!session) return;
@@ -402,7 +403,7 @@ async function renderEvents() {
   box.innerHTML = list.map((r) => {
     const [cls, label] = EVENT_PILLS[r.status] || EVENT_PILLS.unknown;
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(r.date || "");
-    const tile = d ? `<div class="tile"><span>${esc(d[2].slice(0, 3))}</span><b>${esc(d[1])}</b></div>` : `<div class="tile icon">${ICONS.clock}</div>`;
+    const tile = d ? dateTile(r.day, d) : `<div class="tile icon">${ICONS.clock}</div>`;
     const sold = r.status === "off" ? soldOutIn(r) : "";
     return `<article class="alert row event">
       ${tile}
@@ -465,7 +466,8 @@ async function enableNotifications(msgEl) {
     if (!supported()) return false;
     const perm = await Notification.requestPermission();
     if (perm !== "granted") {
-      msgEl.textContent = "Notifications were not allowed. Allow them in the phone's Settings, then try again.";
+      msgEl.textContent = thisDevice() === "phone" ? "Notifications were not allowed. Allow them in the phone's Settings, then try again."
+        : "Notifications were not allowed. Allow them for TP Notify in your browser's site settings, then try again.";
       return false;
     }
     const reg = await Promise.race([
@@ -475,7 +477,7 @@ async function enableNotifications(msgEl) {
     const sub = (await reg.pushManager.getSubscription()) ||
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
     await saveSubscription(sub);
-    msgEl.textContent = "Done. This phone is linked to your account.";
+    msgEl.textContent = `Done. This ${thisDevice()} is linked to your account.`;
     return true;
   } catch (e) {
     msgEl.textContent = "Couldn't finish setup. " + (e.message || e.name) + ".";
@@ -508,6 +510,7 @@ document.querySelectorAll(".later").forEach((b) => { b.onclick = () => { notifyL
 
 // Saves this phone's push subscription to the signed-in account (the watcher reads it from there).
 const deviceLabel = () => (device().ios ? "iPhone" : device().android ? "Android" : "Computer");
+const thisDevice = () => (device().ios || device().android ? "phone" : "computer");
 async function saveSubscription(sub) {
   await api("subscriptions?on_conflict=endpoint", {
     method: "POST",
@@ -527,15 +530,15 @@ async function syncSubscription() {   // quietly keep the saved copy fresh on ea
 // ---- Settings screen ----
 $("test").onclick = async () => {
   if (!supported() || Notification.permission !== "granted") {
-    alert("Turn on notifications on the Setup screen first.");
+    toast("Turn on notifications first, on the Setup tab.");
     return;
   }
   const reg = await navigator.serviceWorker.ready;
-  reg.showNotification("Test Notification", { body: "This phone can show TP Notify alerts.", icon: "icon-192.png" });
+  reg.showNotification("Test Notification", { body: `This ${thisDevice()} can show TP Notify alerts.`, icon: "icon-192.png" });
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 75;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 76;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -739,10 +742,10 @@ const pcButtons = (hide) => { document.querySelectorAll(".install-pc").forEach((
 { const { ios, android } = device(); $("download-pc-group").hidden = ios || android || standalone(); }   // Settings keeps a download button on computers after Setup hides itself
 document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => {
   if (!installPrompt) {   // the browser hasn't offered one-click install: say how to do it by hand
-    const ua = navigator.userAgent, edge = /Edg\//.test(ua), other = /Firefox\//.test(ua) ? "Firefox" : /OPR\//.test(ua) ? "Opera" : "";
-    $(b.dataset.msg || "setup-msg").textContent = other ? `${other} can't install apps. Open TP Notify in Microsoft Edge (it comes with Windows) or Chrome, then click Download again.`
+    const ua = navigator.userAgent, edge = /Edg\//.test(ua), mac = /Macintosh/.test(ua), other = /Firefox\//.test(ua) ? "Firefox" : /OPR\//.test(ua) ? "Opera" : "";
+    $(b.dataset.msg || "setup-msg").textContent = other ? `${other} can't install apps. Open TP Notify in ${mac ? "Safari or Chrome" : "Microsoft Edge (it comes with Windows) or Chrome"}, then click Download again.`
       : /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua) ? "In Safari's menu bar, choose File, then Add to Dock."
-      : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your desktop or Start menu.`;
+      : `Click the install icon at the right end of the address bar, or open the menu ${edge ? "(\u2026)" : "(\u22ee)"} and choose ${edge ? "Apps, then Install this site as an app" : "Cast, Save and Share, then Install Page as App"}. Already installed? Open TP Notify from your ${mac ? "Dock or Launchpad" : "desktop or Start menu"}.`;
     return;
   }
   installPrompt.prompt();
@@ -758,12 +761,14 @@ $("install-copy").onclick = async () => {
 async function runCheck() {
   const rows = [], add = (ok, label, fix) => rows.push({ ok, label, fix });
   $("diag").innerHTML = '<li class="muted">Checking...</li>'; $("diag-note").textContent = "";
-  add(standalone(), "Opened from the Home Screen icon", "Add the app to your Home Screen and open it from there.");
+  const what = thisDevice(), phone = what === "phone";
+  if (phone) add(standalone(), "Opened from the Home Screen icon", "Add the app to your Home Screen and open it from there.");   // optional on a computer
   add("Notification" in window && Notification.permission === "granted", "Notifications allowed",
-    "Allow them in your phone's Settings, then tap Turn On Notifications on the Setup screen.");
+    phone ? "Allow them in your phone's Settings, then tap Turn On Notifications on the Setup tab."
+      : "Allow them for TP Notify in your browser's site settings, then click Turn On Notifications on the Setup tab.");
   let sub = null, note = "";
   try { sub = await currentSub(); } catch {}
-  add(!!sub, "This phone can receive alerts", "Tap Turn On Notifications on the Setup screen.");
+  add(!!sub, `This ${what} can receive alerts`, `${phone ? "Tap" : "Click"} Turn On Notifications on the Setup tab.`);
   try {
     const p = (await api(`profiles?id=eq.${session.user.id}&select=*`))[0];
     add(p && p.status === "approved", "Account approved", "Ask the admin to approve you.");
@@ -772,13 +777,13 @@ async function runCheck() {
     add(p && p.alert_types.length > 0, "At least one alert type is on", "Turn one on in Settings, under Your Alerts.");
     if (sub) {
       const d = (await api(`subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=active,last_ok_at`))[0];
-      add(d && d.active, "Phone linked to your account", "Tap Turn On Notifications on the Setup screen to link it again.");
+      add(d && d.active, `This ${what} is linked to your account`, `${phone ? "Tap" : "Click"} Turn On Notifications on the Setup tab to link it again.`);
       if (!(d && d.active)) { store.set("tp-linked", null); checkSetupTab(); }   // brings the Setup tab back to fix it
-      note = d && d.last_ok_at ? `The last alert reached this phone ${ago(d.last_ok_at)}.` : "No alert has reached this phone yet.";
+      note = d && d.last_ok_at ? `The last alert reached this ${what} ${ago(d.last_ok_at)}.` : `No alert has reached this ${what} yet.`;
     }
     const w = (await api("watcher_status?select=last_check_at"))[0];
     add(w && w.last_check_at && Date.now() - new Date(w.last_check_at) < 5 * 60e3, "Watcher is running",
-      "The admin's computer may be off. Alerts start again when it is back on.");
+      "The watcher isn't checking FIXR right now. Alerts start again as soon as it's back.");
   } catch (e) { add(false, "Couldn't reach the server", e.message); }
   $("diag").innerHTML = rows.map((r) => `<li class="${r.ok ? "done" : "bad"}"><span class="mark">${r.ok ? "\u2713" : "!"}</span>
     <span>${esc(r.label)}${r.ok ? "" : `<span class="fix">${esc(r.fix)}</span>`}</span></li>`).join("");
@@ -838,7 +843,7 @@ function savedMode() { try { return localStorage.getItem("tp-theme") || "auto"; 
 function applyTheme(mode) {
   const dark = mode === "dark" || (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#181715" : "#faf9f5";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0c0916" : "#f6f3fb";
   document.querySelectorAll("#theme button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
 }
 document.querySelectorAll("#theme button").forEach((b) => {
@@ -967,7 +972,7 @@ setTimeout(hideSplash, 4000);   // never leave the launch screen up if the netwo
 function showGate(id) {
   hideSplash();
   $("install-arrow").hidden = true;
-  $("tabs").hidden = true;
+  $("tabs").hidden = true; document.body.classList.remove("app");
   document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
 }
 function showApp() {
@@ -975,7 +980,7 @@ function showApp() {
   if (store.get("tp-got-pending") === null) store.set("tp-got-pending", store.get("tp-got") || {});   // answers from before v62 lived only on the phone
   sendGot();
   $("invite-page").append($("invite-box"));   // back on its page, if the ended screen borrowed it
-  $("tabs").hidden = false;
+  $("tabs").hidden = false; document.body.classList.add("app");   // computers show the tabs as a sidebar
   $("admin-tab").hidden = !(profile && profile.role === "admin");
   $("acct-email").textContent = session ? session.user.email : "";
   const acc = profile && profile.access;
@@ -1215,8 +1220,7 @@ function drawWatcher() {
     const s = Math.max(0, Math.round((Date.now() - when) / 1000));
     text = `Live: checked ${s < 10 ? "just now" : s < 60 ? `${s} seconds ago` : s < 120 ? "1 minute ago" : `${Math.floor(s / 60)} minutes ago`}`;
   }
-  const line = $("watcher-line");
-  line.hidden = false; line.className = `health ${bad ? "problem" : "live"}`; line.textContent = text;
+  ["watcher-line", "side-watcher"].forEach((id) => { const line = $(id); line.hidden = false; line.className = `health ${bad ? "problem" : "live"}`; line.textContent = text; });
   const admin = $("watcher-admin");
   admin.className = `health ${bad ? "problem" : "live"}`; admin.textContent = when && !bad ? text.replace(/^Live: c/, "C") : text;
 }
@@ -1332,7 +1336,7 @@ async function renderStats() {
       [ps.filter((p) => Date.now() - Date.parse(p.created_at) < 7 * 864e5).length, "New This Week"],
       [ps.filter((p) => p.referred_by).length, "Joined via a Friend"],
       [`£${income.toFixed(2)}`, "Income a Month"],
-      [paid.length + lapsed ? `${Math.round((100 * paid.length) / (paid.length + lapsed))}%` : "None Yet", "Paying Rate"],
+      [paid.length + lapsed ? `${Math.round((100 * paid.length) / (paid.length + lapsed))}%` : "–", "Paying Rate"],   // a dash, like an unsold event in the table below
     ];
     $("stats").innerHTML = cells.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
     $("stats-note").textContent = "Income is at full price. Paying Rate is paying members out of everyone whose free time or plan has ended.";
@@ -1344,7 +1348,7 @@ async function renderStats() {
     });
     const recent = [...byUrl.values()].filter((e) => safeUrl(e.url)).slice(0, 6);
     const st = recent.length ? Object.fromEntries((await api(`event_status?select=url,taps,on_sale_at,sold_out_at,first_sold_out_at&url=in.(${recent.map((e) => encodeURIComponent(`"${e.url}"`)).join(",")})`)).map((r) => [r.url, r])) : {};
-    $("stats-events").innerHTML = recent.length ? '<div class="trow head"><span>Event</span><span>Phones</span><span>Taps</span><span>Sold Out</span></div>'
+    $("stats-events").innerHTML = recent.length ? '<div class="trow head"><span>Event</span><span>Devices</span><span>Opens</span><span>Sold Out</span></div>'
       + recent.map((e) => {
         const s = st[e.url] || {};
         return `<div class="trow"><span>${esc(e.name || "Event")}</span><b>${e.sent}</b><b>${s.taps || 0}</b><b>${esc(lastedFor(s))}</b></div>`;
@@ -1422,6 +1426,7 @@ function openSheet(id) {
   sheetMode = "menu"; drawSheet(); $("sheet").hidden = false;
 }
 const closeSheet = () => { $("sheet").hidden = true; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
 
 $("people").onclick = async (ev) => {
   // The row's quick buttons open the matching page of that person's menu; anywhere else on the row opens the menu.
