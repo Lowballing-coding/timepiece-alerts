@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 83;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 84;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1367,6 +1367,7 @@ async function renderAdmin() {
   }
   renderLog();
   renderStats();
+  renderInstagram();
 }
 // Admin switches the watcher reads: Telegram copies of every alert (supabase_step16.sql) and sell-out Instagram stories (step19).
 for (const col of ["telegram", "instagram"]) $(col + "-on").addEventListener("change", async (e) => {
@@ -1416,6 +1417,78 @@ async function renderStats() {
       }).join("") : '<p class="muted empty">No on-sale alerts yet.</p>';
   } catch (e) { $("stats").innerHTML = ""; $("stats-events").innerHTML = `<p class="msg error">${esc(e.message)}</p>`; }
 }
+// ---- Instagram stats and comments (supabase_step21.sql). The watcher fetches them with the token on the server;
+// replies go into ig_replies and the watcher posts them within a minute. ----
+const IG_KIND = { FEED: "Post", REELS: "Reel", STORY: "Story" };
+const num = (v) => (v == null ? "–" : Number(v).toLocaleString());
+let igComments = [];
+async function renderInstagram() {
+  const note = $("ig-note");
+  try {
+    const [st, stats, media, comments, replies, signups] = await Promise.all([
+      api("watcher_status?select=ig_synced_at,ig_error"), api("ig_stats?select=*"),
+      api("ig_media?select=*&order=posted_at.desc&limit=60"),
+      api("ig_comments?select=*&order=posted_at.asc&limit=500"),
+      api("ig_replies?select=comment_id,body,created_at,sent_at,error&order=id.desc&limit=100"),
+      api("profiles?select=created_at&source=like.ig-*"),
+    ]);
+    const s = st[0] || {}, by = Object.fromEntries(stats.map((r) => [r.period, r])), w = by["7d"] || {}, m = by["30d"] || {};
+    if (!s.ig_synced_at && !stats.length) {
+      $("ig-tiles").innerHTML = $("ig-table").innerHTML = ""; $("ig-links").hidden = true;
+      note.className = "meta foot";
+      note.textContent = s.ig_error ? `Instagram problem: ${s.ig_error}` : "Not connected yet. Once the Instagram setup is done, stats show up here within a few minutes.";
+      return;
+    }
+    const since = (d) => signups.filter((p) => Date.now() - Date.parse(p.created_at) < d * 864e5).length;
+    $("ig-tiles").innerHTML = [[num(w.followers), "Followers"], [num(w.views), "Views, 7 Days"], [num(w.reach), "Reach, 7 Days"], [num(w.link_taps), "Bio Link Taps, 7 Days"]]
+      .map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
+    const rows = [["Views", "views"], ["Accounts Reached", "reach"], ["Accounts Engaged", "engaged"], ["Likes, Comments, Shares, Saves", "interactions"],
+      ["Bio Link Taps", "link_taps"], ["New Followers", "follows"], ["Unfollows", "unfollows"]];
+    $("ig-table").innerHTML = '<div class="trow head"><span>Last</span><span>7 Days</span><span>30 Days</span></div>'
+      + rows.map(([k, c]) => `<div class="trow"><span>${k}</span><b>${num(w[c])}</b><b>${num(m[c])}</b></div>`).join("")
+      + `<div class="trow"><span>Sign-ups From Instagram Links</span><b>${since(7)}</b><b>${since(30)}</b></div>`;
+    note.className = s.ig_error ? "msg foot error" : "meta foot";
+    note.textContent = s.ig_error ? `Instagram problem: ${s.ig_error}` : `Updated ${ago(w.updated_at)}. Instagram's numbers can be up to 2 days behind.`;
+    $("ig-links").hidden = false;
+    // Posts, Reels and stories, newest first
+    $("ig-posts-val").textContent = media.length ? String(media.length) : "";
+    $("ig-posts").innerHTML = media.map((p) => {
+      const bits = [IG_KIND[p.kind] || p.kind, shortDate(p.posted_at), `${num(p.views)} views`, `${num(p.reach)} reached`];
+      if (p.kind !== "STORY") bits.push(`${num(p.likes)} likes`, `${num(p.comments)} comments`, `${num(p.saves)} saves`);
+      bits.push(`${num(p.shares)} shares`);
+      if (p.avg_watch_ms) bits.push(`${(p.avg_watch_ms / 1000).toFixed(1)}s average watch`);
+      const title = esc((p.caption || "").split("\n")[0].slice(0, 80) || (IG_KIND[p.kind] || "Post"));
+      const link = safeUrl(p.permalink) ? `<a href="${esc(p.permalink)}" target="_blank" rel="noopener">${title}</a>` : title;
+      return `<div class="logrow"><div>${link}</div><div class="meta">${bits.map(esc).join(" · ")}</div></div>`;
+    }).join("") || '<p class="muted empty">No posts yet.</p>';
+    // Comments: top-level ones with their replies; "needs a reply" = not ours, and nothing from us (sent or queued) under it
+    igComments = comments; const caption = Object.fromEntries(media.map((p) => [p.id, (p.caption || "").split("\n")[0].slice(0, 40)]));
+    const tops = comments.filter((c) => !c.parent_id && !c.mine).reverse();
+    const answered = (c) => comments.some((r) => r.parent_id === c.id && r.mine) || replies.some((r) => r.comment_id === c.id && !r.error);
+    const waiting = tops.filter((c) => !answered(c)).length;
+    $("ig-comments-val").textContent = waiting ? `${waiting} to reply to` : tops.length ? "All replied" : "";
+    $("ig-comments").innerHTML = tops.map((c) => {
+      const under = comments.filter((r) => r.parent_id === c.id).map((r) => `<div class="rep${r.mine ? " mine" : ""}"><div class="meta">${r.mine ? "You" : "@" + esc(r.username)} · ${esc(ago(r.posted_at))}</div><p>${esc(r.body)}</p></div>`);
+      const posted = new Set(comments.filter((r) => r.parent_id === c.id && r.mine).map((r) => r.body));
+      replies.filter((r) => r.comment_id === c.id && !posted.has(r.body)).forEach((r) => under.push(
+        `<div class="rep mine"><div class="meta">You · ${r.error ? "Not sent: " + esc(r.error) : r.sent_at ? "Sent, showing here soon" : "Sending within a minute"}</div><p>${esc(r.body)}</p></div>`));
+      return `<div class="igc"><div class="meta">@${esc(c.username)} on "${esc(caption[c.media_id] || "a post")}" · ${esc(ago(c.posted_at))}${answered(c) ? "" : ' <span class="pill check">To reply</span>'}</div>
+        <p>${esc(c.body)}</p>${under.join("")}
+        <form data-reply="${esc(c.id)}"><textarea maxlength="2200" rows="1" placeholder="Reply publicly" aria-label="Reply to @${esc(c.username)}" required></textarea><button type="submit">Reply</button></form></div>`;
+    }).join("") || '<p class="muted empty">No comments in the last 90 days.</p>';
+  } catch (e) { note.className = "msg foot error"; note.textContent = e.message; }
+}
+$("ig-comments").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target, text = f.querySelector("textarea").value.trim(), btn = f.querySelector("button"), m = $("ig-comments-msg");
+  if (!text) return;
+  btn.disabled = true;
+  try {
+    await api("ig_replies", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ comment_id: f.dataset.reply, body: text }) });
+    m.className = "msg foot muted"; m.textContent = "Reply saved. It goes out within a minute.";
+    await renderInstagram();
+  } catch (err) { m.className = "msg foot error"; m.textContent = err.message; btn.disabled = false; }
+});
 function say(text, error) {
   const m = $("admin-msg"); m.className = "msg" + (error ? " error" : " muted"); m.textContent = text;
   setTimeout(() => { if (m.textContent === text) m.textContent = ""; }, 6000);
