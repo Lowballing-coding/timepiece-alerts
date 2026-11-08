@@ -445,6 +445,8 @@
   /* Recent on-sale alerts: a small table, figures set like the overview's. */
   #stats-events:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); column-gap: 16px; }   /* one set of columns for every row */
   #stats-events > :not(.trow) { grid-column: 1 / -1; }
+  #stats-sources:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, auto); column-gap: 16px; }
+  #stats-sources > :not(.trow) { grid-column: 1 / -1; }
   .trow { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 12px 18px; border-top: 1px solid var(--line); }
   .trow:first-child { border-top: 0; }
   .trow:not(.head) > span:first-child { font-size: 15px; overflow-wrap: break-word; }
@@ -647,6 +649,9 @@
         <h2>Overview</h2>
         <div id="stats" class="stats"></div>
         <p id="stats-note" class="meta foot"></p>
+        <h2>Where Sign-ups Came From</h2>
+        <div id="stats-sources" class="group"></div>
+        <p class="meta foot">From the ?from= label on the link they followed, e.g. ig-bio (Instagram profile), ig-story, ig-ad-1 (a boosted Reel). "invite" means a friend's link.</p>
       </div>
       <div class="b-people">
         <div class="sechead"><h2>People</h2><button id="invite" class="link" type="button">Copy Invite</button></div>

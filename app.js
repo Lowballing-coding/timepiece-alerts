@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 82;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 83;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1381,7 +1381,7 @@ const PRICES = { monthly: 4.99, quarterly: 11.99 / 3 };   // full price per mont
 async function renderStats() {
   try {
     const [ps, log] = await Promise.all([
-      api("profiles?select=status,access,plan,created_at,referred_by"),
+      api("profiles?select=status,access,plan,created_at,referred_by,source"),
       api("alert_log?select=url,event_name,recipients,created_at&type=eq.on_sale&order=created_at.desc&limit=300"),
     ]);
     const live = ps.filter((p) => p.status === "approved"), count = (a) => live.filter((p) => p.access === a).length;
@@ -1396,6 +1396,11 @@ async function renderStats() {
     ];
     $("stats").innerHTML = cells.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
     $("stats-note").textContent = "Income is at full price. Paying Rate is paying members out of everyone whose free time or plan has ended.";
+    // Sign-ups and paying members per source (supabase_step20.sql), biggest first; people from before step 20 count as Unknown.
+    const src = new Map();
+    live.forEach((p) => { const k = p.source || "unknown", e = src.get(k) || [0, 0]; e[0]++; if (p.access === "paid") e[1]++; src.set(k, e); });
+    $("stats-sources").innerHTML = '<div class="trow head"><span>Source</span><span>Sign-ups</span><span>Paying</span></div>'
+      + [...src].sort((a, b) => b[1][0] - a[1][0]).map(([k, [n, paidN]]) => `<div class="trow"><span>${esc(k)}</span><b>${n}</b><b>${paidN}</b></div>`).join("");
     // Each recent on-sale alert: phones it reached (repeats and free-month copies included), taps on Open on FIXR, sell-out time.
     const byUrl = new Map();
     log.forEach((r) => {
