@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 86;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 87;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -739,6 +739,7 @@ function showInstallGate() {
   $("install-steps").innerHTML = steps.map((s) => `<li><span>${s}</span></li>`).join("");
   $("install-go").hidden = !installPrompt; $("install-copy").hidden = !copy;
   $("install-link").hidden = !copy; $("install-link").textContent = appLink();
+  $("install-tip").hidden = !(d.ios && !d.safari && !d.oldIos);   // iPhone only: Safari is the simplest way, but Chrome works when Safari can't be used
   $("install-msg").textContent = "";
   showGate("gate-install");
   const a = $("install-arrow");
