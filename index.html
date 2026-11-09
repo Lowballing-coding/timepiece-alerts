@@ -723,9 +723,11 @@
 
   <section id="gate-install" class="screen gate center" aria-label="Add to Home Screen">
     <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg></div>
-    <h2>Add TP Notify to Your Home Screen</h2>
-    <p class="muted">Alerts only work from the Home Screen app. It takes a few seconds, then you can sign in.</p>
+    <h2 id="install-title">Add TP Notify to Your Home Screen</h2>
+    <p id="install-sub" class="muted">Alerts only work from the Home Screen app. It takes a few seconds, then you can sign in.</p>
     <button id="install-go" type="button" hidden>Add to Home Screen</button>
+    <a id="open-safari" class="go" hidden>Open in Safari</a>
+    <a id="open-chrome" class="go secondary" hidden>Open in Chrome</a>
     <p id="install-tip" class="muted" hidden>Tip: this is easier in Safari, if you can use it on this iPhone.</p>
     <ol class="guide group" id="install-steps"></ol>
     <p id="install-link" class="linkbox" hidden></p>
