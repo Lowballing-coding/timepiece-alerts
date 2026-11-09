@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 85;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 86;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -671,11 +671,15 @@ $("invite-share").onclick = async () => {
 const device = () => {
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const inApp = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter|Snapchat|musical_ly|BytedanceWebview/.test(ua);
+  const iosBrowser = !ios || inApp ? "" : /CriOS/.test(ua) ? "Chrome" : /EdgiOS/.test(ua) ? "Edge" : /FxiOS/.test(ua) ? "Firefox" : "";
+  const v = ios && /OS (\d+)_(\d+)/.exec(ua);
   return {
     ios, android: /Android/.test(ua), ipad: ios && !/iPhone|iPod/.test(ua),
     samsung: /SamsungBrowser/.test(ua), firefox: /Android/.test(ua) && /Firefox\//.test(ua),   // Android browsers whose menu differs from Chrome's
-    safari: ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram|Line\/|Twitter/.test(ua),   // the browser that can install web apps on iPhone
-    inApp: /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter/.test(ua),
+    safari: ios && /Safari/.test(ua) && !inApp && !iosBrowser && !/GSA\/|OPiOS/.test(ua),   // GSA is the Google app, whose browser says "Safari" but can't add apps
+    iosBrowser,   // since iOS 16.4, Chrome, Edge and Firefox on iPhone can add web apps to the Home Screen too
+    inApp, oldIos: !!v && (+v[1] < 16 || (+v[1] === 16 && +v[2] < 4)),   // iPhone alerts need iOS 16.4 or newer
   };
 };
 let installPrompt = null;   // Android Chrome can add the app with one tap
@@ -704,10 +708,20 @@ const DOTS_GLYPH = '<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><c
 function showInstallGate() {
   const d = device();
   let steps, arrow = "", label = "", copy = false;
-  if (d.inApp) {
-    steps = ["Tap the menu in this app.", "Choose Open in Browser (Safari or Chrome).", "Then add TP Notify to your Home Screen from there."];
-  } else if (d.ios && !d.safari) {
-    steps = ["Copy the link below and open it in Safari. Other browsers on iPhone can't add the app properly.", `In Safari, tap the Share button ${SHARE_GLYPH}.`, "Choose Add to Home Screen, then tap Add."];
+  if (d.ios && d.oldIos) {
+    steps = ["Alerts on iPhone need iOS 16.4 or newer, and this iPhone has an older version.", "Update it in Settings, then General, then Software Update.", "Then open this page again and add TP Notify to your Home Screen."];
+  } else if (d.inApp) {
+    steps = [`Tap the menu (${DOTS_GLYPH} or \u2630) in this app and choose Open in Browser.`, d.ios ? "No such option? Tap Copy Link below, then paste it into Chrome or Safari." : "No such option? Tap Copy Link below, then paste it into Chrome.", "Then add TP Notify to your Home Screen from there."];
+    copy = true;
+  } else if (d.iosBrowser === "Chrome") {
+    arrow = "top"; label = "Tap Share";
+    steps = [`Tap the Share button ${SHARE_GLYPH} at the right end of Chrome's address bar. Can't see it? Tap ${DOTS_GLYPH}, then Share.`,
+      "Scroll down and tap Add to Home Screen. Not there? Update Chrome in the App Store.", "Tap Add, then open TP Notify from your Home Screen."];
+  } else if (d.iosBrowser) {
+    steps = [`Tap the menu at the bottom of ${d.iosBrowser}, then tap Share ${SHARE_GLYPH}.`,
+      `Scroll down and tap Add to Home Screen. Not there? Update ${d.iosBrowser} in the App Store.`, "Tap Add, then open TP Notify from your Home Screen."];
+  } else if (d.ios && !d.safari) {   // the Google app and other apps' browsers can't add apps
+    steps = ["Tap Copy Link below. This app can't add TP Notify to your Home Screen.", "Open Chrome or Safari, paste the link into the address bar and go.", "Then add TP Notify to your Home Screen from there."];
     copy = true;
   } else if (d.ios) {
     arrow = d.ipad ? "top" : "bottom"; label = "Tap Share";
@@ -724,6 +738,7 @@ function showInstallGate() {
   }
   $("install-steps").innerHTML = steps.map((s) => `<li><span>${s}</span></li>`).join("");
   $("install-go").hidden = !installPrompt; $("install-copy").hidden = !copy;
+  $("install-link").hidden = !copy; $("install-link").textContent = appLink();
   $("install-msg").textContent = "";
   showGate("gate-install");
   const a = $("install-arrow");
@@ -750,9 +765,11 @@ document.querySelectorAll(".install-pc").forEach((b) => b.onclick = async () => 
   await installPrompt.userChoice;
   installPrompt = null; pcButtons(true);
 });
+const appLink = () => new URL("./", location.href).href;
 $("install-copy").onclick = async () => {
-  try { await navigator.clipboard.writeText(new URL("./", location.href).href); $("install-msg").className = "msg"; $("install-msg").textContent = "Link copied. Paste it into Safari."; }
-  catch { $("install-msg").className = "msg error"; $("install-msg").textContent = "Couldn't copy. Open this page in Safari instead."; }
+  const where = device().ios ? "Chrome or Safari" : "Chrome";
+  try { await navigator.clipboard.writeText(appLink()); $("install-msg").className = "msg"; $("install-msg").textContent = `Link copied. Paste it into ${where}.`; }
+  catch { $("install-msg").className = "msg error"; $("install-msg").textContent = `Couldn't copy. Press and hold the link above, copy it, then paste it into ${where}.`; }
 };
 
 // ---- Fix My Alerts: checks each link in the chain and says how to repair the broken one ----
