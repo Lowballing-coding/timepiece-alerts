@@ -313,7 +313,7 @@
   /* A whole row that is a button (Manage Subscription, Help, Sign Out). */
   .rowbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 54px; margin: 0; padding: 13px 18px;
     border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--text); font: 400 16px/1.3 var(--sans);
-    text-align: left; cursor: pointer; }
+    text-align: left; cursor: pointer; text-decoration: none; }
   .group > .rowbtn:first-child { border-top: 0; }
   .rowbtn .val { margin-left: auto; color: var(--muted); font-size: 15px; }
   .rowbtn:active { background: var(--surface-2); opacity: 1; }
@@ -657,6 +657,7 @@
           <div class="rowline"><span>Watcher</span><span id="watcher-admin" class="health">Checking...</span></div>
           <label class="rowline"><span>Telegram Pings</span><input class="switch" type="checkbox" id="telegram-on"></label>
           <label class="rowline"><span>Instagram Stories</span><input class="switch" type="checkbox" id="instagram-on"></label>
+          <a class="rowbtn chev" href="https://lowballing-coding.github.io/tp-notify-site/" target="_blank" rel="noopener"><span>TP Notify Website</span><span class="val">Opens in a new tab</span></a>
         </div>
         <p class="meta foot">Telegram gets a copy of every alert, and still steps in if Supabase is down. Instagram Stories posts a "Gone in under N minutes" story when a night sells out within an hour.</p>
       </div>
