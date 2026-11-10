@@ -206,7 +206,7 @@
     background: var(--danger); color: var(--on-danger); font: 600 15px/1 var(--sans); display: flex; align-items: center; justify-content: flex-end; opacity: 0; }
   .swipe.open > .del, .swipe:has(> .alert[style*="translate"]) > .del { opacity: 1; }
   @media (hover: hover) and (pointer: fine) {
-    .swipe > .del { inset: 10px 10px auto auto; z-index: 2; width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 50%;
+    .swipe > .del { inset: 10px 10px auto auto; z-index: 2; width: 32px; height: 32px; padding: 0; gap: 0; justify-content: center; border-radius: 50%;   /* gap 0: the hidden "Delete" text still takes a flex slot and pushed the x left */
       background: var(--surface-2); color: var(--muted); font-size: 0; opacity: 0; transition: opacity .15s, background .15s; }
     .swipe > .del::before { content: "\00d7"; font: 400 22px/1 var(--sans); }
     .swipe:not(.tk) > .del { inset: auto 10px 10px auto; }
