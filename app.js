@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 92;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 93;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1001,7 +1001,7 @@ async function openBilling() {
     alert("Couldn't open your billing page. Try again, or email TPNotify@outlook.com.");
   }
 }
-$("manage-sub").onclick = openBilling;
+$("manage-sub").onclick = $("delete-billing").onclick = openBilling;
 $("ended-billing").onclick = openBilling;
 // How long the admin can make someone Exempt (free). null = indefinitely.
 const FREE_PERIODS = [["1 Week", { days: 7 }], ["2 Weeks", { days: 14 }], ["1 Month", { months: 1 }], ["2 Months", { months: 2 }],
@@ -1107,6 +1107,7 @@ function showApp() {
     }, () => {});
   }
   $("manage-sub").hidden = !(profile && profile.stripe_subscription_id);   // passes have nothing to manage or cancel
+  fillDelete();
   $("my-name").value = (profile && profile.display_name) || "";
   if (!store.get("tp-since")) store.set("tp-since", Date.now());   // only alerts after this phone first signed in can count as missed
   fillQuiet();
@@ -1145,6 +1146,35 @@ async function loadProfile() {
   } else if (profile.status === "approved") { const g = notifyGate(); if (g) showNotifyGate(g); else showApp(); }
   else showGate({ pending: "gate-pending", blocked: "gate-blocked" }[profile.status] || "gate-removed");
 }
+// ---- Delete My Account (UK GDPR right to erasure; the delete_my_account database function does the deleting) ----
+function fillDelete() {
+  const p = profile || {}, admin = p.role === "admin", monthly = !!p.stripe_subscription_id && p.access === "paid";
+  $("delete-note").hidden = !(admin || monthly || isPass(p) && p.access === "paid");
+  $("delete-note").textContent = admin ? "The owner account can't be deleted from the app."
+    : monthly ? "You have a monthly subscription. Cancel it first in Manage Subscription, so you aren't charged again. Then come back here."
+    : `Your ${PLAN_NAMES[p.plan]} stops when you delete your account. If you'd like to ask about a refund, email TPNotify@outlook.com before deleting, so we can find your payment.`;
+  $("delete-go").hidden = admin || monthly;
+  $("delete-billing").hidden = !monthly;
+  $("delete-go").parentElement.hidden = admin;
+  $("delete-msg").textContent = "";
+}
+$("delete-go").onclick = async () => {
+  if (!confirm("Delete your TP Notify account? This can't be undone.")) return;
+  const b = $("delete-go"); b.disabled = true; $("delete-msg").textContent = "";
+  try {
+    await api("rpc/delete_my_account", { method: "POST", body: "{}" });
+  } catch (e) {
+    b.disabled = false;
+    $("delete-msg").textContent = /subscription|owner/i.test(e.message) ? e.message : "Couldn't delete your account. Check your connection and try again, or email TPNotify@outlook.com.";
+    return;
+  }
+  try { const sub = await currentSub(); if (sub) await sub.unsubscribe(); } catch {}
+  try { await clearAlerts(); } catch {}
+  try { navigator.clearAppBadge && navigator.clearAppBadge(); } catch {}
+  signedOut(); localStorage.clear();
+  b.disabled = false;
+  $("auth-msg").className = "msg"; $("auth-msg").textContent = "Your account has been deleted.";
+};
 function signedOut() {
   flushSaves();
   ["name-msg", "alerts-msg", "quiet-msg"].forEach((id) => { $(id).textContent = ""; });
