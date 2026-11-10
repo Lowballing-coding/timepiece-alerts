@@ -30,3 +30,7 @@ The app compares these to tell people an update is ready, so a missed bump means
 ## Checking a change
 
 There are no tests. Preview it locally (`.claude/launch.json` serves the folder on port 8000), check it at phone width and desktop width, and check the browser console for errors. Push notifications and service-worker updates can't be fully tested locally, so say so when that matters. On localhost the Cloudflare Turnstile box shows "Unable to connect to website". That's expected (the key only allows the live domain) and isn't a bug.
+
+## Keeping this file current
+
+When a session teaches you something lasting about this repo (a rule Peter stated or corrected, a gotcha, a needed check), add it here in the same PR as the work, and fix any line here that turned out to be wrong. Skip one-off details and anything secret.
