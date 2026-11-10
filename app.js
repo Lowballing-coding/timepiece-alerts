@@ -526,7 +526,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 93;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 94;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -924,7 +924,7 @@ function friendlyError(status, raw) {
   if (status === 401 || status === 403 || /JWT|row-level|Not allowed/i.test(raw || "")) return "You're not allowed to do that, or you've been signed out. Try signing in again.";
   if (status === 429) return "Too many tries in a row. Wait a minute, then try again.";
   if (status >= 500) return "Our server is having a problem. Please try again in a minute.";
-  return "Something went wrong. Please try again, or email TPNotify@outlook.com if it keeps happening.";
+  return "Something went wrong. Please try again, or email tpnotifyupdates@gmail.com if it keeps happening.";
 }
 const authCall = (path, body) => call(`${SB_URL}/auth/v1/${path}`, {
   method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -998,7 +998,7 @@ async function openBilling() {
     if (w) w.location = j.url; else location.href = j.url;
   } catch (e) {
     if (w) w.close();
-    alert("Couldn't open your billing page. Try again, or email TPNotify@outlook.com.");
+    alert("Couldn't open your billing page. Try again, or email tpnotifyupdates@gmail.com.");
   }
 }
 $("manage-sub").onclick = $("delete-billing").onclick = openBilling;
@@ -1017,7 +1017,7 @@ const neverPaid = () => !profile.stripe_customer_id;   // the first-month offer 
 function payNow(plan, msgEl) {
   const link = payLink(plan, { id: session.user.id, email: session.user.email }, neverPaid());
   if (link) { window.open(link, "_blank", "noopener"); return; }
-  msgEl.className = "msg error"; msgEl.textContent = "Paying isn't set up yet. Email TPNotify@outlook.com.";
+  msgEl.className = "msg error"; msgEl.textContent = "Paying isn't set up yet. Email tpnotifyupdates@gmail.com.";
 }
 $("ended-renew").onclick = () => payNow(profile.plan === "monthly" && profile.stripe_subscription_id ? "monthly" : "term", $("ended-msg"));
 $("ended-year").onclick = () => payNow("year", $("ended-msg"));
@@ -1152,7 +1152,7 @@ function fillDelete() {
   $("delete-note").hidden = !(admin || monthly || isPass(p) && p.access === "paid");
   $("delete-note").textContent = admin ? "The owner account can't be deleted from the app."
     : monthly ? "You have a monthly subscription. Cancel it first in Manage Subscription, so you aren't charged again. Then come back here."
-    : `Your ${PLAN_NAMES[p.plan]} stops when you delete your account. If you'd like to ask about a refund, email TPNotify@outlook.com before deleting, so we can find your payment.`;
+    : `Your ${PLAN_NAMES[p.plan]} stops when you delete your account. If you'd like to ask about a refund, email tpnotifyupdates@gmail.com before deleting, so we can find your payment.`;
   $("delete-go").hidden = admin || monthly;
   $("delete-billing").hidden = !monthly;
   $("delete-go").parentElement.hidden = admin;
@@ -1165,7 +1165,7 @@ $("delete-go").onclick = async () => {
     await api("rpc/delete_my_account", { method: "POST", body: "{}" });
   } catch (e) {
     b.disabled = false;
-    $("delete-msg").textContent = /subscription|owner/i.test(e.message) ? e.message : "Couldn't delete your account. Check your connection and try again, or email TPNotify@outlook.com.";
+    $("delete-msg").textContent = /subscription|owner/i.test(e.message) ? e.message : "Couldn't delete your account. Check your connection and try again, or email tpnotifyupdates@gmail.com.";
     return;
   }
   try { const sub = await currentSub(); if (sub) await sub.unsubscribe(); } catch {}
