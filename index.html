@@ -171,6 +171,14 @@
   #list, #event-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px 18px; align-items: start; margin-top: 18px; }
   #event-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: stretch; }
   #list > :not(.tgroup, .swipe), #event-list > :not(.event) { grid-column: 1 / -1; }
+  /* Side by side, each ticket's buttons and Yes/No share rows with its neighbour's (subgrid),
+     so a longer name makes both tickets taller instead of pushing one set of buttons down. */
+  #list { row-gap: 0; }
+  #list > * { margin-bottom: 14px; }
+  #list > :last-child { margin-bottom: 0; }
+  #list > .tgroup, #list > .swipe { grid-row: span 3; }
+  #list > .tgroup { display: grid; grid-template-rows: subgrid; row-gap: 0; }
+  #list > .tgroup > .swipe.tk > .alert, #list > .tgroup .ticket { height: 100%; }
   .day { margin: 16px 2px 0; }
   #list > .day:first-child { margin-top: 0; }
   .alert { padding: 16px 0; }
