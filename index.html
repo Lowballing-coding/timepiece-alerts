@@ -905,10 +905,20 @@
         </div>
       </div>
       <div class="s-out">
-        <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button></div>
+        <div class="group signout-group"><button class="rowbtn danger signout" type="button">Sign Out</button><button id="delete-open" class="rowbtn danger" type="button" data-page="delete-page">Delete My Account</button></div>
         <p class="meta foot">TP Notify is an independent service, not affiliated with or endorsed by Timepiece or FIXR. <a href="https://lowballing-coding.github.io/tp-notify-site/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="https://lowballing-coding.github.io/tp-notify-site/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="https://lowballing-coding.github.io/tp-notify-site/refunds.html" target="_blank" rel="noopener">Refunds</a></p>
       </div>
     </div>
+  </section>
+
+  <section id="delete-page" class="screen sub" data-back="settings" aria-label="Delete My Account">
+    <button class="back" type="button" data-back="settings">Settings</button>
+    <h2 class="title">Delete My Account</h2>
+    <p class="muted">This deletes your TP Notify account straight away: your email, name, alert choices, devices and Yes/No answers. You'll stop getting alerts, and it can't be undone. You can always make a new account later.</p>
+    <p class="muted" id="delete-note" hidden></p>
+    <div class="group"><button id="delete-billing" class="rowbtn chev" type="button">Manage Subscription</button><button id="delete-go" class="rowbtn danger" type="button">Delete My Account</button></div>
+    <p class="meta foot">Stripe keeps a record of any payment you made, because the law requires payment records to be kept. Alerts saved on this device are cleared too.</p>
+    <p id="delete-msg" class="msg foot" role="alert"></p>
   </section>
 
   <section id="quiet-page" class="screen sub" data-back="settings" aria-label="Quiet Hours">
