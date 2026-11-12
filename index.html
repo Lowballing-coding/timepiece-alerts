@@ -525,6 +525,18 @@
     padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   }
   #sheet .panel::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 14px; }
+  /* The menu slides up (a centred window on a computer grows in) and goes back the same way; the note at the bottom rises and fades. */
+  #sheet:not([hidden]) .backdrop { animation: fadein .2s ease-out; }
+  #sheet:not([hidden]) .panel { animation: sheetin .3s cubic-bezier(.2, .8, .2, 1); }
+  #sheet.out { pointer-events: none; }
+  #sheet.out .backdrop { animation: fadein .2s ease-in reverse forwards; }
+  #sheet.out .panel { animation: sheetin .2s ease-in reverse forwards; }
+  @keyframes fadein { from { opacity: 0; } }
+  @keyframes sheetin { from { transform: translateY(100%); } }
+  #toast:not([hidden]) { animation: toastin .22s ease-out; }
+  #toast.out { animation: toastin .2s ease-in reverse forwards; }
+  @keyframes toastin { from { opacity: 0; transform: translate(-50%, 10px); } }
+  @media (prefers-reduced-motion: reduce) { #sheet .backdrop, #sheet .panel, #toast { animation: none !important; } }
   .panel h3 { margin: 0 0 6px; font: 700 24px/1.1 var(--display); letter-spacing: -.02em; word-break: break-word; }
   .panel input { background: var(--bg); }
   button.item { display: flex; justify-content: space-between; gap: 12px; background: transparent; color: var(--text); border: 0; border-top: 1px solid var(--line); border-radius: 0;
@@ -591,6 +603,7 @@
     #sheet { align-items: center; justify-content: center; padding: 24px; }
     #sheet .panel { max-width: 460px; border-bottom: 1px solid var(--line); border-radius: var(--r-l); padding: 24px 24px 18px; max-height: min(82vh, 760px); }
     #sheet .panel::before { display: none; }
+    @keyframes sheetin { from { opacity: 0; transform: scale(.96); } }
     /* Sign in: the website's headline beside the form. */
     #gate-auth { max-width: 1120px; }
     #gate-auth.active { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 80px; align-items: center; min-height: calc(100% - 24px); padding-top: 0; }
