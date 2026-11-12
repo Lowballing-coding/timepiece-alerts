@@ -68,6 +68,23 @@ async function fetchMissed(local) {
   } catch { return []; }
 }
 
+// ---- Lists that move smoothly: after a redraw, each item that moved glides from where it was to where it is now
+// (FLIP), and new items fade in, so nothing jumps. Items are matched by data-k (or data-id / data-menu).
+const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function flip(box, change) {
+  const key = (el) => el.dataset.k || el.dataset.id || el.dataset.menu;
+  const was = new Map();
+  if (!still() && box.offsetParent) for (const el of box.children) if (key(el)) was.set(key(el), el.getBoundingClientRect());
+  change();
+  if (!was.size) return;   // first draw, or the list isn't on screen
+  for (const el of box.children) {
+    const b = was.get(key(el));
+    if (!b) { if (!el.matches(".arrive, :has(.arrive)")) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }); continue; }
+    const a = el.getBoundingClientRect(), dx = b.left - a.left, dy = b.top - a.top;
+    if (Math.abs(dx) + Math.abs(dy) > 0.5) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 340, easing: "cubic-bezier(.2, .8, .2, 1)" });
+  }
+}
+
 // ---- Swipe a row left to delete it, like an Apple notification (the Alerts list and the Admin "Recent Alerts Sent" list) ----
 const REVEAL = 96;   // width of the red Delete area
 function slide(s, x, animate) {
@@ -87,9 +104,9 @@ function makeSwipeable(box, onDelete, onDone) {
     const go = group.querySelector(":scope > .acts");
     if (go) go.classList.add("pop");   // the buttons pop like a bubble
     await onDelete(s);
-    group.style.height = `${group.offsetHeight}px`; group.style.overflow = "hidden";
-    setTimeout(() => { group.style.transition = "height .2s, margin .2s"; group.style.height = "0"; group.style.margin = "0"; }, go ? 160 : 0);
-    setTimeout(() => onDone(group), go ? 400 : 240);
+    // Once it has slid away it fades, then onDone takes it out and the rest glide into its place (flip).
+    if (!still()) await group.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, delay: go ? 130 : 90, easing: "ease-in", fill: "forwards" }).finished;
+    onDone(group);
   }
   box.addEventListener("pointerdown", (e) => {
     const s = e.target.closest(".swipe");
@@ -128,15 +145,23 @@ makeSwipeable($("list"), async (s) => {
   // Remember it, so the server's copy doesn't come back as a "Missed" alert.
   store.set("tp-dismissed", [...(store.get("tp-dismissed") || []), { type: s.dataset.type, name: s.dataset.name, t: Number(s.dataset.t) }].slice(-200));
   if (s.dataset.id) { try { (await openDb()).transaction("alerts", "readwrite").objectStore("alerts").delete(Number(s.dataset.id)); } catch {} }
-}, () => renderAlerts());
+}, (group) => {
+  const box = $("list");
+  if (!box.querySelector(`.swipe:not([data-k="${CSS.escape(group.dataset.k)}"])`)) return renderAlerts();   // the last one: the empty clock fades in
+  flip(box, () => {
+    const h = group.previousElementSibling, n = group.nextElementSibling;
+    group.remove();
+    if (h && h.matches(".day") && (!n || n.matches(".day"))) h.remove();   // its day has no alerts left
+  });
+});
 makeSwipeable($("alert-log"), (s) => {   // the admin's sent-alerts list: hidden on this device
   store.set("tp-log-dismissed", [...(store.get("tp-log-dismissed") || []), s.dataset.id].slice(-200));
-}, (group) => {
+}, (group) => flip($("alert-log"), () => {
   group.remove();
   const left = $("alert-log").querySelectorAll(".swipe").length;
   $("log-count").textContent = left ? `Last ${left}` : "";
   if (!left) $("alert-log").innerHTML = '<p class="muted empty">No alerts sent yet.</p>';
-});
+}));
 const ICONS = {
   bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
   warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
@@ -240,8 +265,8 @@ async function shareEvent(ev) {
 let toastTimer = 0;
 function toast(text) {
   const t = $("toast");
-  t.textContent = text; t.hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4000);
+  t.textContent = text; t.hidden = false; t.classList.remove("out");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.classList.add("out"); toastTimer = setTimeout(() => { t.hidden = true; }, still() ? 0 : 200); }, 4000);
 }
 // Share and Open on FIXR, on alert cards and on the Events tab.
 function eventActions(ev, opts = {}) {
@@ -278,7 +303,7 @@ async function renderAlerts() {
   knownIds = new Set(items.filter((a) => a.id).map((a) => a.id));
   $("clear").hidden = $("swipe-hint").hidden = !items.length;
   if (!items.length) {
-    $("list").innerHTML = `<div class="empty">
+    flip($("list"), () => { $("list").innerHTML = `<div class="empty">
       <svg viewBox="0 0 120 120" aria-hidden="true">
         <circle class="ring" cx="60" cy="60" r="54" stroke-width="3"/>
         ${Array.from({ length: 12 }, (_, i) => `<line class="tick" x1="60" y1="10" x2="60" y2="${i % 3 ? 16 : 20}" stroke-width="${i % 3 ? 2 : 3}" transform="rotate(${i * 30} 60 60)"/>`).join("")}
@@ -289,7 +314,7 @@ async function renderAlerts() {
       </svg>
       <h2>Nothing on Sale Yet</h2>
       <p class="muted">When your watcher finds tickets, they show up here and on your lock screen.</p>
-    </div>`;
+    </div>`; });
     setClock();
     return;
   }
@@ -301,11 +326,11 @@ async function renderAlerts() {
     return d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
   };
   let lastDay = "";
-  $("list").innerHTML = items.map((a) => {
+  const html = items.map((a) => {
     const type = LABELS[a.type] ? a.type : "check";
     const url = safeUrl(a.url);
     const time = new Date(a.received).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-    const heading = dayKey(a.received) !== lastDay ? `<h2 class="day">${esc(dayName(a.received))}</h2>` : "";
+    const heading = dayKey(a.received) !== lastDay ? `<h2 class="day" data-k="d${esc(dayKey(a.received))}">${esc(dayName(a.received))}</h2>` : "";
     lastDay = dayKey(a.received);
     const d = /^(\d{1,2})\S*\s+([A-Za-z]+)/.exec(a.date || "");   // "10th January" -> a calendar tile
     const when = [a.day, a.date].filter(Boolean).join(" ");
@@ -313,11 +338,12 @@ async function renderAlerts() {
     const st = statuses[a.url] || {}, status = st.status;
     const cls = `alert ${type}${status === "off" && type === "on_sale" ? " sold" : ""}${fresh.has(a.id) ? " arrive" : ""}`;
     // Every alert sits in a swipe holder: drag it left to reveal Delete, or all the way to delete it.
-    const wrap = (extra, inner) => `<div class="swipe${extra}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
+    const k = esc(`${a.type}|${a.name}|${a.received}`);   // which alert this is, so it can glide when the list changes (flip)
+    const wrap = (extra, inner) => `<div class="swipe${extra}" data-k="${k}" data-id="${a.id ?? ""}" data-type="${esc(a.type)}" data-name="${esc(a.name)}" data-t="${a.received}"><button class="del" type="button" aria-label="Delete this alert">Delete</button>${inner}</div>`;
     if (type === "on_sale") {   // the one memorable element: a ticket stub
       const stub = d ? `<span>${esc((a.day || "").slice(0, 3))}</span><b>${esc(d[1])}</b><span>${esc(d[2].slice(0, 3))}</span>` : `<span>On</span><b>&#9733;</b><span>Sale</span>`;
       // Only the ticket slides when swiped; the button below stays put and pops away when the ticket is deleted.
-      return `${heading}<div class="tgroup">${wrap(" tk", `<article class="${cls}">
+      return `${heading}<div class="tgroup" data-k="${k}">${wrap(" tk", `<article class="${cls}">
         <div class="ticket">
           <div class="stub">${stub}</div>
           <div class="tbody">
@@ -343,6 +369,7 @@ async function renderAlerts() {
       <time class="at">${esc(time)}</time>
     </article>`);
   }).join("");
+  flip($("list"), () => { $("list").innerHTML = html; });   // after a delete, a Yes/No answer or a new alert, the others glide into place
   // Once the person is looking at the list, those alerts count as seen and the icon badge clears.
   if (!$("tabs").hidden && $("alerts").classList.contains("active") && !document.hidden) markSeen(items);
 }
@@ -368,7 +395,12 @@ document.querySelectorAll("nav button").forEach((b) => {
     if (b.dataset.tab === "admin") renderAdmin();
   };
 });
-$("clear").onclick = async () => { await clearAlerts(); store.set("tp-since", Date.now()); renderAlerts(); };
+$("clear").onclick = async () => {
+  await clearAlerts(); store.set("tp-since", Date.now());
+  const fade = still() ? null : $("list").animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-in", fill: "forwards" });
+  if (fade) await fade.finished;
+  await renderAlerts(); if (fade) fade.cancel();   // the empty clock then fades in
+};
 
 // ---- Events: every Timepiece event FIXR lists right now, with its live ticket status (saved by the watcher on every check) ----
 const EVENT_PILLS = { on: ["on", "On Sale Now"], soon: ["soon", "On Sale Soon"], off: ["", "Sold Out"], unknown: ["", "Check FIXR"] };
@@ -526,7 +558,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 94;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 95;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1409,7 +1441,7 @@ function showPeople() {
   const q = $("people-search").value.trim().toLowerCase(), order = { pending: 0, approved: 1, blocked: 2 };
   const list = people.filter((p) => (peopleFilter === "all" || p.status === peopleFilter) && (!q || `${p.nickname} ${p.display_name || ""} ${p.email}`.toLowerCase().includes(q)))
     .sort((a, b) => order[a.status] - order[b.status]);
-  $("people").innerHTML = list.map(personRow).join("") || `<p class="muted empty">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`;
+  flip($("people"), () => { $("people").innerHTML = list.map(personRow).join("") || `<p class="muted empty">${people.length ? "No One Matches." : "No one has signed up yet."}</p>`; });
 }
 $("people-search").oninput = showPeople;
 $("people-filter").onclick = (ev) => {
@@ -1639,9 +1671,14 @@ function drawSheet() {
 function openSheet(id) {
   sheetPerson = people.find((p) => p.id === id);
   if (!sheetPerson) return;
-  sheetMode = "menu"; drawSheet(); $("sheet").hidden = false;
+  sheetMode = "menu"; drawSheet(); clearTimeout(sheetTimer); $("sheet").classList.remove("out"); $("sheet").hidden = false;
 }
-const closeSheet = () => { $("sheet").hidden = true; };
+let sheetTimer = 0;
+const closeSheet = () => {   // slides (phone) or fades (computer) away, then hides
+  if ($("sheet").hidden) return;
+  $("sheet").classList.add("out");
+  clearTimeout(sheetTimer); sheetTimer = setTimeout(() => { $("sheet").hidden = true; $("sheet").classList.remove("out"); }, still() ? 0 : 200);
+};
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
 
 $("people").onclick = async (ev) => {

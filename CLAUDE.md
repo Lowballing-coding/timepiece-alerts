@@ -26,6 +26,7 @@ The app compares these to tell people an update is ready, so a missed bump means
 - Must work as an installed app on iPhone (Safari and Chrome), Android and desktop browsers. Watch out for in-app browsers (Instagram, Snapchat) and iOS PWA quirks.
 - Anything about payments, cancellation rights or personal data has UK consumer-law and privacy implications. Keep the app's wording in step with Terms and Privacy on the website.
 - Contact email is tpnotifyupdates@gmail.com.
+- Nothing should jump. When a list is redrawn or an item is removed, wrap the change in `flip(box, change)` in app.js so the other items glide into place (items need `data-k`, `data-id` or `data-menu`). Every animation must respect prefers-reduced-motion (`still()` in app.js).
 
 ## Checking a change
 
