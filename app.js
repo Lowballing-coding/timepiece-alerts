@@ -558,7 +558,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 95;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 96;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1747,9 +1747,14 @@ $("rejoin").onclick = async () => {
 };
 
 // ---- Boot ----
+// On iPhone a tapped alert opens the app first, which then opens FIXR: iOS shows FIXR over the app, so closing it comes back here
+// (opened straight from the notification, closing FIXR left a blank page). See notificationclick in sw.js.
+function openFixr(u) { if (safeUrl(u)) location.href = u; }
+{ const u = new URLSearchParams(location.search).get("open"); if (u) { history.replaceState(null, "", location.pathname); openFixr(u); } }
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
   navigator.serviceWorker.addEventListener("message", (ev) => {
+    if (ev.data && ev.data.open) return openFixr(ev.data.open);
     const t = ev.data && ev.data.tab === "admin" && document.querySelector('#tabs [data-tab="admin"]');
     if (t && !t.hidden && !$("tabs").hidden) t.click(); else renderAlerts();
   });

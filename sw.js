@@ -1,4 +1,4 @@
-const CACHE = "timepiece-v95";
+const CACHE = "timepiece-v96";
 const SHELL = ["./", "index.html", "app.js", "events.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
 importScripts("events.js");   // eventOver, clearOverNotifications
@@ -90,10 +90,18 @@ self.addEventListener("notificationclick", (e) => {
   const fixr = url && /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(url);
   const tap = fixr ? fetch(`${SB_URL}/rest/v1/rpc/tap`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({ u: url }) }).catch(() => {}) : null;
+  // iPhone: FIXR opened straight from the notification had no app under it, so closing it left a blank page.
+  // Open the app first and let it open FIXR (iOS shows that over the app, so closing FIXR goes back to the app).
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);   // ponytail: iPads set to desktop mode look like a Mac and keep the old way
   e.waitUntil(Promise.all([tap,
-    fixr
+    fixr && !ios
       ? self.clients.openWindow(url)
       : self.clients.matchAll({ type: "window" }).then((wins) => {
+          if (fixr) {
+            if (!wins[0]) return self.clients.openWindow(`./?open=${encodeURIComponent(url)}`);
+            wins[0].postMessage({ open: url });
+            return wins[0].focus();
+          }
           if (!wins[0]) return self.clients.openWindow(tab ? `./?tab=${tab}` : "./");
           if (tab) wins[0].postMessage({ tab });   // already open: switch it to the Admin tab
           return wins[0].focus();
