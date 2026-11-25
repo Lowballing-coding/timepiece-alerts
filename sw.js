@@ -1,9 +1,9 @@
-const CACHE = "timepiece-v96";
+const CACHE = "timepiece-v97";
 const SHELL = ["./", "index.html", "app.js", "events.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
 importScripts("events.js");   // eventOver, clearOverNotifications
 const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
-  signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert" };
+  signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert", get_ready: "Tickets Open Soon" };
 const NOT_ALERTS = ["signup", "free_ending", "too_late"];   // about the account, not an event: not saved in the alert history
 // Public values (same as app.js): used only to count taps on a notification for the owner's dashboard, never who tapped.
 const SB_URL = "https://ddeapflekaecxqetayil.supabase.co";
@@ -60,13 +60,15 @@ self.addEventListener("push", (e) => {
   const late = Math.max(0, Math.round(Number(d.late) || 0));   // minutes late (free month); 0 = instant
   const onSale = late ? `Listed as on sale ${late} minutes ago. Check the tickets on FIXR.` : "Listed as on sale. Check the tickets on FIXR."
     + (d.first ? " Your one instant alert of the free month; after this they come 30 minutes late." : "");
-  const extra = { on_sale_soon: "Check it on FIXR.", on_sale: onSale, back_on_sale: "Returned tickets are often gone in a minute or two. Check FIXR now." }[type] || "";
+  const opens = /^\d{1,2}:\d{2}$/.test(d.opens || "") ? d.opens : "";
+  const extra = { on_sale_soon: "Check it on FIXR.", on_sale: onSale, back_on_sale: "Returned tickets are often gone in a minute or two. Check FIXR now.",
+    get_ready: `Tickets open${opens ? " at " + opens : " in a few minutes"}. Open FIXR now so you're ready.` }[type] || "";
   const body = [d.name, [d.day, d.date].filter(Boolean).join(" "), extra].filter(Boolean).join("\n");
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
   e.waitUntil((async () => {
     if (!NOT_ALERTS.includes(type)) {   // sign-up requests are for the Admin tab, reminders for the Alerts tab: not the alert history
-      const unseen = await saveAlert({ type: type === "back_on_sale" ? "on_sale" : type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", late, received: Date.now(), seen: false });
+      const unseen = await saveAlert({ type: { back_on_sale: "on_sale", get_ready: "on_sale_soon" }[type] || type, name: d.name || "", day: d.day || "", date: d.date || "", url: d.url || "", late, received: Date.now(), seen: false });
       try { await self.navigator.setAppBadge(unseen); } catch {}   // number on the Home Screen icon
     }
     await clearOverNotifications(self.registration);
@@ -74,7 +76,7 @@ self.addEventListener("push", (e) => {
       body: body || "Open the app for details.",
       tag: d.url || (NOT_ALERTS.includes(type) ? type + (d.name || "") : "timepiece"),
       renotify: true,
-      requireInteraction: type === "on_sale" || type === "back_on_sale",
+      requireInteraction: ["on_sale", "back_on_sale", "get_ready"].includes(type),
       icon: "icon-192.png",
       data: { url: d.url || "", tab: d.tab === "admin" ? "admin" : "", date: d.date || "", received: Date.now() },
     });
