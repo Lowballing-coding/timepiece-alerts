@@ -3,7 +3,8 @@ const SHELL = ["./", "index.html", "app.js", "events.js", "manifest.webmanifest"
   "fonts/unbounded.woff2", "fonts/schibsted-grotesk.woff2"];
 importScripts("events.js");   // eventOver, clearOverNotifications
 const TITLES = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
-  signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert", get_ready: "Tickets Open Soon" };
+  signup: "New Sign-Up Request", free_ending: "Your Free Month Ends Soon", back_on_sale: "Tickets Back on Sale", too_late: "Sold Out Before Your Alert", get_ready: "Tickets Open Soon",
+  lookout: "Lookout Found" };
 const NOT_ALERTS = ["signup", "free_ending", "too_late"];   // about the account, not an event: not saved in the alert history
 // Public values (same as app.js): used only to count taps on a notification for the owner's dashboard, never who tapped.
 const SB_URL = "https://ddeapflekaecxqetayil.supabase.co";
@@ -62,7 +63,8 @@ self.addEventListener("push", (e) => {
     + (d.first ? " Your one instant alert of the free month; after this they come 30 minutes late." : "");
   const opens = /^\d{1,2}:\d{2}$/.test(d.opens || "") ? d.opens : "";
   const extra = { on_sale_soon: "Check it on FIXR.", on_sale: onSale, back_on_sale: "Returned tickets are often gone in a minute or two. Check FIXR now.",
-    get_ready: `Tickets open${opens ? " at " + opens : " in a few minutes"}. Open FIXR now so you're ready.` }[type] || "";
+    get_ready: `Tickets open${opens ? " at " + opens : " in a few minutes"}. Open FIXR now so you're ready.`,
+    lookout: d.where || "" }[type] || "";   // "Sandy Park · TickItUp · Fight Night" (admin-only, from lookouts.py)
   const body = [d.name, [d.day, d.date].filter(Boolean).join(" "), extra].filter(Boolean).join("\n");
 
   // Always show a notification: iOS revokes the subscription if a push shows nothing.
@@ -89,8 +91,8 @@ self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const url = e.notification.data && e.notification.data.url;
   const tab = (e.notification.data && e.notification.data.tab) || "";
-  const fixr = url && /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(url);
-  const tap = fixr ? fetch(`${SB_URL}/rest/v1/rpc/tap`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" },
+  const fixr = url && /^https:\/\/([a-z0-9-]+\.)*(fixr\.co|fatsoma\.com|skiddle\.com|tickitup\.co)\//i.test(url);   // ticket links (same list as safeUrl in app.js)
+  const tap = fixr && /fixr\.co\//i.test(url) ? fetch(`${SB_URL}/rest/v1/rpc/tap`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({ u: url }) }).catch(() => {}) : null;
   // iPhone: FIXR opened straight from the notification had no app under it, so closing it left a blank page.
   // Open the app first and let it open FIXR (iOS shows that over the app, so closing FIXR goes back to the app).

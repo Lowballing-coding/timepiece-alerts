@@ -613,10 +613,17 @@
     .auth-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); padding: 8px 28px 24px; }
     .auth-box .title { font-size: 34px; margin-top: 18px; }
   }
+  /* Admin Lookouts: a word with what it searches for underneath, and things the watcher found on other ticket sites. */
+  .rowline input.inrow.left { text-align: left; }
+  .rowline .two { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .rowline:has(> .two) { flex-wrap: nowrap; }
+  .rowline .two .meta, .rowbtn .two .meta { overflow-wrap: anywhere; }
+  .rowbtn .two { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .rowbtn .pill { flex: none; }
   /* Wide windows: Admin and Settings become two columns. */
   @media (min-width: 1200px) {
-    .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent" "people instagram"; column-gap: 32px; align-items: start; }
-    .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; } .b-instagram { grid-area: instagram; }
+    .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent" "people instagram" "people lookouts"; column-gap: 32px; align-items: start; }
+    .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; } .b-instagram { grid-area: instagram; } .b-lookouts { grid-area: lookouts; }
     .setcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "alerts account" "alerts computer" "alerts look" "alerts help" "out out";
       grid-template-rows: auto auto auto 1fr auto; column-gap: 40px; align-items: start; }
     .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; }
@@ -720,6 +727,20 @@
           <button class="rowbtn chev" type="button" data-page="ig-posts-page"><span>Posts, Reels and Stories</span><span class="val" id="ig-posts-val"></span></button>
           <button class="rowbtn chev" type="button" data-page="ig-comments-page"><span>Comments</span><span class="val" id="ig-comments-val"></span></button>
         </div>
+      </div>
+      <div class="b-lookouts">
+        <h2>Clubs to Watch</h2>
+        <div id="lk-clubs" class="group"></div>
+        <p class="meta foot">New club nights in Exeter on FIXR, Fatsoma, Skiddle and TickItUp, checked every 5 minutes. Switch a club off to stop its alerts. Only you get these.</p>
+        <h2>Look Out For...</h2>
+        <div class="group">
+          <div id="lk-words"></div>
+          <form id="lk-add" class="rowline"><input id="lk-say" class="inrow left" type="text" maxlength="40" placeholder="Add something, e.g. foam party" aria-label="Look out for" autocomplete="off"><button class="link" type="submit">Add</button></form>
+        </div>
+        <p id="lk-msg" class="msg foot" role="status"></p>
+        <p class="meta foot">Searches every Exeter event, not just club nights, for these words. You get an alert the moment tickets appear.</p>
+        <h2>Found Lately</h2>
+        <div id="lk-found" class="group"></div>
       </div>
     </div>
     <button id="to-top" class="secondary" type="button">Back to Top <span aria-hidden="true">↑</span></button>

@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 // Never run inside someone else's page (stops click-tricking; GitHub Pages can't send the header that does this).
 if (window.top !== window.self) { try { window.top.location = location.href; } catch { document.documentElement.hidden = true; } }
 const LABELS = { on_sale: "Tickets on Sale", on_sale_soon: "On Sale Soon", check: "Check Manually", problem: "Watcher Problem", test: "Test Notification",
-  back_on_sale: "Returned Tickets", too_late: "Sold Out First" };
+  back_on_sale: "Returned Tickets", too_late: "Sold Out First", lookout: "Lookout Found" };
 
 // ---- IndexedDB (alert history, shared with sw.js) ----
 function openDb() {
@@ -33,9 +33,11 @@ async function clearAlerts() {
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+// FIXR, plus the other ticket sites the admin's Lookouts watch (lookouts.py on the server).
 function safeUrl(u) {
-  return /^https:\/\/([a-z0-9-]+\.)*fixr\.co\//i.test(u || "") ? u : "";
+  return /^https:\/\/([a-z0-9-]+\.)*(fixr\.co|fatsoma\.com|skiddle\.com|tickitup\.co)\//i.test(u || "") ? u : "";
 }
+const siteName = (u) => ({ fatsoma: "Fatsoma", skiddle: "Skiddle", tickitup: "TickItUp" })[(/(fatsoma|skiddle|tickitup)\./i.exec(u) || [])[1]?.toLowerCase()] || "FIXR";
 // The dial on the empty screen shows this phone's own local time (the seconds hand is synced when it is drawn).
 function setClock() {
   const h = $("clk-h"), m = $("clk-m");
@@ -274,7 +276,7 @@ function eventActions(ev, opts = {}) {
   if (!url) return "";
   const share = opts.share ? `<button class="secondary share" type="button" data-share="${esc(JSON.stringify({ name: ev.name, day: ev.day, date: ev.date, url, status: ev.status, out: ev.out || "" }))}">Share</button>` : "";
   const quiet = ["off", "soon", "unknown"].includes(ev.status) ? " secondary" : "";   // lime only while tickets are on sale
-  return `<div class="acts"><a class="go${quiet}" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on FIXR</a>${share}</div>`;
+  return `<div class="acts"><a class="go${quiet}" href="${esc(url)}" target="_blank" rel="noopener" data-tap="${esc(url)}">Open on ${siteName(url)}</a>${share}</div>`;
 }
 function onEventClick(e) {
   const t = e.target.closest("[data-tap]");
@@ -357,7 +359,7 @@ async function renderAlerts() {
       </article>`)}${eventActions({ ...a, status, out: status === "off" ? soldOutIn(st) : "" }, { share: true })}${url ? gotItHtml(a, url) : ""}</div>`;
     }
     const tile = d ? dateTile(a.day, d) : `<div class="tile icon">${type === "test" ? ICONS.bell : type === "on_sale_soon" ? ICONS.clock : ICONS.warn}</div>`;
-    const url2 = type === "on_sale_soon" ? safeUrl(a.url) : "";
+    const url2 = ["on_sale_soon", "lookout"].includes(type) ? safeUrl(a.url) : "";
     return heading + wrap("", `<article class="${cls} row">
       ${tile}
       <div>
@@ -365,6 +367,7 @@ async function renderAlerts() {
         <h3>${esc(a.name)}</h3>
         ${when ? `<p class="when">${esc(when)}</p>` : ""}
         ${type === "on_sale_soon" ? (url2 ? eventActions({ ...a, url: url2, status: "soon" }) : '<p class="when">Check it on FIXR.</p>') : ""}
+        ${type === "lookout" && url2 ? eventActions({ ...a, url: url2, status: "soon" }) : ""}
       </div>
       <time class="at">${esc(time)}</time>
     </article>`);
@@ -1485,7 +1488,60 @@ async function renderAdmin() {
   renderLog();
   renderStats();
   renderInstagram();
+  renderLookouts();
 }
+// ---- Lookouts (admin only): club nights and "Look out for..." words on other Exeter ticket sites (supabase_step24.sql, lookouts.py) ----
+// The words each phrase searches for. Anything not listed searches for the phrase itself; Claude can add more in lookout_settings.
+const LK_TERMS = {
+  "fight night": ["fight night", "boxing", "white collar", "uwcb", "mma", "fight club"], boxing: ["boxing", "white collar", "uwcb", "fight night"],
+  "foam party": ["foam party", "foam"], "silent disco": ["silent disco"], "drum and bass": ["drum and bass", "dnb", "d&b", "jungle"],
+  "day party": ["day party", "day rave", "day fever", "daytime"], comedy: ["comedy", "stand-up", "stand up"], "ufc": ["ufc", "mma"],
+};
+let lk = { muted: [], words: [] }, lkFound = [];
+async function renderLookouts() {
+  try {
+    const [st, found] = await Promise.all([api("lookout_settings?select=lookouts"),
+      api(`lookout_found?select=url,name,venue,site,starts,status,matched&starts=gte.${new Date().toISOString().slice(0, 10)}&order=found_at.desc&limit=100`)]);
+    lk = { muted: [], words: [], ...(st[0] && st[0].lookouts) };
+    lkFound = found;
+    drawLookouts();
+  } catch (e) { $("lk-found").innerHTML = `<p class="msg error">${esc(e.message)}</p>`; }
+}
+function drawLookouts() {
+  const nights = lkFound.filter((f) => !f.matched);
+  const clubs = [...new Set([...nights.map((f) => f.venue), ...lk.muted])].filter(Boolean).sort();
+  const count = (v) => { const n = nights.filter((f) => f.venue === v).length; return n ? `${n} coming up` : "Nothing coming up"; };
+  flip($("lk-clubs"), () => { $("lk-clubs").innerHTML = clubs.length ? clubs.map((v) => `<label class="rowline" data-k="${esc(v)}"><span class="two"><span>${esc(v)}</span><span class="meta">${count(v)}</span></span><input class="switch" type="checkbox" data-club="${esc(v)}" aria-label="Alerts from ${esc(v)}"${lk.muted.includes(v) ? "" : " checked"}></label>`).join("")
+    : '<p class="empty meta">Clubs show up here once the watcher has found their nights.</p>'; });
+  flip($("lk-words"), () => { $("lk-words").innerHTML = lk.words.map((w, i) => `<div class="rowline" data-k="${esc(w.say)}"><span class="two"><span>${esc(w.say)}</span><span class="meta">Searches for ${esc((w.terms || [w.say]).join(", "))}</span></span><button class="link" type="button" data-rm="${i}" aria-label="Stop looking out for ${esc(w.say)}">Remove</button></div>`).join(""); });
+  const day = (d) => new Date(d + "T12:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const pill = { on: '<span class="pill on">On Sale</span>', soon: '<span class="pill soon">Soon</span>', off: '<span class="pill">Sold Out</span>' };
+  $("lk-found").innerHTML = lkFound.filter((f) => f.matched || !lk.muted.includes(f.venue)).slice(0, 8).map((f) => safeUrl(f.url) ? `<a class="rowbtn" href="${esc(f.url)}" target="_blank" rel="noopener" data-k="${esc(f.url)}"><span class="two"><span>${esc(f.name)}</span><span class="meta">${esc([f.starts && day(f.starts), f.venue, f.site].filter(Boolean).join(" · "))}${f.matched ? ` · ${esc(f.matched)}` : ""}</span></span>${pill[f.status] || ""}</a>` : "").join("")
+    || '<p class="empty meta">Nothing found yet. New nights show up here and on your lock screen.</p>';
+}
+async function saveLookouts(next) {
+  const was = lk; lk = next; drawLookouts();
+  try {
+    const r = await api("lookout_settings?id=eq.1&select=lookouts", { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ lookouts: next }) });
+    if (!r || !r.length) throw new Error(friendlyError(403, ""));
+    $("lk-msg").textContent = "";
+  } catch (err) { lk = was; drawLookouts(); $("lk-msg").className = "msg foot error"; $("lk-msg").textContent = err.message; }
+}
+$("lk-clubs").addEventListener("change", (e) => {
+  const v = e.target.dataset.club; if (!v) return;
+  saveLookouts({ ...lk, muted: e.target.checked ? lk.muted.filter((m) => m !== v) : [...lk.muted, v] });
+});
+$("lk-words").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-rm]"); if (!b) return;
+  saveLookouts({ ...lk, words: lk.words.filter((_, i) => i !== Number(b.dataset.rm)) });
+});
+$("lk-add").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const say = $("lk-say").value.trim().replace(/\s+/g, " ");
+  if (!say || lk.words.some((w) => w.say.toLowerCase() === say.toLowerCase())) return;
+  $("lk-say").value = "";
+  saveLookouts({ ...lk, words: [...lk.words, { say, terms: LK_TERMS[say.toLowerCase()] || [say.toLowerCase()] }] });
+});
 // Admin switches the watcher reads: Telegram copies of every alert (supabase_step16.sql) and sell-out Instagram stories (step19).
 for (const col of ["telegram", "instagram"]) $(col + "-on").addEventListener("change", async (e) => {
   const on = e.target.checked;
