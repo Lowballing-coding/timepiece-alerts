@@ -29,6 +29,7 @@ The app compares these to tell people an update is ready, so a missed bump means
 - On iPhone, a tapped alert must open the app first (`./?open=<FIXR link>`, or a message to an open app) and let `openFixr()` in app.js open FIXR. Opening FIXR straight from `notificationclick` in sw.js left a blank page when FIXR was closed.
 - Alert types come from the watcher (not in this repo). `get_ready` ("Tickets Open Soon", 5 minutes before a listed opening time, carries `opens` like "12:00") is saved in the alert history as `on_sale_soon`, like `back_on_sale` is saved as `on_sale`, so app.js needs no new label.
 - Nothing should jump. When a list is redrawn or an item is removed, wrap the change in `flip(box, change)` in app.js so the other items glide into place (items need `data-k`, `data-id` or `data-menu`). Every animation must respect prefers-reduced-motion (`still()` in app.js).
+- The "Live: checked …" line reads `checked_secs_ago` from the `public_status` RPC: the age of the last successful FIXR check (`watcher_status.last_ok_at`, set by a trigger), worked out by the server so a wrong device clock or a failed check can't make it wrong. Don't compute it from `last_check_at`, which failed checks also write.
 
 ## Checking a change
 
