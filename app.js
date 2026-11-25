@@ -558,7 +558,7 @@ $("test").onclick = async () => {
 };
 
 // ---- Update notice: friends who never close the app still find out when a new version is ready ----
-const APP_VERSION = 98;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
+const APP_VERSION = 99;   // keep equal to the number in CACHE ("timepiece-vNN") in sw.js; bump both on every release
 async function checkForUpdate() {   // the newest version number, or null when offline
   try {
     const m = /timepiece-v(\d+)/.exec(await (await fetch("sw.js", { cache: "no-store" })).text());
@@ -1370,16 +1370,17 @@ function ago(iso) {
 }
 // Everyone sees a live line on Alerts ("Live: checked 40 seconds ago"). When the watcher is down, it says when it last
 // worked, in this phone's own time zone; the admin also gets that as a card on the Admin tab.
-let watcherAt = null, watcherOk = true;
+// The age is the server's (last successful check), so a failed check or a wrong clock on this phone can't skew it.
+let watcherAt = null;
 async function renderWatcher() {
   try {
-    const r = (await api("watcher_status?select=last_check_at,ok"))[0];
-    watcherAt = r && r.last_check_at ? new Date(r.last_check_at) : null; watcherOk = !!(r && r.ok);
+    const r = await api("rpc/public_status", { method: "POST", body: "{}" });
+    watcherAt = r && r.checked_secs_ago != null ? new Date(Date.now() - r.checked_secs_ago * 1000) : null;
   } catch { if (!watcherAt) return; /* offline before the first answer: show nothing */ }
   drawWatcher();
 }
 function drawWatcher() {
-  const when = watcherAt, bad = !when || Date.now() - when > 5 * 60e3 || !watcherOk;
+  const when = watcherAt, bad = !when || Date.now() - when > 5 * 60e3;
   let text = "The watcher hasn't checked in yet.";
   if (when && bad) {
     const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -1392,12 +1393,13 @@ function drawWatcher() {
   const admin = $("watcher-admin");
   admin.className = `health ${bad ? "problem" : "live"}`; admin.textContent = when && !bad ? text.replace(/^Live: c/, "C") : text;
 }
-// Keep the live line ticking while the app is open: redraw every 10 seconds, ask the server again every 30.
+// Keep the live line ticking while the app is open: ask the server every 10 seconds (the watcher's daytime pace),
+// and refresh the Events tab every 30.
 let watcherTick = 0;
 setInterval(() => {
   if (document.hidden || !session || !profile || $("tabs").hidden) return;
-  if (++watcherTick % 3 === 0) { renderWatcher(); if ($("events").classList.contains("active")) renderEvents(); }
-  else if (watcherAt) drawWatcher();
+  renderWatcher();
+  if (++watcherTick % 3 === 0 && $("events").classList.contains("active")) renderEvents();
 }, 10e3);
 
 // ---- Admin (the database refuses anyone who isn't the admin) ----
