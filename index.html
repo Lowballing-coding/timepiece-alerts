@@ -617,9 +617,11 @@
   @media (min-width: 1200px) {
     .dash { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); grid-template-areas: "overview status" "people recent" "people instagram"; column-gap: 32px; align-items: start; }
     .b-overview { grid-area: overview; } .b-status { grid-area: status; } .b-people { grid-area: people; } .b-recent { grid-area: recent; } .b-instagram { grid-area: instagram; }
-    .setcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "alerts account" "alerts computer" "alerts look" "alerts help" "alerts out";
-      grid-template-rows: auto auto auto auto 1fr; column-gap: 40px; align-items: start; }
-    .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; } .s-out { grid-area: out; }
+    .setcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "alerts account" "alerts computer" "alerts look" "alerts help" "out out";
+      grid-template-rows: auto auto auto 1fr auto; column-gap: 40px; align-items: start; }
+    .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; }
+    /* Sign Out sits centred under both columns, one column wide. */
+    .s-out { grid-area: out; justify-self: center; width: 100%; max-width: calc((100% - 40px) / 2); text-align: center; }
   }
 </style>
 </head>
