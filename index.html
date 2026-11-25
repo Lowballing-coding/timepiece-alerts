@@ -56,12 +56,14 @@
     --danger: #ff6b5e; --on-danger: #0c0916; --danger-ink: #ff8075; --danger-soft: rgba(255, 107, 94, .16);
     --focus: #c0aaff; --glow: 0 0 0 1px rgba(255, 201, 92, .1), 0 16px 48px rgba(150, 110, 255, .18); --scrim: rgba(0, 0, 0, .62);
     --glass: rgba(255, 255, 255, .035);
-    --wash: radial-gradient(900px 520px at 88% -8%, rgba(138, 92, 255, .38), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 79, 160, .16), transparent 60%);
+    --lg-fill: rgba(26, 20, 46, .58); --lg-edge: rgba(255, 255, 255, .08); --lg-top: rgba(255, 255, 255, .06);
+    --lg-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .22);
+    --wash: radial-gradient(900px 560px at 75% -12%, rgba(118, 80, 238, .34), transparent 70%), radial-gradient(700px 480px at 0% 70%, rgba(118, 80, 238, .12), transparent 70%);
     color-scheme: dark;
   }
   :root[data-theme="light"] {
     --bg: #f6f3fb; --surface: #ffffff; --surface-2: #f1edf9; --line: #e3ddf0; --line-strong: #8f85a8;
-    --text: #1a1030; --muted: #675f7d;
+    --text: #1a1030; --muted: #5f5775;
     --signal: #ffc23d; --on-signal: #1a1030; --signal-ink: #7d5200; --signal-soft: rgba(255, 194, 61, .2);
     --edge: rgba(214, 150, 30, .55); --stub: linear-gradient(160deg, rgba(118, 80, 238, .16), rgba(118, 80, 238, .06));
     --action: linear-gradient(135deg, #6c46e8, #9461fb); --on-action: #ffffff;
@@ -69,7 +71,9 @@
     --danger: #c8241a; --on-danger: #ffffff; --danger-ink: #b3201a; --danger-soft: #fde8e5;
     --focus: #6a3fe0; --glow: 0 0 0 1px rgba(214, 150, 30, .12), 0 14px 36px rgba(118, 80, 238, .14); --scrim: rgba(26, 16, 48, .45);
     --glass: rgba(255, 255, 255, .55);
-    --wash: radial-gradient(900px 520px at 88% -8%, rgba(150, 110, 255, .22), transparent 62%), radial-gradient(760px 480px at -6% 104%, rgba(255, 173, 85, .18), transparent 60%);
+    --lg-fill: rgba(255, 255, 255, .64); --lg-edge: rgba(26, 16, 48, .07); --lg-top: rgba(255, 255, 255, .9);
+    --lg-shadow: 0 1px 2px rgba(26, 16, 48, .04), 0 10px 30px rgba(26, 16, 48, .06);
+    --wash: radial-gradient(900px 560px at 75% -12%, rgba(118, 80, 238, .17), transparent 70%), radial-gradient(700px 480px at 0% 70%, rgba(118, 80, 238, .07), transparent 70%);
     color-scheme: light;
   }
   :root {
@@ -629,6 +633,17 @@
     .s-alerts { grid-area: alerts; } .s-account { grid-area: account; } .s-computer { grid-area: computer; } .s-look { grid-area: look; } .s-help { grid-area: help; }
     /* Sign Out sits centred under both columns, one column wide. */
     .s-out { grid-area: out; justify-self: center; width: 100%; max-width: calc((100% - 40px) / 2); text-align: center; }
+  }
+  /* Frosted glass (same recipe as the website): Settings/Admin cards, the tab bar, switches and the computer sidebar.
+     Alert tickets stay solid, with their gold glow, so a swiped card never shows the red Delete through it. */
+  .group, nav, .seg { background: var(--lg-fill); -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%); }
+  .group { border-color: var(--lg-edge); box-shadow: inset 0 1px 0 var(--lg-top), var(--lg-shadow); }
+  nav { border-top-color: var(--lg-edge); }
+  @media (min-width: 1000px) {
+    body.app > header, #tabs { background: var(--lg-fill); -webkit-backdrop-filter: blur(20px) saturate(140%); backdrop-filter: blur(20px) saturate(140%); border-right-color: var(--lg-edge); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .group, nav, .seg, body.app > header, #tabs { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); }
   }
 </style>
 </head>
